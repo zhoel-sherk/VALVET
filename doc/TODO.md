@@ -4,13 +4,16 @@ Desktop-first SMT prep: BOM/PnP on disk, mapping, Clean, cross-check, merge/expo
 
 **Core vs GUI:** parsers, cleaning, merge, machine-library I/O stay Qt-free (`src/smt_processor.py`, `src/pcb_preview/`, `src/machine_library/`, `src/step_3d/occ_load.py`, `src/services/`). PySide6 orchestrates threads, `QSettings`, and dialogs (`src/app/window.py`, `src/ui/`).
 
-ALPHA **v0.1.3** — [CHANGELOG.md](../CHANGELOG.md), [TESTING.md](info/TESTING.md). Historical Boomer checklists live under `doc/working_on/` and `doc/legacy_artifacts/` if needed; this file is the active list only.
+ALPHA **v0.1.3** — [CHANGELOG.md](../CHANGELOG.md), [TESTING.md](info/TESTING.md). This file is the live backlog only.
+
+**Shipped (one line):** profiles + per-path mapping; Clean/Merge including `.mmd`; PCB Preview Gerber+PnP overlay (nudge, not 2-point auto-align); Step 3D phase A (optional pythonocc + PyVista, CLI fallback, OCC not in core deps / not frozen by default); Machine lib Hanwha WIP; PyInstaller `valvet.spec`.
 
 ## Now (product vector)
 
 1. **Machine library matching** — Hanwha `PART_Det`/`PARTNAME` is the current shop path (Machine lib tab + Qt-free readers). Next: sanitized fixtures (never commit full `.mdb`), auto-match from Clean+footprint, row status, MRU, optional strict export. **Yamaha** `.Tou` / `DevLibEd*.Lib` second ([yedytor](https://github.com/marmidr/yedytor) for formats/UX ideas, not a UI port).
 2. **Real boards** — BOM → PnP → map → Clean → apply → cross-check → merge → Top/Bot (and MMD) on production files; collect OTHER/regex fallbacks; note UX pain (errors, missing project/MRU).
 3. **Packaging smoke** — frozen `valvet.spec` on a clean Windows box ([PACKAGING_WINDOWS.md](info/PACKAGING_WINDOWS.md)); app icon / About if still missing in the bundle.
+4. **README screenshots** — Project/profiles, BOM/PnP mapping, Clean, Merge, Report.
 
 ## Backlog (keep; does not fight the vector)
 
@@ -54,10 +57,9 @@ In-process **pythonocc-core** tessellation + PyVista tree/pick; CLI→OBJ fallba
 - [ ] Finish splitting leftovers out of `window.py` if files keep growing.
 - [ ] Compact Clean advanced settings; jump from Clean preview row to BOM row; copy/export selected table rows.
 - [ ] Profiling-driven speed (large XLSX/merge/cross-check): `itertuples`/column loops, optional calamine/XlsxWriter/Parquet — **measure first**.
-- [ ] CLI on the same services (`clean` / `check` / `merge` / `machine-match`).
+- [ ] CLI on the same services (`valvet clean|check|merge|machine-match`).
 - [ ] Web only after services are stable (no prototype in-tree).
 - [ ] Remaining hardcoded UI strings → `lang/*.json`.
-- [ ] README screenshots of the main tabs.
 - [ ] Figma/QML tables stay out of scope; leftover notes: [DESIGN_TODO.md](legacy_artifacts/DESIGN_TODO.md).
 
 ## Tests
