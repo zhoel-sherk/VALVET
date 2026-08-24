@@ -1,0 +1,21 @@
+RefDes 	Name     	Pattern           	Center X (mm) 	Center Y (mm) 	Side   	Rotation 	Value          	Description 	Manufacturer c-r
+______________________________________________________________________________________________________________________________________________________
+
+C1     	CAA1003  	CAP_0603_S4C      	32.374        	2.15          	Bottom 	270.0    	100nF 10% 50V
+C2     	CAA1003  	CAP_0603_S4C      	7.28          	24.396        	Top    	0.0      	100nF 10% 50V
+C9     	CAA1004  	CAP_0603_S4C      	22.245        	21.846        	Bottom 	180.0    	1uF 10% 25V
+D1     	DIO0001  	SOD-123FL_S4C     	27.94         	1.905         	Bottom 	180.0    	SKL16
+D2     	DIO0001  	SOD-123FL_S4C     	36.251        	14.376        	Bottom 	90.0     	SKL16
+D3     	LED0001  	DIO_0603_S4C      	28.207        	27.649        	Top    	180.0    	RUB190TS
+F1     	FSA7500  	RES_0603_S4C      	18.324        	1.405         	Top    	0.0      	               	Fuse
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	36.136        	25.131        	Top    	90.0
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	3.121         	3.148         	Top    	90.0
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	35.66         	1.8           	Top    	90.0
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	28.893        	28.642        	Bottom 	270.0
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	1.837         	25.007        	Bottom 	270.0
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	2.066         	2.14          	Bottom 	270.0
+FID1   	Fiducial 	                  	13.672        	-4.628        	Top    	0.0
+FID2   	Fiducial 	                  	-4.113        	17.856        	Top    	0.0
+FID16  	Fiducial 	                  	146.1         	164.821       	Top    	0.0
+Q1     	TRF0002  	SOT23_S4C         	16.434        	28.515        	Top    	0.0      	BSS84.215
+R2     	REA1002  	RES_0603_S4C      	35.54         	8.611         	Bottom 	270.0    	10kR 1%

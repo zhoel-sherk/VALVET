@@ -1,0 +1,19 @@
+# Runtime dependencies for the PySide6 desktop app
+PySide6
+qdarkstyle>=3.2.3
+vcolorpicker>=1.4
+platformdirs
+pandas
+pyodbc
+numpy
+xlrd
+openpyxl
+odfpy
+natsort
+gerbonara
+regex
+rapidfuzz>=3.0.0
+
+# Test / developer tooling
+pytest
+coverage

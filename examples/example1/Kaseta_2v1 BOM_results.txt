@@ -1,0 +1,181 @@
+DATE   : 21-03-2023 10:14:30
+UNITS  : MM
+
+
+Ref.Des. Found In Job But Not In BOM
+====================================
+<REF DEG>      < X >       < Y >       
+---------------------------------------
+  Ref1         30.99999    88.50000    
+  Ref2         2.99999     2.99999     
+  Ref3         68.99999    112.00000   
+  Ref4         27.32921    21.23239    
+
+Ref.Des. Found In BOM But Not In Selected Job Parts
+===================================================
+<REF DEG>      <PART NUMBER>                  
+----------------------------------------------
+  B1           DTS6                           
+  C8           220u                           
+  C10          220u                           
+  C11          220u                           
+  C32          1000u                          
+  C33          1000u                          
+  P1           ARK2                           
+  P4           ARK2                           
+  P5           ARK2                           
+  P6           Header 9X2                     
+  P8           ARK2                           
+  P9           ARK2                           
+  P10          ARK2                           
+  P11          ARK2                           
+  P14          ARK2                           
+  P15          ARK2                           
+  PR1          10k                            
+  Rt1          MF075                          
+  Rt3          MF075                          
+  U3           L7805CV                        
+  U5           24C64WP                        
+  U6           MCP9700                        
+  X1           ECS-10-13-1                    
+
+Unmatch Part Numbers Between Job And BOM
+========================================
+<REF DEG>      <JOB P/N>                      <BOM P/N>                      
+-----------------------------------------------------------------------------
+  C38          4u7                            4u7 25V                        
+  LCD1         LCD-AC-0601B-BIW               LCD-AC-0601B-BIW W/B-E6 C PBF  
+  U8           DG455                          DG452                          
+
+Matching Part Numbers Between Job and BOM
+=========================================
+<REF DEG>      <JOB P/N>                      <BOM P/N>                      
+-----------------------------------------------------------------------------
+  C1           100n                           100n                           
+  C2           100n                           100n                           
+  C3           100n                           100n                           
+  C4           12p                            12p                            
+  C5           12p                            12p                            
+  C6           100n                           100n                           
+  C7           100n                           100n                           
+  C9           100n                           100n                           
+  C12          100n                           100n                           
+  C13          100n                           100n                           
+  C17          100n                           100n                           
+  C18          100n                           100n                           
+  C19          100n                           100n                           
+  C20          22n                            22n                            
+  C21          22n                            22n                            
+  C22          22n                            22n                            
+  C23          22n                            22n                            
+  C24          22n                            22n                            
+  C25          22n                            22n                            
+  C26          22n                            22n                            
+  C27          22n                            22n                            
+  C28          22n                            22n                            
+  C29          22n                            22n                            
+  C30          22n                            22n                            
+  C31          22n                            22n                            
+  C34          100n                           100n                           
+  C35          100n                           100n                           
+  C36          100n                           100n                           
+  C37          100n                           100n                           
+  C39          100n                           100n                           
+  C40          100n                           100n                           
+  C41          100n                           100n                           
+  C42          100n                           100n                           
+  C43          3u3                            3u3                            
+  C44          3u3                            3u3                            
+  C45          3u3                            3u3                            
+  D1           LL4148                         LL4148                         
+  D2           LL4148                         LL4148                         
+  D3           SMAJ18CA-E3/61                 SMAJ18CA-E3/61                 
+  D4           LL4148                         LL4148                         
+  D5           LL4148                         LL4148                         
+  D6           LL4148                         LL4148                         
+  D7           LL4148                         LL4148                         
+  D9           OF-SMD3216W                    OF-SMD3216W                    
+  D10          OF-SMD3216W                    OF-SMD3216W                    
+  D11          OF-SMD3216W                    OF-SMD3216W                    
+  D12          OF-SMD3216W                    OF-SMD3216W                    
+  L1           10uH                           10uH                           
+  L2           22uH                           22uH                           
+  L3           22uH                           22uH                           
+  Q1           BC858B                         BC858B                         
+  Q2           IRF7309                        IRF7309                        
+  Q3           IRF7309                        IRF7309                        
+  Q4           MMBF170LT1G                    MMBF170LT1G                    
+  Q5           BC848B                         BC848B                         
+  Q6           BC848B                         BC848B                         
+  Q7           MMBT2222A                      MMBT2222A                      
+  Q8           MMBT2222A                      MMBT2222A                      
+  Q9           MMBT2222A                      MMBT2222A                      
+  Q10          BC848B                         BC848B                         
+  Q11          BC848B                         BC848B                         
+  Q12          2N7002                         2N7002                         
+  Q13          BC848B                         BC848B                         
+  Q14          BC848B                         BC848B                         
+  Q15          BC848B                         BC848B                         
+  Q16          BC848B                         BC848B                         
+  R1           10k                            10k                            
+  R2           100k                           100k                           
+  R3           10k                            10k                            
+  R4           10k                            10k                            
+  R5           220R                           220R                           
+  R6           10k                            10k                            
+  R7           4k7                            4k7                            
+  R8           4k7                            4k7                            
+  R9           47k                            47k                            
+  R10          10k                            10k                            
+  R11          4k7                            4k7                            
+  R12          4k7                            4k7                            
+  R13          4k7                            4k7                            
+  R14          10k                            10k                            
+  R15          20R                            20R                            
+  R16          1k                             1k                             
+  R17          10k                            10k                            
+  R18          1k                             1k                             
+  R19          8k2                            8k2                            
+  R20          1k                             1k                             
+  R21          3k3                            3k3                            
+  R22          1k                             1k                             
+  R23          1k                             1k                             
+  R24          1k                             1k                             
+  R25          1k                             1k                             
+  R26          1k                             1k                             
+  R27          1k                             1k                             
+  R28          1k                             1k                             
+  R29          1k                             1k                             
+  R30          1k                             1k                             
+  R31          1k                             1k                             
+  R32          1k                             1k                             
+  R33          1k                             1k                             
+  R34          22k                            22k                            
+  R36          100R                           100R                           
+  R38          100R                           100R                           
+  R40          100R                           100R                           
+  R42          1k                             1k                             
+  R43          1k                             1k                             
+  R44          1k                             1k                             
+  R45          1k                             1k                             
+  R46          1k                             1k                             
+  R47          4R7                            4R7                            
+  R48          10k                            10k                            
+  R49          100k                           100k                           
+  R50          470                            470                            
+  R51          470                            470                            
+  R52          10k                            10k                            
+  R53          1M                             1M                             
+  R54          10k                            10k                            
+  R55          4k7                            4k7                            
+  R56          1k5                            1k5                            
+  R57          270R                           270R                           
+  R58          270R                           270R                           
+  R59          270R                           270R                           
+  R60          270R                           270R                           
+  R61          10k                            10k                            
+  U1           ATmega128A-16AU                ATmega128A-16AU                
+  U2           DF02S                          DF02S                          
+  U7           SN65HVD3085E                   SN65HVD3085E                   
+  U9           TPS60402DBVT                   TPS60402DBVT                   
+

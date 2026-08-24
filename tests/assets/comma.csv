@@ -1,0 +1,11 @@
+File Design Information:
+
+Date:       26.04.23
+Time:       11:09
+Revision:   Not in VersionControl
+Variant:    No variations
+Units used: mm
+
+"Designator","Comment","Layer","Footprint","Center-X(mm)","Center-Y(mm)","Rotation","Description","ComponentKind","Ref-X(mm)","Ref-Y(mm)","Pad-X(mm)","Pad-Y(mm)"
+"R52","68Ohm","BottomLayer","RESC1608X50N","36.6250","37.9000","90","CRCW060368R0FKEA","Standard","36.6250","37.9000","36.6250","37.1500"
+"R51","22Ohm","BottomLayer","RESC1608X55N","54.8500","20.6750","270","ESR03EZPJ220","Standard","54.8500","20.6750","54.8500","21.4750"

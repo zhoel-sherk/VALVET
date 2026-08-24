@@ -1,0 +1,231 @@
+Revision:   799
+Variant:    Variant of FP_20_Online_P1_V3_ST
+Units used: mm
+
+Designator Comment              Layer       Footprint                                       Center-X(mm) Center-Y(mm) Rotation MPN   
+Fid6       Fiducial             BottomLayer Circ1                                          121.3090      75.1030      0            
+Fid5       Fiducial             BottomLayer Circ1                                          120.0990     -13.9400      0            
+Fid4       Fiducial             BottomLayer Circ1                                            9.6850       5.5300      0            
+Fid3       Fiducial             TopLayer    Circ1                                          121.5000      74.7500      0            
+Fid2       Fiducial             TopLayer    Circ1                                          121.0000     -14.0000      0            
+Fid1       Fiducial             TopLayer    Circ1                                            4.5000       5.2500      0            
+
+C1         4.7UF/6.3V           TopLayer    0603                                            70.5026      56.8923      90       CL10A475KQ8NNNC                      
+C2         100UF/6.3V           TopLayer    CAP_SMDB                                        62.0126      15.7437      0        T491B107M006AT                       
+C4         1UF                  BottomLayer 0603                                            90.6151      39.6899      90       CL10B105KO8NNNC                      
+C5         100NF                BottomLayer 0603                                            62.1199      11.6407      90       CL10B104KA8NNN                       
+C6         100NF                BottomLayer 0603                                            74.4259      23.0735      270      CL10B104KA8NNN                       
+C7         1UF                  BottomLayer 0603                                            113.1691     44.0743      90       CL10B105KO8NNNC                      
+C8         10uF                 TopLayer    0805                                            34.7000      8.4453       270      CL21B106KQQNNNG                      
+C9         100NF                BottomLayer 0603                                            59.9119      23.0490      270      CL10B104KA8NNN                       
+C10        100NF                BottomLayer 0603                                            70.5709      11.6407      90       CL10B104KA8NNN                       
+C11        100NF                BottomLayer 0603                                            93.3666      24.6296      90       CL10B104KA8NNN                       
+C12        100NF                BottomLayer 0603                                            106.5796     27.7320      90       CL10B104KA8NNN                       
+C13        100NF                TopLayer    0603                                            71.6912      16.3819      0        CL10B104KA8NNN                       
+C14        100nF                TopLayer    0603                                            29.3886      8.4327       270      CL10B104KA8NNN                       
+C15        100NF                BottomLayer 0603                                            95.8297      50.2350      180      CL10B104KA8NNN                       
+C32        1UF                  TopLayer    0603                                            5.6215       18.9451      270      CL10B105KO8NNNC                      
+C35        1NF/2KV              TopLayer    1206                                            59.4600      29.0440      90       C1206C102KGRACTU                     
+C40        1NF                  TopLayer    0603                                            93.4254      17.3084      0        CL10B102KB8NNND                      
+C46        2.2UF                BottomLayer 0603                                            101.2264     36.2660      270      CL10A225KQ8NNNC                      
+C52        1NF/2KV              BottomLayer 1206                                            98.5505      10.3975      180      C1206C102KGRACTU                     
+C53        100NF                BottomLayer 0603                                            60.8995      41.3863      0        CL10B104KA8NNN                       
+C54        100NF                BottomLayer 0603                                            60.2021      26.7120      0        CL10B104KA8NNN                       
+C56        100NF                BottomLayer 0603                                            31.0000      15.9554      90       CL10B104KA8NNN                       
+C57        100NF                TopLayer    0603                                            75.7189      20.3203      90       CL10B104KA8NNN                       
+C59        100NF                BottomLayer 0603                                            81.8158      34.3258      180      CL10B104KA8NNN                       
+C60        100NF                BottomLayer 0603                                            88.3452      42.4136      0        CL10B104KA8NNN                       
+C61        100NF                BottomLayer 0603                                            81.4392      54.9804      90       CL10B104KA8NNN                       
+C62        100NF                BottomLayer 0603                                            79.9829      54.9646      90       CL10B104KA8NNN                       
+C63        100NF                BottomLayer 0603                                            88.3452      45.3027      0        CL10B104KA8NNN                       
+C64        100NF                TopLayer    0603                                            80.7800      44.4237      180      CL10B104KA8NNN                       
+C65        100NF                BottomLayer 0603                                            70.0006      50.6781      180      CL10B104KA8NNN                       
+C66        100NF                TopLayer    0603                                            83.1555      45.1326      270      CL10B104KA8NNN                       
+C67        100NF                BottomLayer 0603                                            75.2939      54.9715      90       CL10B104KA8NNN                       
+C68        100NF                BottomLayer 0603                                            70.0255      47.1825      180      CL10B104KA8NNN                       
+C73        10UF/6.3V            TopLayer    0603                                            80.9395      41.0231      0        CL10A106KQ8NNN                       
+C74        10UF/6.3V            TopLayer    0603                                            77.9762      44.4475      180      CL10A106KQ8NNN                       
+C75        10UF/6.3V            BottomLayer 0603                                            70.0476      49.0672      0        CL10A106KQ8NNN                       
+C76        10UF/6.3V            BottomLayer 0603                                            76.8136      54.9432      270      CL10A106KQ8NNN                       
+C78        10UF/6.3V            TopLayer    0603                                            78.9615      28.1516      0        CL10A106KQ8NNN                       
+C79        1NF                  TopLayer    0603                                            77.8343      13.5126      180      CL10B102KB8NNND                      
+C80        1NF                  TopLayer    0603                                            13.6333      12.5587      0        CL10B102KB8NNND                      
+C81        1NF                  TopLayer    0603                                            13.6221      7.6956       180      CL10B102KB8NNND                      
+C94        1UF                  TopLayer    0603                                            93.3784      23.9237      180      CL10B102KB8NNND                      
+C96        100UF/6.3V           TopLayer    CAP_SMDB                                        55.6982      12.6023      0        T491B107M006AT                       
+C97        100UF/6.3V           TopLayer    CAP_SMDB                                        109.5067     13.3569      180      T491B107M006AT                       
+C100       100NF                BottomLayer 0603                                            59.8727      -3.8649      270      CL10B104KA8NNN                       
+C103       100NF                BottomLayer 0603                                            31.0000      13.1985      90       CL10B104KA8NNN                       
+C104       1UF/16V              BottomLayer 0603                                            20.9183      15.7064      270      CL10B105KO8NNNC                      
+C105       100NF                BottomLayer 0603                                            27.4520      18.0823      0        CL10B104KA8NNN                       
+C106       100NF                BottomLayer 0603                                            28.3205      10.5495      0        CL10B104KA8NNN                       
+C107       1NF/2KV              BottomLayer 1206                                            97.1730      13.8866      180      C1206C102KGRACTU                     
+CL1        S2711-46R            TopLayer    HARWIN_S2711-46R                                48.2559      33.1000      90       S2711-46R                            
+CL2        S2711-46R            TopLayer    HARWIN_S2711-46R                                82.9869      66.1771      180      S2711-46R                            
+CL3        S2711-46R            BottomLayer HARWIN_S2711-46R                                121.9559     33.1000      90       S2711-46R                            
+CL4        S2711-46R            TopLayer    HARWIN_S2711-46R                                121.9559     33.1000      90       S2711-46R                            
+CL5        S2711-46R            BottomLayer HARWIN_S2711-46R                                48.2439      29.5333      270      S2711-46R                            
+CL6        S2711-46R            BottomLayer HARWIN_S2711-46R                                104.0000     66.1463      180      S2711-46R                            
+CL7        S2711-46R            TopLayer    HARWIN_S2711-46R                                85.0750      -0.1960      0        S2711-46R                            
+CL8        S2711-46R            BottomLayer HARWIN_S2711-46R                                85.1059      -0.0537      180      S2711-46R                            
+D1         SMAJ5.0A             BottomLayer DO-214AC_FAIRCHILD                              110.6807     43.3885      270      SMAJ5.0A                             
+D2         BAT54HT1G            TopLayer    SOD323_NXP                                      58.5945      62.1526      90       BAT54HT1G                            
+D10        SMAJ5.0A             BottomLayer DO-214AC_FAIRCHILD                              14.8129      20.2882      180      SMAJ5.0A                             
+D14        SP4020-01FTG         TopLayer    SOD323_NXP                                      90.2416      18.8072      0        SP4020-01FTG                         
+D15        SM5819               TopLayer    MELF                                            68.7818      -7.9007      270      SM5819                               
+D16        BAT54HT1G            BottomLayer SOD323_NXP                                      88.4534      54.2861      180      BAT54HT1G                            
+D18        BAT54HT1G            TopLayer    SOD323_NXP                                      10.3979      9.3796       180      BAT54HT1G                            
+D19        BAT54HT1G            TopLayer    SOD323_NXP                                      10.3979      12.5966      180      BAT54HT1G                            
+D20        SP4020-01FTG         TopLayer    SOD323_NXP                                      77.5858      15.0130      0        SP4020-01FTG                         
+D23        BAT54HT1G            TopLayer    SOD323_NXP                                      7.3150       7.6854       0        BAT54HT1G                            
+D24        BAT54HT1G            TopLayer    SOD323_NXP                                      7.3586       12.5620      0        BAT54HT1G                            
+D33        SP4020-01FTG         TopLayer    SOD323_NXP                                      10.3979      10.9817      180      SP4020-01FTG                         
+D34        SP4020-01FTG         TopLayer    SOD323_NXP                                      10.3979      7.7108       180      SP4020-01FTG                         
+D35        SP4021-01FTG         BottomLayer SOD323_NXP                                      36.4236      31.8423      180      SP4020-01FTG                         
+D36        SP4021-01FTG         BottomLayer SOD323_NXP                                      16.9925      23.9626      270      SP4020-01FTG                         
+D37        SP4020-01FTG         BottomLayer SOD323_NXP                                      91.6088      54.2719      180      SP4020-01FTG                         
+D38        SP4021-01FTG         BottomLayer SOD323_NXP                                      31.0641      24.2114      90       SP4020-01FTG                         
+D39        SP4021-01FTG         BottomLayer SOD323_NXP                                      23.1562      24.2114      90       SP4020-01FTG                         
+D40        SP4020-01FTG         BottomLayer SOD323_NXP                                      36.4021      28.6717      180      SP4020-01FTG                         
+D41        SP4020-01FTG         BottomLayer SOD323_NXP                                      24.6607      24.2114      90       SP4020-01FTG                         
+D42        SP4020-01FTG         BottomLayer SOD323_NXP                                      32.6819      24.2114      90       SP4020-01FTG                         
+D43        SP4020-01FTG         BottomLayer SOD323_NXP                                      15.4694      23.9423      270      SP4020-01FTG                         
+D44        SP4020-01FTG         BottomLayer SOD323_NXP                                      29.5159      24.2114      90       SP4020-01FTG                         
+D45        SP4020-01FTG         TopLayer    SOD323_NXP                                      86.9817      17.2358      180      SP4020-01FTG                         
+D46        SP4020-01FTG         BottomLayer SOD323_NXP                                      20.9000      19.1996      90       SP4020-01FTG                         
+J1         IDC2X10R20           TopLayer    IDC2X10R20H4.7_2143-2X10G00DP_OUPIIN_MIRR       61.8959      6.5863       0        2143-2X10G00DPU-P                    
+J2         IDC2X20R20           TopLayer    IDC2X20R20H4.7_2143-2X20G00DP_OUPIIN_MIRR       99.1559      6.5863       0        2143-2X20G00DPU-P                    
+J3         CVILUX_CF20          BottomLayer CF2020                                          55.7769      69.0555      0        2143-1X04G00DAU-P                    
+J4         OUPIIN_2041          TopLayer    IDC2X10R254H8.4_ZL262-20DG_NINIGI               81.6759      62.0663      0        2041-2x10G00SA(B)                    
+J5         IDC2X5R20            TopLayer    IDC2X5R20H4.7_2143-2X05G00DP_OUPIIN_MIRR        56.2659      38.6363      270      2143-2X05G00DPU-P                    
+J8         TX24-30R-LT-H1E      TopLayer    SJ036977                                        82.0059      71.9188      180      TX24-30R-LT-H1E                      
+J9         2X10R254             TopLayer    IDC2X10R254H8.4_ZL262-20DG_NINIGI               110.9059     70.9463      0        ZL262-20DG                           
+J11        IDC2X5R1.27R2.54     TopLayer    IDC2X5R1.27R2.54_2244-2X04G00SU_OUPIIN_MF21     84.1500      23.7463      0        2244-2X04G00SU                       
+J12        BM08B-GHS-TBT        BottomLayer BM08B-GHS-TBT                                   55.6560      74.1960      0        SM08B-GHS-TB                         
+J13        PCIER-036AN41B2U     TopLayer    PCIER-036AN41                                   22.1000      29.6100      0        PCIER-036AN41B2U                     
+J14        JST_BM20B            BottomLayer JST_SM20B-SHLDS-G-TF                            5.6000       12.5000      90       SM20B-SHLDS-G-TF                     
+J15        RJ12GPCB-M           TopLayer    RJ12GPCB-M_NINIGI                               73.0500      -16.5800     180      RJ12GPCB-M                           
+J16        WR-COM               TopLayer    CON_USBB_WE61400416121                          58.3500      -12.3508     180      61400416121                          
+J17        WR-MJ                TopLayer    CON_WR-MJ_615008137421                          90.0000      -14.9670     0        615008137421                         
+J18        MPJ-3P_ADAMTECH      TopLayer    MPJ-3P_ADAMTECH                                 108.7399     -14.9035     180      MPJ-3P                               
+J21        WR_CRD               TopLayer    WE_WR-CRD_693072010801_AND_ATTEND_112A-TAA0-R01 103.4054     43.1885      0        693072010801                         
+J25        B3B-PH-K-S_JST       BottomLayer JST_B3B-PH-K-S                                  6.6000       2.8000       180      B3B-PH-K-S(LF)(SN)                   
+L1         600R@100MHZ          TopLayer    0603                                            56.6365      15.5709      0        742792651                            
+L2         80R@100MHZ           TopLayer    1206                                            62.0057      12.6316      180      74279215                             
+L8         600R@100MHZ          BottomLayer 0603                                            60.4078      2.4592       270      742792653                            
+L49        100R@100MHZ          BottomLayer 1812_KEMET                                      98.8214      -4.8962      180      74279226101                          
+L50        WE-CNSW              BottomLayer 1206_WE-CNSW                                    58.3699      3.5373       270      744232102                            
+L55        100R@100MHZ          BottomLayer 3312_WE                                         110.1880     -4.8962      0        74279225101                          
+L56        330R@100MHZ          TopLayer    0805                                            114.0581     12.7021      270      742792037                            
+L62        600R@100MHZ          BottomLayer 0603                                            68.8848      11.6201      270      742792651                            
+L63        100R@100MHZ          TopLayer    3312_WE                                         44.1786      5.7357       270      74279225101                          
+Q1         IRLL2705PBF          TopLayer    SOT223                                          74.5562      -7.4092      180      IRLL2705PBF                          
+Q2         2N7002               TopLayer    SOT-23                                          74.5912      24.0609      0        2N7002                               
+Q3         TSM2301CX            BottomLayer SOT-23                                          115.6217     43.9655      0        TSM2301CX                            
+Q4         2N7002               TopLayer    SOT-23                                          61.1218      62.2366      0        2N7002                               
+Q5         2N7002               BottomLayer SOT-23                                          65.3948      61.6981      270      2N7002                               
+Q7         2N7002               BottomLayer SOT-23                                          27.1177      24.1677      180      2N7002                               
+Q8         TSM2301CX            TopLayer    SOT-23                                          8.0443       20.8426      0        TSM2301CX                            
+Q9         2N7002               BottomLayer SOT-23                                          96.1253      43.1562      0        2N7002                               
+R1         10K                  TopLayer    0603                                            93.7010      13.8153      90       "10k 5% 0603"                        
+R2         10K                  TopLayer    0603                                            105.6530     13.3658      90       "10k 5% 0603"                        
+R3         "49.9R 1%"           BottomLayer 0603                                            67.1905      11.6407      90       "49.9R 1%  0603"                     
+R4         "49.9R 1%"           BottomLayer 0603                                            64.2343      12.2754      0        "49.9R 1%  0603"                     
+R5         "49.9R 1%"           BottomLayer 0603                                            65.0401      10.9373      180      "49.9R 1%  0603"                     
+R6         1k                   TopLayer    0603                                            89.2938      13.8153      90       "1K 5% 0603"                         
+R7         "5k1 5% 0603"        TopLayer    0603                                            77.9707      24.8144      0        "5k1 5% 0603"                        
+R8         8k2                  TopLayer    0603                                            93.3784      20.6090      180      "8k2 5% 0603"                        
+R9         "3.3K 1%"            TopLayer    0603                                            71.6526      12.7603      0        "3.3K 1% 0603"                       
+R10        "1K 1%"              TopLayer    0603                                            71.7014      14.5510      0        "1K 1% 0603"                         
+R11        "49.9R 1%"           BottomLayer 0603                                            108.8482     6.5533       270      "49.9R 1% 0603"                      
+R12        "49.9R 1%"           BottomLayer 0603                                            107.3242     6.5533       270      "49.9R 1% 0603"                      
+R13        "49.9R 1%"           BottomLayer 0603                                            105.8002     6.5533       270      "49.9R 1% 0603"                      
+R14        "49.9R 1%"           BottomLayer 0603                                            104.2762     6.5533       270      "49.9R 1% 0603"                      
+R15        "49.9R 1%"           BottomLayer 0603                                            72.2111      11.5937      270      "49.9R 1% 0603"                      
+R16        470R                 TopLayer    0603                                            90.1729      23.8914      0        "470R 5% 0603"                       
+R17        "75R 1%"             BottomLayer 1206_N                                          103.8131     13.8202      0        "75R 1% 1206"                        
+R18        "49.9R 1%"           BottomLayer 0603                                            108.0227     8.9028       0        "49.9R 1% 0603"                      
+R19        51k                  BottomLayer 0603                                            115.6776     46.3816      0        "51k 5% 0603"                        
+R20        10K                  BottomLayer 0603                                            98.5499      43.1543      270      "10k 5% 0603"                        
+R21        22k                  BottomLayer 0603                                            95.9349      45.5890      180      "22k 5% 0603"                        
+R22        51k                  TopLayer    0603                                            8.1538       18.1361      0        "51k 5% 0603"                        
+R23        0R                   BottomLayer 0603                                            62.7230      26.5375      90       "0R 5% 0603"                         
+R24        0R                   BottomLayer 0603                                            65.2630      26.5375      90       "0R 5% 0603"                         
+R25        10K                  TopLayer    0603                                            63.6745      62.4271      90       "10K 5% 0603"                        
+R26        0R                   BottomLayer 0603                                            69.0906      26.4940      90       "0R 5% 0603"                         
+R28        0R                   BottomLayer 0603                                            71.6130      26.5375      90       "0R 5% 0603"                         
+R29        0R                   BottomLayer 0603                                            64.8970      4.0422       270      "0R 5% 0603"                         
+R30        10k                  TopLayer    0603                                            57.0705      62.3001      270      "10k 5% 0603"                        
+R31        0R                   BottomLayer 0603                                            66.8913      4.0260       270      "0R 5% 0603"                         
+R32        51K                  TopLayer    0603                                            58.5891      59.1734      270      "51k 5% 0603"                        
+R33        10K                  TopLayer    0603                                            29.1047      11.9697      90       "10K 5% 0603"                        
+R34        10k                  TopLayer    0603                                            34.4131      11.9963      90       "10K 5% 0603"                        
+R35        51K                  TopLayer    0603                                            27.5787      11.8987      270      "51k 5% 0603"                        
+R36        "22K 1%"             BottomLayer 0603                                            62.6220      61.7165      270      "22K 5% 0603"                        
+R37        5k1                  TopLayer    0603                                            93.4254      22.3292      0        "5k1 5% 0603"                        
+R50        100R                 TopLayer    0603                                            90.2611      17.2202      180      "100R 5% 0603"                       
+R52        300R                 TopLayer    1206_N                                          25.2680      8.5549       0        "300R 5% 1206"                       
+R53        100k                 BottomLayer 0603                                            105.9372     36.2660      270      "100k 5% 0603"                       
+R54        100k                 BottomLayer 0603                                            98.0858      36.2660      270      "100k 5% 0603"                       
+R55        100k                 BottomLayer 0603                                            104.3669     36.2660      270      "100k 5% 0603"                       
+R56        100k                 BottomLayer 0603                                            102.7966     36.2660      270      "100k 5% 0603"                       
+R64        "49.9R 1%"           BottomLayer 0603                                            104.9747     8.9028       180      "49.9R 1% 0603"                      
+R66        51K                  BottomLayer 0603                                            91.4745      51.0867      180      "51k 5% 0603"                        
+R67        1K                   BottomLayer 0603                                            70.0255      42.5000      180      "1K 5% 0603"                         
+R69        "75R 1%"             TopLayer    1206_N                                          56.5640      29.0278      90       "75R 1% 1206"                        
+R70        51K                  BottomLayer 0603                                            88.2982      51.1309      180      "51k 5% 0603"                        
+R73        0R                   BottomLayer 0603                                            18.5109      23.9998      90       "0R 5% 0603"                         
+R74        51K                  TopLayer    0603                                            77.9842      23.2070      0        "51K 5% 0603"                        
+R75        51K                  TopLayer    0603                                            82.7690      27.3508      180      "51K 5% 0603"                        
+R76        51K                  TopLayer    0603                                            82.8361      20.3618      0        "51K 5% 0603"                        
+R77        51K                  TopLayer    0603                                            77.5714      16.5725      180      "51K 5% 0603"                        
+R78        51K                  TopLayer    0603                                            13.6323      10.9587      0        "51K 5% 0603"                        
+R79        51K                  TopLayer    0603                                            13.6323      9.3474       0        "51K 5% 0603"                        
+R80        0R                   BottomLayer 0603                                            13.9458      24.0079      90       "0R 5% 0603"                         
+R85        10K                  BottomLayer 0603                                            67.0195      44.0703      180      "10K 5% 0603"                        
+R86        10K                  BottomLayer 0603                                            67.0354      45.6492      180      "10K 5% 0603"                        
+R87        10K                  BottomLayer 0603                                            91.4668      49.6335      180      "10K 5% 0603"                        
+R88        10K                  BottomLayer 0603                                            91.4899      48.2035      180      "10K 5% 0603"                        
+R89        10K                  BottomLayer 0603                                            91.5053      46.7196      180      "10K 5% 0603"                        
+R90        10K                  BottomLayer 0603                                            88.3483      46.7081      0        "10K 5% 0603"                        
+R91        10K                  BottomLayer 0603                                            91.4592      52.5398      180      "10K 5% 0603"                        
+R92        10K                  BottomLayer 0603                                            88.3452      52.5254      0        "10K 5% 0603"                        
+R93        0R                   BottomLayer 1206_N                                          14.6979      16.8896      180      "0R 5% 0603"                         
+R94        51K                  TopLayer    0603                                            95.3486      13.8153      90       "51K 5% 0603"                        
+R95        51K                  TopLayer    0603                                            109.3485     18.2503      180      "51K 5% 0603"                        
+R103       10K                  BottomLayer 0603                                            70.0255      44.0608      180      "10K 5% 0603"                        
+R104       10K                  BottomLayer 0603                                            70.0255      45.6217      180      "10K 5% 0603"                        
+R105       10K                  BottomLayer 0603                                            88.3452      49.6363      0        "10K 5% 0603"                        
+R106       10K                  BottomLayer 0603                                            88.3483      48.2149      0        "10K 5% 0603"                        
+R107       330R                 BottomLayer 0603                                            96.3245      5.2572       270      "330R 5% 0603"                       
+R108       330R                 BottomLayer 0603                                            98.1328      5.2636       270      "330R 5% 0603"                       
+R111       "12.4K 1%"           BottomLayer 0603                                            88.3452      43.8581      0        "12.4K 1% 0603"                      
+R113       100R                 TopLayer    0603                                            77.5752      11.7691      180      "100R 5% 0603"                       
+R114       100R                 TopLayer    0603                                            7.2580       9.3981       180      "100R 5% 0603"                       
+R115       100R                 TopLayer    0603                                            7.2580       10.9789      180      "100R 5% 0603"                       
+R118       5.1K                 BottomLayer 0603                                            76.2309      34.1975      180      "5.1K 5% 0603"                       
+R136       10K                  TopLayer    0603                                            93.3784      18.9725      180      "10K 5% 0603"                        
+R143       10K                  BottomLayer 0603                                            19.4495      12.5260      90       "10K 5% 0603"                        
+R144       10K                  BottomLayer 0603                                            24.3751      18.0996      0        "10K 5% 0603"                        
+R146       0R                   BottomLayer 0603                                            20.9695      12.5089      90       "0R 5% 0603"                         
+R147       0R                   BottomLayer 0603                                            25.4485      10.5990      0        "0R 5% 0603"                         
+R148       10K                  TopLayer    0603                                            82.1559      12.2321      90       "10K 5% 0603"                        
+SW3        SKHHNKA010_ALPS      BottomLayer SWP_SKHHNKA010_ALPS                             58.3500      -5.0300      0        SKHHNKA010                           
+T1         BC847A               TopLayer    SOT-23                                          68.2533      15.6769      180      BC847ALT1G                           
+T2         BC807-40             TopLayer    SOT-23                                          90.1828      21.3178      0        BC807                                
+T3         PDTC144ET            TopLayer    SOT-23                                          31.8032      12.1408      90       PDTC144ET                            
+T4         PDTC144ET            TopLayer    SOT-23                                          31.9687      8.4212       270      PDTC144ET                            
+TR1        WE_LAN_AQ_749010310  BottomLayer WE_LAN_749010012A                               100.8028     21.6969      0        749010310                            
+TR2        WE_LAN_AQ_749010310  BottomLayer WE_LAN_749010012A                               57.4475      33.9345      270      749010310                            
+TR3        WE_LAN_AQ_749010310  BottomLayer WE_LAN_749010012A                               67.1790      19.0258      180      749010310                            
+U1         74LVC1G125GW         BottomLayer SOT353                                          95.9143      48.2098      90       74LVC1G125GW                         
+U24        WE-TVS               BottomLayer SOT23-6                                         103.2508     43.5428      90       8240136                              
+U27        74LVC1G19GW          TopLayer    SOT363_NXP                                      77.9838      20.3482      180      74LVC1G19GW                          
+U28        KSZ8775CLX           BottomLayer LQFP80_10X10_MICROCHIP                          78.6929      46.6623      180      KSZ8775CLXCC                         
+U30        ISM95-3351AH-25.0000 BottomLayer LFSPXO025165                                    88.2906      39.6253      270      ISM95-3351AH-25.0000                 
+U32        MCP1700T-1202E/TT    BottomLayer SOT-23                                          81.7253      31.4950      0        MCP1700T-1202E/TT                    
+U33        MCP1700T-1202E/TT    BottomLayer SOT-23                                          72.7044      54.9942      270      MCP1700T-1202E/TT                    
+U35        ST33HTPH2E28AAF1     TopLayer    TSSOP28_STM                                     76.6041      32.8073      180      "ST33HTPH2E28AHD0; ST33HTPH2E28AAF1" 
+U45        USBUF01W6            BottomLayer SOT323-6                                        57.9148      -3.8409      0        USBUF01W6                            
+U48        TRS3221ECPW          BottomLayer TSOP16                                          25.9570      14.2505      180      TRS3221ECPWR                         
+U28a       KSZ8794              BottomLayer QFN64_8X8                                       78.5970      46.6060      90       ""                                   

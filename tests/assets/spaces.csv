@@ -1,0 +1,11 @@
+Revision:   799
+Variant:    Variant of FP_20_Online_P1_V3_ST
+Units used: mm
+
+Designator Comment              Layer       Footprint                                       Center-X(mm) Center-Y(mm) Rotation MPN
+Fid6       Fiducial             BottomLayer Circ1                                          121.3090      75.1030      0
+Fid5       Fiducial             BottomLayer Circ1                                          120.0990     -13.9400      0
+Fid4       Fiducial             BottomLayer Circ1                                            9.6850       5.5300      0
+Fid3       Fiducial             TopLayer    Circ1                                          121.5000      74.7500      0
+Fid2       Fiducial             TopLayer    Circ1                                          121.0000     -14.0000      0
+Fid1       Fiducial             TopLayer    Circ1                                            4.5000       5.2500      0

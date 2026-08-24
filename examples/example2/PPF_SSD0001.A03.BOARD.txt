@@ -1,0 +1,879 @@
+RefDes 	Name     	Pattern           	Center X (mm) 	Center Y (mm) 	Side   	Rotation 	Value          	Description 	Manufacturer c-r 
+______________________________________________________________________________________________________________________________________________________
+
+C1     	CAA1003  	CAP_0603_S4C      	32.374        	2.15          	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	7.28          	24.396        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	31.724        	16.483        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	31.942        	14.26         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	34.063        	2.164         	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	11.792        	23.302        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	22.312        	24.319        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	22.235        	26.128        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	22.245        	21.846        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	27.94         	1.905         	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	36.251        	14.376        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	28.207        	27.649        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	18.324        	1.405         	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	36.136        	25.131        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	3.121         	3.148         	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	35.66         	1.8           	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	28.893        	28.642        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	1.837         	25.007        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	2.066         	2.14          	Bottom 	270.0    	               	            	                 
+FID1   	Fiducial 	                  	13.672        	-4.628        	Top    	0.0      	               	            	                 
+FID2   	Fiducial 	                  	-4.113        	17.856        	Top    	0.0      	               	            	                 
+FID3   	Fiducial 	                  	146.288       	-4.758        	Bottom 	0.0      	               	            	                 
+FID4   	Fiducial 	                  	163.258       	11.256        	Bottom 	0.0      	               	            	                 
+FID5   	Fiducial 	                  	163.018       	152.749       	Bottom 	0.0      	               	            	                 
+FID6   	Fiducial 	                  	146.049       	164.938       	Bottom 	0.0      	               	            	                 
+FID7   	Fiducial 	                  	11.01         	164.938       	Bottom 	0.0      	               	            	                 
+FID8   	Fiducial 	                  	-4.287        	151.314       	Bottom 	0.0      	               	            	                 
+FID9   	Fiducial 	                  	11.03         	164.961       	Top    	0.0      	               	            	                 
+FID10  	Fiducial 	                  	-4.243        	151.261       	Top    	0.0      	               	            	                 
+FID11  	Fiducial 	                  	-3.899        	17.765        	Bottom 	0.0      	               	            	                 
+FID12  	Fiducial 	                  	13.762        	-4.434        	Bottom 	0.0      	               	            	                 
+FID13  	Fiducial 	                  	146.1         	-4.802        	Top    	0.0      	               	            	                 
+FID14  	Fiducial 	                  	163.517       	11.388        	Top    	0.0      	               	            	                 
+FID15  	Fiducial 	                  	163.149       	152.557       	Top    	0.0      	               	            	                 
+FID16  	Fiducial 	                  	146.1         	164.821       	Top    	0.0      	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	16.434        	28.515        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	11.611        	5.368         	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	11.62         	8.902         	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	26.119        	19.969        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	16.398        	28.161        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	34.821        	24.253        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	35.54         	8.611         	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	20.053        	29.167        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	2.476         	29.119        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	2.594         	26.456        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	13.732        	28.387        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	11.197        	28.442        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	31.947        	27.932        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	11.792        	21.745        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	26.362        	29.223        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	12.193        	2.683         	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	14.415        	5.179         	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	10.195        	25.967        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	11.64         	11.576        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	17.334        	9.66          	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	19.461        	26.552        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	31.984        	8.703         	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	6.531         	26.962        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	22.34         	24.283        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	72.474        	2.15          	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	47.38         	24.396        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	71.824        	16.483        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	72.042        	14.26         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	74.163        	2.164         	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	51.892        	23.302        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	62.412        	24.319        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	62.335        	26.128        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	62.345        	21.846        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	68.04         	1.905         	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	76.351        	14.376        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	68.307        	27.649        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	58.424        	1.405         	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	76.236        	25.131        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	43.221        	3.148         	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	75.76         	1.8           	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	68.993        	28.642        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	41.937        	25.007        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	42.166        	2.14          	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	56.534        	28.515        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	51.711        	5.368         	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	51.72         	8.902         	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	66.219        	19.969        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	56.498        	28.161        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	74.921        	24.253        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	75.64         	8.611         	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	60.153        	29.167        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	42.576        	29.119        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	42.694        	26.456        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	53.832        	28.387        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	51.297        	28.442        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	72.047        	27.932        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	51.892        	21.745        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	66.462        	29.223        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	52.293        	2.683         	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	54.515        	5.179         	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	50.295        	25.967        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	51.74         	11.576        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	57.434        	9.66          	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	59.561        	26.552        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	72.084        	8.703         	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	46.631        	26.962        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	62.44         	24.283        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	112.574       	2.15          	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	87.48         	24.396        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	111.924       	16.483        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	112.142       	14.26         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	114.263       	2.164         	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	91.992        	23.302        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	102.512       	24.319        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	102.435       	26.128        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	102.445       	21.846        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	108.14        	1.905         	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	116.451       	14.376        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	108.407       	27.649        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	98.524        	1.405         	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	116.336       	25.131        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	83.321        	3.148         	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	115.86        	1.8           	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	109.093       	28.642        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	82.037        	25.007        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	82.266        	2.14          	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	96.634        	28.515        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	91.811        	5.368         	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	91.82         	8.902         	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	106.319       	19.969        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	96.598        	28.161        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	115.021       	24.253        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	115.74        	8.611         	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	100.253       	29.167        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	82.676        	29.119        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	82.794        	26.456        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	93.932        	28.387        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	91.397        	28.442        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	112.147       	27.932        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	91.992        	21.745        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	106.562       	29.223        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	92.393        	2.683         	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	94.615        	5.179         	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	90.395        	25.967        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	91.84         	11.576        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	97.534        	9.66          	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	99.661        	26.552        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	112.184       	8.703         	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	86.731        	26.962        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	102.54        	24.283        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	152.674       	2.15          	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	127.58        	24.396        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	152.024       	16.483        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	152.242       	14.26         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	154.363       	2.164         	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	132.092       	23.302        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	142.612       	24.319        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	142.535       	26.128        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	142.545       	21.846        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	148.24        	1.905         	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	156.551       	14.376        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	148.507       	27.649        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	138.624       	1.405         	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	156.436       	25.131        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	123.421       	3.148         	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	155.96        	1.8           	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	149.193       	28.642        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	122.137       	25.007        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	122.366       	2.14          	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	136.734       	28.515        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	131.911       	5.368         	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	131.92        	8.902         	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	146.419       	19.969        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	136.698       	28.161        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	155.121       	24.253        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	155.84        	8.611         	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	140.353       	29.167        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	122.776       	29.119        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	122.894       	26.456        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	134.032       	28.387        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	131.497       	28.442        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	152.247       	27.932        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	132.092       	21.745        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	146.662       	29.223        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	132.493       	2.683         	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	134.715       	5.179         	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	130.495       	25.967        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	131.94        	11.576        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	137.634       	9.66          	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	139.761       	26.552        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	152.284       	8.703         	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	126.831       	26.962        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	142.64        	24.283        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	32.374        	34.63         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	7.28          	56.876        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	31.724        	48.963        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	31.942        	46.74         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	34.063        	34.644        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	11.792        	55.782        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	22.312        	56.799        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	22.235        	58.608        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	22.245        	54.326        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	27.94         	34.385        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	36.251        	46.856        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	28.207        	60.129        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	18.324        	33.885        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	36.136        	57.611        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	3.121         	35.628        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	35.66         	34.28         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	28.893        	61.122        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	1.837         	57.487        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	2.066         	34.62         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	16.434        	60.995        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	11.611        	37.848        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	11.62         	41.382        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	26.119        	52.449        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	16.398        	60.641        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	34.821        	56.733        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	35.54         	41.091        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	20.053        	61.647        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	2.476         	61.599        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	2.594         	58.936        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	13.732        	60.867        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	11.197        	60.922        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	31.947        	60.412        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	11.792        	54.225        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	26.362        	61.703        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	12.193        	35.163        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	14.415        	37.659        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	10.195        	58.447        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	11.64         	44.056        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	17.334        	42.14         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	19.461        	59.032        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	31.984        	41.183        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	6.531         	59.442        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	22.34         	56.763        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	72.474        	34.63         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	47.38         	56.876        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	71.824        	48.963        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	72.042        	46.74         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	74.163        	34.644        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	51.892        	55.782        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	62.412        	56.799        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	62.335        	58.608        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	62.345        	54.326        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	68.04         	34.385        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	76.351        	46.856        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	68.307        	60.129        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	58.424        	33.885        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	76.236        	57.611        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	43.221        	35.628        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	75.76         	34.28         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	68.993        	61.122        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	41.937        	57.487        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	42.166        	34.62         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	56.534        	60.995        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	51.711        	37.848        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	51.72         	41.382        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	66.219        	52.449        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	56.498        	60.641        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	74.921        	56.733        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	75.64         	41.091        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	60.153        	61.647        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	42.576        	61.599        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	42.694        	58.936        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	53.832        	60.867        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	51.297        	60.922        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	72.047        	60.412        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	51.892        	54.225        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	66.462        	61.703        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	52.293        	35.163        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	54.515        	37.659        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	50.295        	58.447        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	51.74         	44.056        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	57.434        	42.14         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	59.561        	59.032        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	72.084        	41.183        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	46.631        	59.442        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	62.44         	56.763        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	112.574       	34.63         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	87.48         	56.876        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	111.924       	48.963        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	112.142       	46.74         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	114.263       	34.644        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	91.992        	55.782        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	102.512       	56.799        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	102.435       	58.608        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	102.445       	54.326        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	108.14        	34.385        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	116.451       	46.856        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	108.407       	60.129        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	98.524        	33.885        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	116.336       	57.611        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	83.321        	35.628        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	115.86        	34.28         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	109.093       	61.122        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	82.037        	57.487        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	82.266        	34.62         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	96.634        	60.995        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	91.811        	37.848        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	91.82         	41.382        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	106.319       	52.449        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	96.598        	60.641        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	115.021       	56.733        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	115.74        	41.091        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	100.253       	61.647        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	82.676        	61.599        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	82.794        	58.936        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	93.932        	60.867        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	91.397        	60.922        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	112.147       	60.412        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	91.992        	54.225        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	106.562       	61.703        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	92.393        	35.163        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	94.615        	37.659        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	90.395        	58.447        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	91.84         	44.056        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	97.534        	42.14         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	99.661        	59.032        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	112.184       	41.183        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	86.731        	59.442        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	102.54        	56.763        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	152.674       	34.63         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	127.58        	56.876        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	152.024       	48.963        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	152.242       	46.74         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	154.363       	34.644        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	132.092       	55.782        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	142.612       	56.799        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	142.535       	58.608        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	142.545       	54.326        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	148.24        	34.385        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	156.551       	46.856        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	148.507       	60.129        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	138.624       	33.885        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	156.436       	57.611        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	123.421       	35.628        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	155.96        	34.28         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	149.193       	61.122        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	122.137       	57.487        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	122.366       	34.62         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	136.734       	60.995        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	131.911       	37.848        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	131.92        	41.382        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	146.419       	52.449        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	136.698       	60.641        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	155.121       	56.733        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	155.84        	41.091        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	140.353       	61.647        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	122.776       	61.599        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	122.894       	58.936        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	134.032       	60.867        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	131.497       	60.922        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	152.247       	60.412        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	132.092       	54.225        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	146.662       	61.703        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	132.493       	35.163        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	134.715       	37.659        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	130.495       	58.447        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	131.94        	44.056        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	137.634       	42.14         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	139.761       	59.032        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	152.284       	41.183        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	126.831       	59.442        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	142.64        	56.763        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	32.374        	67.11         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	7.28          	89.356        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	31.724        	81.443        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	31.942        	79.22         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	34.063        	67.124        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	11.792        	88.262        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	22.312        	89.279        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	22.235        	91.088        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	22.245        	86.806        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	27.94         	66.865        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	36.251        	79.336        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	28.207        	92.609        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	18.324        	66.365        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	36.136        	90.091        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	3.121         	68.108        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	35.66         	66.76         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	28.893        	93.602        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	1.837         	89.967        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	2.066         	67.1          	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	16.434        	93.475        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	11.611        	70.328        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	11.62         	73.862        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	26.119        	84.929        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	16.398        	93.121        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	34.821        	89.213        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	35.54         	73.571        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	20.053        	94.127        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	2.476         	94.079        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	2.594         	91.416        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	13.732        	93.347        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	11.197        	93.402        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	31.947        	92.892        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	11.792        	86.705        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	26.362        	94.183        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	12.193        	67.643        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	14.415        	70.139        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	10.195        	90.927        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	11.64         	76.536        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	17.334        	74.62         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	19.461        	91.512        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	31.984        	73.663        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	6.531         	91.922        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	22.34         	89.243        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	72.474        	67.11         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	47.38         	89.356        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	71.824        	81.443        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	72.042        	79.22         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	74.163        	67.124        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	51.892        	88.262        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	62.412        	89.279        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	62.335        	91.088        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	62.345        	86.806        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	68.04         	66.865        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	76.351        	79.336        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	68.307        	92.609        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	58.424        	66.365        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	76.236        	90.091        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	43.221        	68.108        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	75.76         	66.76         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	68.993        	93.602        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	41.937        	89.967        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	42.166        	67.1          	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	56.534        	93.475        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	51.711        	70.328        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	51.72         	73.862        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	66.219        	84.929        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	56.498        	93.121        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	74.921        	89.213        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	75.64         	73.571        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	60.153        	94.127        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	42.576        	94.079        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	42.694        	91.416        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	53.832        	93.347        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	51.297        	93.402        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	72.047        	92.892        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	51.892        	86.705        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	66.462        	94.183        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	52.293        	67.643        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	54.515        	70.139        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	50.295        	90.927        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	51.74         	76.536        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	57.434        	74.62         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	59.561        	91.512        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	72.084        	73.663        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	46.631        	91.922        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	62.44         	89.243        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	112.574       	67.11         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	87.48         	89.356        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	111.924       	81.443        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	112.142       	79.22         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	114.263       	67.124        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	91.992        	88.262        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	102.512       	89.279        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	102.435       	91.088        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	102.445       	86.806        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	108.14        	66.865        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	116.451       	79.336        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	108.407       	92.609        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	98.524        	66.365        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	116.336       	90.091        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	83.321        	68.108        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	115.86        	66.76         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	109.093       	93.602        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	82.037        	89.967        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	82.266        	67.1          	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	96.634        	93.475        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	91.811        	70.328        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	91.82         	73.862        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	106.319       	84.929        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	96.598        	93.121        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	115.021       	89.213        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	115.74        	73.571        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	100.253       	94.127        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	82.676        	94.079        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	82.794        	91.416        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	93.932        	93.347        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	91.397        	93.402        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	112.147       	92.892        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	91.992        	86.705        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	106.562       	94.183        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	92.393        	67.643        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	94.615        	70.139        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	90.395        	90.927        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	91.84         	76.536        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	97.534        	74.62         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	99.661        	91.512        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	112.184       	73.663        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	86.731        	91.922        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	102.54        	89.243        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	152.674       	67.11         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	127.58        	89.356        	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	152.024       	81.443        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	152.242       	79.22         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	154.363       	67.124        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	132.092       	88.262        	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	142.612       	89.279        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	142.535       	91.088        	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	142.545       	86.806        	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	148.24        	66.865        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	156.551       	79.336        	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	148.507       	92.609        	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	138.624       	66.365        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	156.436       	90.091        	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	123.421       	68.108        	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	155.96        	66.76         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	149.193       	93.602        	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	122.137       	89.967        	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	122.366       	67.1          	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	136.734       	93.475        	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	131.911       	70.328        	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	131.92        	73.862        	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	146.419       	84.929        	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	136.698       	93.121        	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	155.121       	89.213        	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	155.84        	73.571        	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	140.353       	94.127        	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	122.776       	94.079        	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	122.894       	91.416        	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	134.032       	93.347        	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	131.497       	93.402        	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	152.247       	92.892        	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	132.092       	86.705        	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	146.662       	94.183        	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	132.493       	67.643        	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	134.715       	70.139        	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	130.495       	90.927        	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	131.94        	76.536        	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	137.634       	74.62         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	139.761       	91.512        	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	152.284       	73.663        	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	126.831       	91.922        	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	142.64        	89.243        	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	32.374        	99.59         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	7.28          	121.836       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	31.724        	113.923       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	31.942        	111.7         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	34.063        	99.604        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	11.792        	120.742       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	22.312        	121.759       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	22.235        	123.568       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	22.245        	119.286       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	27.94         	99.345        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	36.251        	111.816       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	28.207        	125.089       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	18.324        	98.845        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	36.136        	122.571       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	3.121         	100.588       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	35.66         	99.24         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	28.893        	126.082       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	1.837         	122.447       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	2.066         	99.58         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	16.434        	125.955       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	11.611        	102.808       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	11.62         	106.342       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	26.119        	117.409       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	16.398        	125.601       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	34.821        	121.693       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	35.54         	106.051       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	20.053        	126.607       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	2.476         	126.559       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	2.594         	123.896       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	13.732        	125.827       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	11.197        	125.882       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	31.947        	125.372       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	11.792        	119.185       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	26.362        	126.663       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	12.193        	100.123       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	14.415        	102.619       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	10.195        	123.407       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	11.64         	109.016       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	17.334        	107.1         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	19.461        	123.992       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	31.984        	106.143       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	6.531         	124.402       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	22.34         	121.723       	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	72.474        	99.59         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	47.38         	121.836       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	71.824        	113.923       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	72.042        	111.7         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	74.163        	99.604        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	51.892        	120.742       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	62.412        	121.759       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	62.335        	123.568       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	62.345        	119.286       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	68.04         	99.345        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	76.351        	111.816       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	68.307        	125.089       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	58.424        	98.845        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	76.236        	122.571       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	43.221        	100.588       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	75.76         	99.24         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	68.993        	126.082       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	41.937        	122.447       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	42.166        	99.58         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	56.534        	125.955       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	51.711        	102.808       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	51.72         	106.342       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	66.219        	117.409       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	56.498        	125.601       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	74.921        	121.693       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	75.64         	106.051       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	60.153        	126.607       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	42.576        	126.559       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	42.694        	123.896       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	53.832        	125.827       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	51.297        	125.882       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	72.047        	125.372       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	51.892        	119.185       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	66.462        	126.663       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	52.293        	100.123       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	54.515        	102.619       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	50.295        	123.407       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	51.74         	109.016       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	57.434        	107.1         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	59.561        	123.992       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	72.084        	106.143       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	46.631        	124.402       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	62.44         	121.723       	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	112.574       	99.59         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	87.48         	121.836       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	111.924       	113.923       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	112.142       	111.7         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	114.263       	99.604        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	91.992        	120.742       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	102.512       	121.759       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	102.435       	123.568       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	102.445       	119.286       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	108.14        	99.345        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	116.451       	111.816       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	108.407       	125.089       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	98.524        	98.845        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	116.336       	122.571       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	83.321        	100.588       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	115.86        	99.24         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	109.093       	126.082       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	82.037        	122.447       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	82.266        	99.58         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	96.634        	125.955       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	91.811        	102.808       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	91.82         	106.342       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	106.319       	117.409       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	96.598        	125.601       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	115.021       	121.693       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	115.74        	106.051       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	100.253       	126.607       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	82.676        	126.559       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	82.794        	123.896       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	93.932        	125.827       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	91.397        	125.882       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	112.147       	125.372       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	91.992        	119.185       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	106.562       	126.663       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	92.393        	100.123       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	94.615        	102.619       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	90.395        	123.407       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	91.84         	109.016       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	97.534        	107.1         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	99.661        	123.992       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	112.184       	106.143       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	86.731        	124.402       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	102.54        	121.723       	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	152.674       	99.59         	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	127.58        	121.836       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	152.024       	113.923       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	152.242       	111.7         	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	154.363       	99.604        	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	132.092       	120.742       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	142.612       	121.759       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	142.535       	123.568       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	142.545       	119.286       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	148.24        	99.345        	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	156.551       	111.816       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	148.507       	125.089       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	138.624       	98.845        	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	156.436       	122.571       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	123.421       	100.588       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	155.96        	99.24         	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	149.193       	126.082       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	122.137       	122.447       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	122.366       	99.58         	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	136.734       	125.955       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	131.911       	102.808       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	131.92        	106.342       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	146.419       	117.409       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	136.698       	125.601       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	155.121       	121.693       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	155.84        	106.051       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	140.353       	126.607       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	122.776       	126.559       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	122.894       	123.896       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	134.032       	125.827       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	131.497       	125.882       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	152.247       	125.372       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	132.092       	119.185       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	146.662       	126.663       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	132.493       	100.123       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	134.715       	102.619       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	130.495       	123.407       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	131.94        	109.016       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	137.634       	107.1         	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	139.761       	123.992       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	152.284       	106.143       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	126.831       	124.402       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	142.64        	121.723       	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	32.374        	132.07        	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	7.28          	154.316       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	31.724        	146.403       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	31.942        	144.18        	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	34.063        	132.084       	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	11.792        	153.222       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	22.312        	154.239       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	22.235        	156.048       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	22.245        	151.766       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	27.94         	131.825       	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	36.251        	144.296       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	28.207        	157.569       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	18.324        	131.325       	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	36.136        	155.051       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	3.121         	133.068       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	35.66         	131.72        	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	28.893        	158.562       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	1.837         	154.927       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	2.066         	132.06        	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	16.434        	158.435       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	11.611        	135.288       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	11.62         	138.822       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	26.119        	149.889       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	16.398        	158.081       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	34.821        	154.173       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	35.54         	138.531       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	20.053        	159.087       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	2.476         	159.039       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	2.594         	156.376       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	13.732        	158.307       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	11.197        	158.362       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	31.947        	157.852       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	11.792        	151.665       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	26.362        	159.143       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	12.193        	132.603       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	14.415        	135.099       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	10.195        	155.887       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	11.64         	141.496       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	17.334        	139.58        	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	19.461        	156.472       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	31.984        	138.623       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	6.531         	156.882       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	22.34         	154.203       	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	72.474        	132.07        	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	47.38         	154.316       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	71.824        	146.403       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	72.042        	144.18        	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	74.163        	132.084       	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	51.892        	153.222       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	62.412        	154.239       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	62.335        	156.048       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	62.345        	151.766       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	68.04         	131.825       	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	76.351        	144.296       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	68.307        	157.569       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	58.424        	131.325       	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	76.236        	155.051       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	43.221        	133.068       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	75.76         	131.72        	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	68.993        	158.562       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	41.937        	154.927       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	42.166        	132.06        	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	56.534        	158.435       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	51.711        	135.288       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	51.72         	138.822       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	66.219        	149.889       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	56.498        	158.081       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	74.921        	154.173       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	75.64         	138.531       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	60.153        	159.087       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	42.576        	159.039       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	42.694        	156.376       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	53.832        	158.307       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	51.297        	158.362       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	72.047        	157.852       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	51.892        	151.665       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	66.462        	159.143       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	52.293        	132.603       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	54.515        	135.099       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	50.295        	155.887       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	51.74         	141.496       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	57.434        	139.58        	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	59.561        	156.472       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	72.084        	138.623       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	46.631        	156.882       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	62.44         	154.203       	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	112.574       	132.07        	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	87.48         	154.316       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	111.924       	146.403       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	112.142       	144.18        	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	114.263       	132.084       	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	91.992        	153.222       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	102.512       	154.239       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	102.435       	156.048       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	102.445       	151.766       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	108.14        	131.825       	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	116.451       	144.296       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	108.407       	157.569       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	98.524        	131.325       	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	116.336       	155.051       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	83.321        	133.068       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	115.86        	131.72        	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	109.093       	158.562       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	82.037        	154.927       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	82.266        	132.06        	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	96.634        	158.435       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	91.811        	135.288       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	91.82         	138.822       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	106.319       	149.889       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	96.598        	158.081       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	115.021       	154.173       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	115.74        	138.531       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	100.253       	159.087       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	82.676        	159.039       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	82.794        	156.376       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	93.932        	158.307       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	91.397        	158.362       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	112.147       	157.852       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	91.992        	151.665       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	106.562       	159.143       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	92.393        	132.603       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	94.615        	135.099       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	90.395        	155.887       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	91.84         	141.496       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	97.534        	139.58        	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	99.661        	156.472       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	112.184       	138.623       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	86.731        	156.882       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	102.54        	154.203       	Top    	0.0      	STM32F042FxPx  	            	                 
+C1     	CAA1003  	CAP_0603_S4C      	152.674       	132.07        	Bottom 	270.0    	100nF 10% 50V  	            	                 
+C2     	CAA1003  	CAP_0603_S4C      	127.58        	154.316       	Top    	0.0      	100nF 10% 50V  	            	                 
+C3     	CAA1003  	CAP_0603_S4C      	152.024       	146.403       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C4     	CAB1005  	CAP_0805_S4C      	152.242       	144.18        	Bottom 	180.0    	10uF 10% 25V   	            	                 
+C5     	CAA1004  	CAP_0603_S4C      	154.363       	132.084       	Bottom 	270.0    	1uF 10% 25V    	            	                 
+C6     	CAA1003  	CAP_0603_S4C      	132.092       	153.222       	Top    	0.0      	100nF 10% 50V  	            	                 
+C7     	CAA1003  	CAP_0603_S4C      	142.612       	154.239       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C8     	CAA1003  	CAP_0603_S4C      	142.535       	156.048       	Bottom 	180.0    	100nF 10% 50V  	            	                 
+C9     	CAA1004  	CAP_0603_S4C      	142.545       	151.766       	Bottom 	180.0    	1uF 10% 25V    	            	                 
+D1     	DIO0001  	SOD-123FL_S4C     	148.24        	131.825       	Bottom 	180.0    	SKL16          	            	                 
+D2     	DIO0001  	SOD-123FL_S4C     	156.551       	144.296       	Bottom 	90.0     	SKL16          	            	                 
+D3     	LED0001  	DIO_0603_S4C      	148.507       	157.569       	Top    	180.0    	RUB190TS       	            	                 
+F1     	FSA7500  	RES_0603_S4C      	138.624       	131.325       	Top    	0.0      	               	Fuse        	                 
+FD1    	FIDUCIAL 	FIDUCIAL_S4C      	156.436       	155.051       	Top    	90.0     	               	            	                 
+FD2    	FIDUCIAL 	FIDUCIAL_S4C      	123.421       	133.068       	Top    	90.0     	               	            	                 
+FD3    	FIDUCIAL 	FIDUCIAL_S4C      	155.96        	131.72        	Top    	90.0     	               	            	                 
+FD4    	FIDUCIAL 	FIDUCIAL_S4C      	149.193       	158.562       	Bottom 	270.0    	               	            	                 
+FD5    	FIDUCIAL 	FIDUCIAL_S4C      	122.137       	154.927       	Bottom 	270.0    	               	            	                 
+FD6    	FIDUCIAL 	FIDUCIAL_S4C      	122.366       	132.06        	Bottom 	270.0    	               	            	                 
+Q1     	TRF0002  	SOT23_S4C         	136.734       	158.435       	Top    	0.0      	BSS84.215      	            	                 
+Q2     	TRF0001  	SOT23_S4C         	131.911       	135.288       	Top    	180.0    	NX7002AK       	            	                 
+Q3     	TRF0001  	SOT23_S4C         	131.92        	138.822       	Top    	180.0    	NX7002AK       	            	                 
+Q4     	TRF0001  	SOT23_S4C         	146.419       	149.889       	Bottom 	180.0    	NX7002AK       	            	                 
+Q5     	TRF0001  	SOT23_S4C         	136.698       	158.081       	Bottom 	0.0      	NX7002AK       	            	                 
+R1     	REA1003  	RES_0603_S4C      	155.121       	154.173       	Bottom 	270.0    	100kR 1%       	            	                 
+R2     	REA1002  	RES_0603_S4C      	155.84        	138.531       	Bottom 	270.0    	10kR 1%        	            	                 
+R3     	REA1002  	RES_0603_S4C      	140.353       	159.087       	Top    	0.0      	10kR 1%        	            	                 
+R4     	REA1001  	RES_0603_S4C      	122.776       	159.039       	Top    	180.0    	1kR 1%         	            	                 
+R5     	REA1001  	RES_0603_S4C      	122.894       	156.376       	Top    	180.0    	1kR 1%         	            	                 
+R6     	REA1003  	RES_0603_S4C      	134.032       	158.307       	Top    	90.0     	100kR 1%       	            	                 
+R7     	REA1002  	RES_0603_S4C      	131.497       	158.362       	Top    	180.0    	10kR 1%        	            	                 
+R8     	REA1003  	RES_0603_S4C      	152.247       	157.852       	Bottom 	0.0      	100kR 1%       	            	                 
+R9     	REA1003  	RES_0603_S4C      	132.092       	151.665       	Top    	180.0    	100kR 1%       	            	                 
+R10    	REA1801  	RES_0603_S4C      	146.662       	159.143       	Top    	0.0      	1.8kR 1%       	            	                 
+R11    	REA1801  	RES_0603_S4C      	132.493       	132.603       	Top    	180.0    	1.8kR 1%       	            	                 
+R12    	REA1002  	RES_0603_S4C      	134.715       	135.099       	Top    	270.0    	10kR 1%        	            	                 
+R13    	REA1002  	RES_0603_S4C      	130.495       	155.887       	Top    	270.0    	10kR 1%        	            	                 
+R14    	REA6800  	RES_0603_S4C      	131.94        	141.496       	Top    	180.0    	680R 1%        	            	                 
+R15    	REA1002  	RES_0603_S4C      	137.634       	139.58        	Top    	270.0    	10kR 1%        	            	                 
+R16    	REA1002  	RES_0603_S4C      	139.761       	156.472       	Bottom 	270.0    	10kR 1%        	            	                 
+U1     	LRE0002  	SOIC-8/150mil_S4C 	152.284       	138.623       	Bottom 	270.0    	KF33BD         	            	                 
+U2     	NVM0001  	SOT23-5_S4C       	126.831       	156.882       	Top    	0.0      	AT24C02D_SOT23 	            	                 
+U3     	MCO0001  	TSSOP-20_S4C      	142.64        	154.203       	Top    	0.0      	STM32F042FxPx  	            	                 

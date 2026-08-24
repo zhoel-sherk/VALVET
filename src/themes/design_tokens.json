@@ -1,0 +1,12 @@
+{
+  "format": "boomer_design_tokens_v1",
+  "spacing_unit_px": 8,
+  "radius_sm_px": 4,
+  "radius_md_px": 6,
+  "groupbox_margin_px": 10,
+  "font_ui_pt": 10,
+  "colors": {
+    "wip_banner_bg": "#4a4028",
+    "wip_banner_fg": "#fce8a6"
+  }
+}
