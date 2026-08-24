@@ -63,14 +63,14 @@ Matching cleaned **Merge** output to real pick-and-place **machine component nam
 
 - **Hanwha / Samsung (current focus, WIP):** shop libraries are often **Microsoft Access `.mdb`**. The **Machine lib** tab lists tables and **`PART_Det`** (`PARTNAME`). Separate **Hanwha MDB editor** (`src/hanwha_mdb_edit/`) joins profiles and can autosave/recover edited grids like BOM/PnP. See `doc/info/hanwha_UPD_mdb_schema.md`, `doc/info/hanwha_mdb_editor.md`, and `doc/info/machine_lib_yedytor_notes.md`. Linux: **mdbtools**; Windows: optional **ODBC** / `pyodbc` for in-place updates.
 
-- **Yamaha (second):** `.Tou` and `DevLibEd*.Lib`. Use [yedytor](https://github.com/marmidr/yedytor) (MIT) as a **reference for formats and UX patterns**. Phase 5 details: [TODO.md](doc/working_on/TODO.md).
+- **Yamaha (second):** `.Tou` and `DevLibEd*.Lib`. Use [yedytor](https://github.com/marmidr/yedytor) (MIT) as a **reference for formats and UX patterns**. Details: [TODO.md](doc/TODO.md).
 
-Both vendors should converge on the **same normalized machine-component model** (search, MRU, auto-match, export checks) described in [TODO.md](doc/working_on/TODO.md) Phase 5.
+Both vendors should converge on the **same normalized machine-component model** (search, MRU, auto-match, export checks) described in [TODO.md](doc/TODO.md).
 
 The project is actively evolving. See:
 
 - [CHANGELOG.md](CHANGELOG.md) for completed work.
-- [TODO.md](doc/working_on/TODO.md) for roadmap, known test status, and next tasks.
+- [TODO.md](doc/TODO.md) for roadmap and next tasks.
 - [LICENSE](LICENSE) for license terms.
 
 ## Features
@@ -282,7 +282,7 @@ Last run in project `.venv` / `venv`: **163 passed, 10 skipped** (`pytest tests 
 
 After aligning tests with the API and fixtures, the full suite should be green in a proper venv (see command above).
 
-Known gaps are listed in [TODO.md](doc/working_on/TODO.md) if new failures appear after dependency upgrades.
+Known gaps are listed in [TODO.md](doc/TODO.md) if new failures appear after dependency upgrades.
 
 ## Repository Notes
 
