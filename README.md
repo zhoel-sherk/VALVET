@@ -56,7 +56,7 @@ Matching cleaned **Merge** output to real pick-and-place **machine component nam
 
 - **Hanwha / Samsung (current focus, WIP):** shop libraries are often **Microsoft Access `.mdb`**. The **Machine lib** tab lists tables and **`PART_Det`** (`PARTNAME`). Separate **Hanwha MDB editor** (`src/hanwha_mdb_edit/`) joins profiles and can autosave/recover edited grids like BOM/PnP. See `doc/info/hanwha_UPD_mdb_schema.md`, `doc/info/hanwha_mdb_editor.md`, and `doc/info/machine_lib_yedytor_notes.md`. Linux: **mdbtools**; Windows: optional **ODBC** / `pyodbc` for in-place updates.
 
-- **Yamaha (second):** `.Tou` and `DevLibEd*.Lib`. Use [yedytor](https://github.com/marmidr/yedytor) (MIT) as a **reference for formats and UX patterns** — vendor a clone under [`yedytor/`](yedytor/README.md) when convenient. Phase 5 details: [TODO.md](doc/working_on/TODO.md).
+- **Yamaha (second):** `.Tou` and `DevLibEd*.Lib`. Use [yedytor](https://github.com/marmidr/yedytor) (MIT) as a **reference for formats and UX patterns**. Phase 5 details: [TODO.md](doc/working_on/TODO.md).
 
 Both vendors should converge on the **same normalized machine-component model** (search, MRU, auto-match, export checks) described in [TODO.md](doc/working_on/TODO.md) Phase 5.
 
