@@ -147,7 +147,10 @@ def append_missing_tokens_log(payload: dict) -> None:
     """Append one JSON line for token-missing alerts."""
     p = dict(payload)
     p.setdefault("ts", datetime.now(timezone.utc).isoformat())
-    log_path = os.environ.get("BOOMER_MISSING_TOKENS_LOG", "").strip()
+    log_path = (
+        os.environ.get("VALVET_MISSING_TOKENS_LOG", "").strip()
+        or os.environ.get("BOOMER_MISSING_TOKENS_LOG", "").strip()
+    )
     if log_path:
         out = Path(log_path)
     else:

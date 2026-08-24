@@ -29,8 +29,8 @@ import pcb_preview_bridge
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
 _CENTROID_RADIUS_MM = 0.45
 _SEL_RING_SCALE = 2.8
-# Ref label height in scene mm (~font * scale); was 0.12 → ~3× for 0402 at zoom.
-_LABEL_SCENE_SCALE = 0.36
+# Ref label height in scene mm (~font * scale). User can raise this in Settings.
+_LABEL_SCENE_SCALE = 0.12
 # Half-length of each arm of the centroid X-cross (mm, local item space).
 _CROSS_HALF_MM = 0.9
 # Gerber raster: pixels per mm of SVG viewBox (higher = sharper, more memory).
@@ -274,6 +274,15 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
             self._dot.setRect(-dr, -dr, 2 * dr, 2 * dr)
             self._label.setBrush(QtGui.QBrush(QtGui.QColor(255, 235, 160)))
 
+    def set_label_scale(self, scale: float) -> None:
+        self._label.setScale(max(0.04, float(scale)))
+
+    def set_labels_visible(self, on: bool) -> None:
+        self._label.setVisible(on)
+
+    def set_footprint_visible(self, on: bool) -> None:
+        self._path_item.setVisible(on)
+
 
 class PnpArrowNudgeBar(QtWidgets.QWidget):
     """Compact diamond nudge pad around the step field (mm); fixed width."""
@@ -377,141 +386,35 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._pnp_mirror_x = 1
         self._pnp_mirror_y = 1
         self._px_per_mm = _GERBER_PX_PER_MM
+        self._label_scale = _LABEL_SCENE_SCALE
+        self._show_labels = True
+        self._show_footprints = True
+        self._placements_fp: tuple[Any, ...] | None = None
+        self._did_initial_fit = False
 
         root = QtWidgets.QVBoxLayout(self)
+        root.setContentsMargins(8, 8, 8, 8)
+        root.setSpacing(6)
+
         top = QtWidgets.QHBoxLayout()
-        self._btn_gerber = QtWidgets.QPushButton("Add Gerber layer…")
-        self._btn_gerber.setToolTip(
-            "Append a Gerber file as a raster layer (paste, silk, etc.)"
-        )
+        self._btn_gerber = QtWidgets.QPushButton("Add Gerber")
         self._btn_gerber.clicked.connect(self._browse_gerber)
         top.addWidget(self._btn_gerber)
-        self._btn_clear_layers = QtWidgets.QPushButton("Clear layers")
-        self._btn_clear_layers.clicked.connect(self._clear_gerber_layers)
-        top.addWidget(self._btn_clear_layers)
-        # --- Disabled: Gerber landmarks / Ref A–B picks / 2-point similarity ---
-        # self._btn_align = QtWidgets.QPushButton("Pick Gerber landmarks…")
-        # self._btn_align.setCheckable(True)
-        # self._btn_align.toggled.connect(self._on_align_toggled)
-        # top.addWidget(self._btn_align)
-        # top.addWidget(QtWidgets.QLabel("Ref A:"))
-        # self._cb_a = QtWidgets.QComboBox()
-        # top.addWidget(self._cb_a)
-        # top.addWidget(QtWidgets.QLabel("Ref B:"))
-        # self._cb_b = QtWidgets.QComboBox()
-        # top.addWidget(self._cb_b)
-        # self._cb_a.currentIndexChanged.connect(self._sync_all_placement_styles)
-        # self._cb_b.currentIndexChanged.connect(self._sync_all_placement_styles)
-        # self._btn_pick_refs = QtWidgets.QPushButton("Pick Ref A/B on board…")
-        # self._btn_pick_refs.setCheckable(True)
-        # self._btn_pick_refs.setToolTip("Left-click two components: first sets Ref A, second sets Ref B (like Gerber picks)")
-        # self._btn_pick_refs.toggled.connect(self._on_pick_refs_toggled)
-        # top.addWidget(self._btn_pick_refs)
-        # self._btn_apply_sim = QtWidgets.QPushButton("Apply 2-point similarity")
-        # self._btn_apply_sim.clicked.connect(self._apply_similarity)
-        # top.addWidget(self._btn_apply_sim)
-        self._btn_reset = QtWidgets.QPushButton("Reset preview transform")
-        self._btn_reset.clicked.connect(self._reset_transform)
-        top.addWidget(self._btn_reset)
-        self._chk_mirror_x = QtWidgets.QCheckBox("Mirror PnP X")
-        self._chk_mirror_x.setToolTip("Mirror board X (mm)")
-        self._chk_mirror_x.toggled.connect(self._on_mirror_x_toggled)
-        top.addWidget(self._chk_mirror_x)
-        self._chk_mirror_y = QtWidgets.QCheckBox("Mirror PnP Y")
-        self._chk_mirror_y.setToolTip("Mirror board Y (mm)")
-        self._chk_mirror_y.toggled.connect(self._on_mirror_y_toggled)
-        top.addWidget(self._chk_mirror_y)
-        self._btn_center = QtWidgets.QPushButton("Center on selection")
-        self._btn_center.clicked.connect(self._center_selection)
         self._btn_fit = QtWidgets.QPushButton("Fit all")
-        self._btn_fit.setToolTip("Reset view zoom, then zoom to Gerber layers + PnP")
         self._btn_fit.clicked.connect(self._fit_all_with_reset_view)
         top.addWidget(self._btn_fit)
         self._btn_zoom_in = QtWidgets.QPushButton("Zoom +")
-        self._btn_zoom_in.setToolTip("Scale view (wheel also works)")
         top.addWidget(self._btn_zoom_in)
         self._btn_zoom_out = QtWidgets.QPushButton("Zoom −")
-        self._btn_zoom_out.setToolTip("Scale view (wheel also works)")
         top.addWidget(self._btn_zoom_out)
+        self._btn_reset = QtWidgets.QPushButton("Reset transform")
+        self._btn_reset.clicked.connect(self._reset_transform)
+        top.addWidget(self._btn_reset)
+        self._btn_center = QtWidgets.QPushButton("Center on selection")
+        self._btn_center.clicked.connect(self._center_selection)
+        top.addWidget(self._btn_center)
         top.addStretch()
         root.addLayout(top)
-
-        mid = QtWidgets.QHBoxLayout()
-        left_col = QtWidgets.QVBoxLayout()
-        grp_u = QtWidgets.QGroupBox("Gerber units (linear)")
-        lu = QtWidgets.QVBoxLayout(grp_u)
-        self._rb_g_auto = QtWidgets.QRadioButton("Auto (scan %MOIN% / %MOMM%)")
-        self._rb_g_mm = QtWidgets.QRadioButton("mm (×1)")
-        self._rb_g_in = QtWidgets.QRadioButton("inch → mm (×25.4)")
-        self._rb_g_auto.setChecked(True)
-        self._rb_g_auto.setToolTip(
-            "Reads RS-274X header only. gerbonara usually outputs SVG in mm; scale stays ×1."
-        )
-        self._rb_g_mm.setToolTip(
-            "Assume gerbonara/SVG geometry is already in millimetres."
-        )
-        self._rb_g_in.setToolTip(
-            "Use only if the layer looks ~25× too small: forces an extra ×25.4 on top of gerbonara output."
-        )
-        self._bg_gunit = QtWidgets.QButtonGroup(self)
-        for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_in):
-            self._bg_gunit.addButton(rb)
-            lu.addWidget(rb)
-        left_col.addWidget(grp_u)
-
-        grp_pnp_xy = QtWidgets.QGroupBox("PnP table coordinates")
-        lpxy = QtWidgets.QHBoxLayout(grp_pnp_xy)
-        self._rb_pnp_xy_mm = QtWidgets.QRadioButton("mm")
-        self._rb_pnp_xy_mils = QtWidgets.QRadioButton("mils")
-        self._rb_pnp_xy_mm.setChecked(True)
-        self._rb_pnp_xy_mm.setToolTip(
-            "Treat mapped PnP X/Y columns as millimetres (same as PnP / Merge / Report tabs)."
-        )
-        self._rb_pnp_xy_mils.setToolTip(
-            "Treat PnP X/Y as mils (0.001 inch): overlap uses ×0.0254 to mm; preview and .mmd export convert to mm."
-        )
-        self._rb_pnp_xy_mm.toggled.connect(
-            lambda on: on and self.pnp_xy_unit_mm_selected.emit(True)
-        )
-        self._rb_pnp_xy_mils.toggled.connect(
-            lambda on: on and self.pnp_xy_unit_mm_selected.emit(False)
-        )
-        lpxy.addWidget(self._rb_pnp_xy_mm)
-        lpxy.addWidget(self._rb_pnp_xy_mils)
-        left_col.addWidget(grp_pnp_xy)
-
-        grp_nudge = QtWidgets.QGroupBox("PnP nudge (mm)")
-        lnudge = QtWidgets.QVBoxLayout(grp_nudge)
-        self._nudge_bar = PnpArrowNudgeBar()
-        self._nudge_bar.nudgeRequested.connect(self._on_pnp_nudge_mm)
-        lnudge.addWidget(
-            self._nudge_bar, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter
-        )
-        left_col.addWidget(grp_nudge)
-
-        grp = QtWidgets.QGroupBox("Gerber layers")
-        gl = QtWidgets.QVBoxLayout(grp)
-        self._layer_list = QtWidgets.QListWidget()
-        self._layer_list.setMinimumWidth(200)
-        self._layer_list.setMaximumWidth(280)
-        self._layer_list.setToolTip(
-            "Toggle visibility. Lower items draw behind upper items."
-        )
-        self._layer_list.itemChanged.connect(self._on_layer_item_changed)
-        gl.addWidget(self._layer_list)
-        btn_rm = QtWidgets.QPushButton("Remove selected layer")
-        btn_rm.clicked.connect(self._remove_selected_layer)
-        gl.addWidget(btn_rm)
-        left_col.addWidget(grp)
-
-        self._list = QtWidgets.QListWidget()
-        self._list.setSelectionMode(
-            QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection
-        )
-        self._list.itemSelectionChanged.connect(self._on_list_selection)
-        left_col.addWidget(QtWidgets.QLabel("PnP refs"))
-        left_col.addWidget(self._list, 1)
-        mid.addLayout(left_col, 0)
 
         self._scene = QtWidgets.QGraphicsScene()
         self._scene.setSceneRect(-5, -5, 200, 200)
@@ -521,21 +424,143 @@ class PcbPreviewTab(QtWidgets.QWidget):
             QtGui.QPainter.RenderHint.Antialiasing
             | QtGui.QPainter.RenderHint.SmoothPixmapTransform
         )
-        mid.addWidget(self._view, 1)
-        root.addLayout(mid, 1)
+        root.addWidget(self._view, 1)
 
         self._btn_zoom_in.clicked.connect(self._zoom_view_in)
         self._btn_zoom_out.clicked.connect(self._zoom_view_out)
 
+        self._chk_mirror_x = QtWidgets.QCheckBox("Mirror PnP X")
+        self._chk_mirror_x.toggled.connect(self._on_mirror_x_toggled)
+        self._chk_mirror_y = QtWidgets.QCheckBox("Mirror PnP Y")
+        self._chk_mirror_y.toggled.connect(self._on_mirror_y_toggled)
+
+        grp_u = QtWidgets.QGroupBox("Gerber units")
+        self._grp_gunit = grp_u
+        lu = QtWidgets.QVBoxLayout(grp_u)
+        self._rb_g_auto = QtWidgets.QRadioButton("Auto")
+        self._rb_g_mm = QtWidgets.QRadioButton("mm")
+        self._rb_g_in = QtWidgets.QRadioButton("inch → mm")
+        self._rb_g_auto.setChecked(True)
+        self._bg_gunit = QtWidgets.QButtonGroup(self)
+        for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_in):
+            self._bg_gunit.addButton(rb)
+            lu.addWidget(rb)
+
+        grp_pnp_xy = QtWidgets.QGroupBox("PnP coordinates")
+        self._grp_pnp_xy = grp_pnp_xy
+        lpxy = QtWidgets.QHBoxLayout(grp_pnp_xy)
+        self._rb_pnp_xy_mm = QtWidgets.QRadioButton("mm")
+        self._rb_pnp_xy_mils = QtWidgets.QRadioButton("mils")
+        self._rb_pnp_xy_mm.setChecked(True)
+        self._rb_pnp_xy_mm.toggled.connect(
+            lambda on: on and self.pnp_xy_unit_mm_selected.emit(True)
+        )
+        self._rb_pnp_xy_mils.toggled.connect(
+            lambda on: on and self.pnp_xy_unit_mm_selected.emit(False)
+        )
+        lpxy.addWidget(self._rb_pnp_xy_mm)
+        lpxy.addWidget(self._rb_pnp_xy_mils)
+
+        grp_nudge = QtWidgets.QGroupBox("PnP nudge (mm)")
+        self._grp_nudge = grp_nudge
+        lnudge = QtWidgets.QVBoxLayout(grp_nudge)
+        self._nudge_bar = PnpArrowNudgeBar()
+        self._nudge_bar.nudgeRequested.connect(self._on_pnp_nudge_mm)
+        lnudge.addWidget(
+            self._nudge_bar, alignment=QtCore.Qt.AlignmentFlag.AlignHCenter
+        )
+
+        grp = QtWidgets.QGroupBox("Gerber layers")
+        self._grp_layers = grp
+        gl = QtWidgets.QVBoxLayout(grp)
+        self._layer_list = QtWidgets.QListWidget()
+        self._layer_list.setMaximumHeight(120)
+        self._layer_list.itemChanged.connect(self._on_layer_item_changed)
+        gl.addWidget(self._layer_list)
+        self._btn_clear_layers = QtWidgets.QPushButton("Clear layers")
+        self._btn_clear_layers.clicked.connect(self._clear_gerber_layers)
+        gl.addWidget(self._btn_clear_layers)
+        self._btn_rm_layer = QtWidgets.QPushButton("Remove selected layer")
+        self._btn_rm_layer.clicked.connect(self._remove_selected_layer)
+        gl.addWidget(self._btn_rm_layer)
+
+        self._lbl_refs = QtWidgets.QLabel("PnP refs")
+        self._list = QtWidgets.QListWidget()
+        self._list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection
+        )
+        self._list.setMaximumHeight(140)
+        self._list.itemSelectionChanged.connect(self._on_list_selection)
+
+        view_opts = QtWidgets.QHBoxLayout()
+        self._lbl_label_scale = QtWidgets.QLabel("Ref label size")
+        self._spin_label_scale = QtWidgets.QDoubleSpinBox()
+        self._spin_label_scale.setRange(0.04, 1.0)
+        self._spin_label_scale.setSingleStep(0.02)
+        self._spin_label_scale.setValue(self._label_scale)
+        self._spin_label_scale.valueChanged.connect(self._on_label_scale_changed)
+        self._chk_show_labels = QtWidgets.QCheckBox("Show labels")
+        self._chk_show_labels.setChecked(True)
+        self._chk_show_labels.toggled.connect(self._on_show_labels_toggled)
+        self._chk_show_footprints = QtWidgets.QCheckBox("Show footprints")
+        self._chk_show_footprints.setChecked(True)
+        self._chk_show_footprints.toggled.connect(self._on_show_footprints_toggled)
+        view_opts.addWidget(self._lbl_label_scale)
+        view_opts.addWidget(self._spin_label_scale)
+        view_opts.addWidget(self._chk_show_labels)
+        view_opts.addWidget(self._chk_show_footprints)
+        view_opts.addWidget(self._chk_mirror_x)
+        view_opts.addWidget(self._chk_mirror_y)
+        view_opts.addStretch()
+
+        settings_grid = QtWidgets.QGridLayout()
+        settings_grid.addLayout(view_opts, 0, 0, 1, 3)
+        settings_grid.addWidget(grp_u, 1, 0)
+        settings_grid.addWidget(grp_pnp_xy, 1, 1)
+        settings_grid.addWidget(grp_nudge, 1, 2)
+        settings_grid.addWidget(grp, 2, 0)
+        refs_col = QtWidgets.QVBoxLayout()
+        refs_col.addWidget(self._lbl_refs)
+        refs_col.addWidget(self._list, 1)
+        refs_wrap = QtWidgets.QWidget()
+        refs_wrap.setLayout(refs_col)
+        settings_grid.addWidget(refs_wrap, 2, 1, 1, 2)
+
         self._log = QtWidgets.QPlainTextEdit()
         self._log.setReadOnly(True)
         self._log.setMaximumBlockCount(200)
-        self._log.setFixedHeight(90)
-        root.addWidget(self._log)
+        self._log.setMaximumHeight(80)
+        settings_grid.addWidget(self._log, 3, 0, 1, 3)
+
+        self._pcb_settings_panel = QtWidgets.QFrame()
+        self._pcb_settings_panel.setLayout(settings_grid)
+
+        self._btn_pcb_settings_toggle = QtWidgets.QToolButton()
+        self._btn_pcb_settings_toggle.setCheckable(True)
+        self._btn_pcb_settings_toggle.setToolButtonStyle(
+            QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
+        self._btn_pcb_settings_toggle.setArrowType(QtCore.Qt.ArrowType.RightArrow)
+        self._btn_pcb_settings_toggle.toggled.connect(self._on_pcb_settings_toggled)
+        root.addWidget(self._btn_pcb_settings_toggle)
+        root.addWidget(self._pcb_settings_panel)
+        expanded = False
+        if self._settings is not None:
+            expanded = bool(
+                self._settings.value("pcb_preview/settings_expanded", False, type=bool)
+            )
+        self._btn_pcb_settings_toggle.blockSignals(True)
+        self._btn_pcb_settings_toggle.setChecked(expanded)
+        self._btn_pcb_settings_toggle.blockSignals(False)
+        self._pcb_settings_panel.setVisible(expanded)
+        self._btn_pcb_settings_toggle.setArrowType(
+            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+        )
 
         self._scene.addItem(self._placements_root)
         self._placements_root.setZValue(10.0)
         self._set_placements_root_transform()
+        self.refresh_static_texts()
 
     def _set_placements_root_transform(self) -> None:
         self._placements_root.setTransform(
@@ -546,6 +571,75 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
     def _append_log(self, msg: str) -> None:
         self._log.appendPlainText(msg)
+
+    def _tr(self, key: str) -> str:
+        w: Any = self.parent()
+        while w is not None:
+            fn = getattr(w, "ui_tr", None)
+            if callable(fn):
+                return str(fn(key))
+            w = w.parent()
+        return key
+
+    def refresh_static_texts(self) -> None:
+        if not hasattr(self, "_btn_gerber"):
+            return
+        self._btn_gerber.setText(self._tr("pcb.add_gerber"))
+        self._btn_fit.setText(self._tr("pcb.fit_all"))
+        self._btn_zoom_in.setText(self._tr("pcb.zoom_in"))
+        self._btn_zoom_out.setText(self._tr("pcb.zoom_out"))
+        self._btn_reset.setText(self._tr("pcb.reset_transform"))
+        self._btn_center.setText(self._tr("pcb.center_sel"))
+        self._btn_pcb_settings_toggle.setText(self._tr("pcb.settings"))
+        self._chk_mirror_x.setText(self._tr("pcb.mirror_x"))
+        self._chk_mirror_y.setText(self._tr("pcb.mirror_y"))
+        self._grp_gunit.setTitle(self._tr("pcb.gerber_units"))
+        self._rb_g_auto.setText(self._tr("pcb.gerber_auto"))
+        self._rb_g_mm.setText(self._tr("pcb.gerber_mm"))
+        self._rb_g_in.setText(self._tr("pcb.gerber_in"))
+        self._grp_pnp_xy.setTitle(self._tr("pcb.pnp_xy"))
+        self._grp_nudge.setTitle(self._tr("pcb.nudge"))
+        self._grp_layers.setTitle(self._tr("pcb.layers"))
+        self._btn_clear_layers.setText(self._tr("pcb.clear_layers"))
+        self._btn_rm_layer.setText(self._tr("pcb.remove_layer"))
+        self._lbl_refs.setText(self._tr("pcb.refs"))
+        self._lbl_label_scale.setText(self._tr("pcb.label_scale"))
+        self._chk_show_labels.setText(self._tr("pcb.show_labels"))
+        self._chk_show_footprints.setText(self._tr("pcb.show_footprints"))
+
+    def _on_pcb_settings_toggled(self, expanded: bool) -> None:
+        self._pcb_settings_panel.setVisible(expanded)
+        self._btn_pcb_settings_toggle.setArrowType(
+            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+        )
+        if self._settings is not None:
+            self._settings.setValue("pcb_preview/settings_expanded", expanded)
+
+    def _on_label_scale_changed(self, value: float) -> None:
+        self._label_scale = float(value)
+        for it in self._items.values():
+            it.set_label_scale(self._label_scale)
+
+    def _on_show_labels_toggled(self, on: bool) -> None:
+        self._show_labels = bool(on)
+        for it in self._items.values():
+            it.set_labels_visible(self._show_labels)
+
+    def _on_show_footprints_toggled(self, on: bool) -> None:
+        self._show_footprints = bool(on)
+        for it in self._items.values():
+            it.set_footprint_visible(self._show_footprints)
+
+    def _placements_fingerprint(self, df: Any, kwargs: dict[str, Any]) -> tuple[Any, ...]:
+        if df is None:
+            return (None,)
+        cols = tuple(str(c) for c in df.columns)
+        return (
+            id(df),
+            getattr(df, "shape", None),
+            cols,
+            tuple(sorted((str(k), repr(v)) for k, v in kwargs.items())),
+        )
 
     def sync_pnp_xy_units_ui(self, *, mm: bool) -> None:
         """Keep mm/mils radios aligned with the main window (does not emit signals)."""
@@ -568,6 +662,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
             "mirror_y": self._chk_mirror_y.isChecked(),
             "gerber_unit": gunit,
             "nudge_step": self._nudge_bar._step.text().strip() or "0.5",
+            "label_scale": self._label_scale,
+            "show_labels": self._show_labels,
+            "show_footprints": self._show_footprints,
         }
 
     def apply_ui_prefs(self, prefs: dict[str, Any]) -> None:
@@ -601,6 +698,28 @@ class PcbPreviewTab(QtWidgets.QWidget):
         step = str(prefs.get("nudge_step", "0.5")).strip()
         if step:
             self._nudge_bar._step.setText(step)
+        if "label_scale" in prefs:
+            try:
+                self._label_scale = float(prefs["label_scale"])
+            except (TypeError, ValueError):
+                pass
+            self._spin_label_scale.blockSignals(True)
+            self._spin_label_scale.setValue(self._label_scale)
+            self._spin_label_scale.blockSignals(False)
+        if "show_labels" in prefs:
+            self._show_labels = bool(prefs["show_labels"])
+            self._chk_show_labels.blockSignals(True)
+            self._chk_show_labels.setChecked(self._show_labels)
+            self._chk_show_labels.blockSignals(False)
+        if "show_footprints" in prefs:
+            self._show_footprints = bool(prefs["show_footprints"])
+            self._chk_show_footprints.blockSignals(True)
+            self._chk_show_footprints.setChecked(self._show_footprints)
+            self._chk_show_footprints.blockSignals(False)
+        for it in self._items.values():
+            it.set_label_scale(self._label_scale)
+            it.set_labels_visible(self._show_labels)
+            it.set_footprint_visible(self._show_footprints)
         self._set_placements_root_transform()
 
     def _zoom_view_in(self) -> None:
@@ -797,7 +916,11 @@ class PcbPreviewTab(QtWidgets.QWidget):
                 self._scene.sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio
             )
 
-    def set_placements_from_dataframe(self, df, **kwargs) -> None:
+    def set_placements_from_dataframe(self, df, *, force: bool = False, **kwargs) -> None:
+        fp = self._placements_fingerprint(df, kwargs)
+        if not force and fp == self._placements_fp:
+            return
+        self._placements_fp = fp
         self._placements, warns = pcb_preview_bridge.placements_from_pnp_dataframe(
             df, **kwargs
         )
@@ -817,13 +940,18 @@ class PcbPreviewTab(QtWidgets.QWidget):
                 tail = pl.footprint_name.replace("\\", "/").split("/")[-1]
                 outline = self._store.lookup_outline(tail)
             item = PlacementGroupItem(pl, outline)
+            item.set_label_scale(self._label_scale)
+            item.set_labels_visible(self._show_labels)
+            item.set_footprint_visible(self._show_footprints)
             self._placements_root.addToGroup(item)
             self._items[pl.ref] = item
             self._list.addItem(pl.ref)
         self._set_placements_root_transform()
         self._sync_all_placement_styles()
         self._update_scene_rect_from_content()
-        self._fit_all_content()
+        if not self._did_initial_fit and (self._items or self._layers):
+            self._fit_all_content()
+            self._did_initial_fit = True
 
     def _on_list_selection(self) -> None:
         self._sync_all_placement_styles()

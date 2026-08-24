@@ -119,7 +119,7 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         self._chk_hide_standard_s.setToolTip(
             "Matches T-OLP vendor «S» library rows. Hidden rows are not removed from the file on Save."
         )
-        _fs = QtCore.QSettings("Boomer", "HanwhaMdbEdit")
+        _fs = QtCore.QSettings("VALVET", "HanwhaMdbEdit")
         _fs.beginGroup(self._column_settings_group)
         _hide_val = _fs.value("hide_standard_library_s", True)
         _fs.endGroup()
@@ -200,7 +200,7 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         return list(self._source_model.get_dataframe().columns)
 
     def load_hidden_columns(self) -> set[str]:
-        s = QtCore.QSettings("Boomer", "HanwhaMdbEdit")
+        s = QtCore.QSettings("VALVET", "HanwhaMdbEdit")
         s.beginGroup(self._column_settings_group)
         raw = s.value("hidden", [])
         s.endGroup()
@@ -218,7 +218,7 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         for i, col in enumerate(cols):
             self._table.setColumnHidden(i, col in hidden)
         if persist:
-            s = QtCore.QSettings("Boomer", "HanwhaMdbEdit")
+            s = QtCore.QSettings("VALVET", "HanwhaMdbEdit")
             s.beginGroup(self._column_settings_group)
             s.setValue("hidden", sorted(hidden))
             s.endGroup()
@@ -239,7 +239,7 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
 
     def _on_hide_standard_s_toggled(self, checked: bool) -> None:
         self._proxy.set_hide_standard_s(checked)
-        s = QtCore.QSettings("Boomer", "HanwhaMdbEdit")
+        s = QtCore.QSettings("VALVET", "HanwhaMdbEdit")
         s.beginGroup(self._column_settings_group)
         s.setValue("hide_standard_library_s", checked)
         s.endGroup()

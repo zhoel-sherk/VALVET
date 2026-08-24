@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Download Inter UI TTFs into src/fonts/ (SIL OFL 1.1).
 
-Run from the ``boomer`` repository root:
+Run from the ``VALVET`` repository root:
 
     source venv/bin/activate
     python tools/fetch_inter.py
@@ -35,7 +35,7 @@ def main() -> int:
     print(f"Downloading {_ZIP_URL!r} …", file=sys.stderr)
     req = urllib.request.Request(
         _ZIP_URL,
-        headers={"User-Agent": "boomer-fetch-fonts/1.0"},
+        headers={"User-Agent": "valvet-fetch-fonts/1.0"},
     )
     with urllib.request.urlopen(req, timeout=120) as resp:
         data = resp.read()

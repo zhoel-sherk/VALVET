@@ -87,7 +87,9 @@ def profile_colour_qss(ui: dict[str, str], table: dict[str, str]) -> str:
     QTabBar::tab {{
         background-color: {u["control_bg"]};
         color: {u["panel_fg"]};
-        padding: 6px 12px;
+        padding: 10px 16px;
+        min-height: 22px;
+        font-weight: 700;
     }}
     QGroupBox {{
         color: {u["panel_fg"]};
@@ -168,12 +170,12 @@ def profile_colour_qss(ui: dict[str, str], table: dict[str, str]) -> str:
         padding: 2px 8px 2px 2px;
     }}
     /* Narrow Clean BOM template combos + BOM/PnP column mapping row (objectName set in app). */
-    QComboBox#boomerCleanTemplateCombo,
-    QComboBox#boomerMappingCombo {{
+    QComboBox#valvetCleanTemplateCombo,
+    QComboBox#valvetMappingCombo {{
         padding: 2px 22px 2px 4px;
     }}
-    QComboBox#boomerCleanTemplateCombo QAbstractItemView::item,
-    QComboBox#boomerMappingCombo QAbstractItemView::item {{
+    QComboBox#valvetCleanTemplateCombo QAbstractItemView::item,
+    QComboBox#valvetMappingCombo QAbstractItemView::item {{
         padding: 2px 8px 2px 2px;
     }}
     """

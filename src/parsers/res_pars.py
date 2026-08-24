@@ -17,6 +17,7 @@ from parsers.bom_text_utils import (
     normalize_res_ohm_value,
     tokenize_bom_spec,
 )
+from parsers.chip_tokens import match_package_token, watt_for_package
 from parsers.constants import PACKAGE_PATTERN
 from parsers.formatting import format_resistor_fields
 from parsers.inferit_pars import parse_inferit_resistor
@@ -53,11 +54,9 @@ def parse_resistor_token_fields(
     for part in parts:
         if not part:
             continue
-        if not package and match(rf"^({PACKAGE_PATTERN})$", part, I):
-            package = part
-            continue
-        if not package and match(rf"^({PACKAGE_PATTERN})-(?:8P4R|\d+P\d+R|[A-Za-z0-9]+)$", part, I):
-            package = match(rf"^({PACKAGE_PATTERN})", part, I).group(1)
+        pack_tok = match_package_token(part)
+        if not package and pack_tok:
+            package = pack_tok
             continue
         wm = search(r"(?<![0-9.])(\d+/\d+W|\d+(?:\.\d+)?W)(?![0-9A-Z])", part, I)
         if wm:
@@ -74,7 +73,9 @@ def parse_resistor_token_fields(
                 if tol:
                     tolerance = f"{tol}%"
             continue
-        if match(r"^[\d\.]+[RKM]?$", part, I):
+        if match(r"^[\d\.]+[RKM]?$", part, I) or match(
+            r"^[0-9]+[RKMtkm][0-9]+$", part
+        ):
             # Keep original case so lowercase m (milli) survives normalize.
             value = part.strip()
             continue
@@ -120,8 +121,9 @@ def parse_resistor_token_fields(
 
     if not package:
         for part in parts:
-            if match(rf"^({PACKAGE_PATTERN})$", part, I):
-                package = part
+            pack_tok = match_package_token(part)
+            if pack_tok:
+                package = pack_tok
                 break
     if not watt:
         for part in parts:
@@ -142,6 +144,9 @@ def parse_resistor_token_fields(
             if m:
                 tolerance = f"{m.group(1)}%"
                 break
+
+    if not watt and cfg.infer_resistor_watt_from_package:
+        watt = watt_for_package(package)
 
     fields = {"pack": package, "nom": value, "watt": watt, "%": tolerance}
     result = format_resistor_fields(fields, cfg)

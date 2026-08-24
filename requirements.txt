@@ -13,6 +13,8 @@ natsort
 gerbonara
 regex
 rapidfuzz>=3.0.0
+pint>=0.24
+rkm-codes>=1.0
 
 # Test / developer tooling
 pytest

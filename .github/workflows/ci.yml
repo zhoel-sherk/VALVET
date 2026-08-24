@@ -38,7 +38,14 @@ jobs:
       - name: Pytest (suite minus Gerber file)
         env:
           PYTHONPATH: src
+          QT_QPA_PLATFORM: offscreen
         run: python -m pytest tests -q --ignore=tests/test_pcb_preview_gerber.py
+
+      - name: Smoke (src/main.py --smoke)
+        env:
+          PYTHONPATH: src
+          QT_QPA_PLATFORM: offscreen
+        run: python src/main.py --smoke
 
       - name: Pytest (Gerber core)
         env:

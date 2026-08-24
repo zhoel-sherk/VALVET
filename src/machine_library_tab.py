@@ -63,7 +63,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         hw_layout = QtWidgets.QVBoxLayout(hw)
         if sys.platform == "win32":
             hint_hw = QtWidgets.QLabel(
-                "Hanwha/Samsung UPD library (<b>.mdb</b>): on Windows, Boomer reads via "
+                "Hanwha/Samsung UPD library (<b>.mdb</b>): on Windows, VALVET reads via "
                 "<b>pyodbc</b> and the <b>Microsoft Access Database Engine (ACE)</b> ODBC driver "
                 "(install the redistributable if opening the library fails). "
                 "Table <b>PART_Det</b> → column <b>PARTNAME</b> for Clean BOM matching. "

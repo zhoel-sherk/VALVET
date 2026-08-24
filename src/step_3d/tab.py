@@ -211,7 +211,7 @@ class Step3DTabWidget(QtWidgets.QWidget):
             if not cmd_tpl:
                 return
 
-        fd, tmp_path = tempfile.mkstemp(prefix="boomer_step3d_", suffix=".obj")
+        fd, tmp_path = tempfile.mkstemp(prefix="valvet_step3d_", suffix=".obj")
         os.close(fd)
         try:
             res = run_step_to_mesh(path, tmp_path, command_template=cmd_tpl)

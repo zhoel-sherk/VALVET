@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from clean_types import CleanConfig
 
+from parsers.chip_tokens import match_package_token
 from parsers.constants import PACKAGE_PATTERN
 from parsers.regex_api import I, compile, match, search
 
@@ -150,7 +151,7 @@ def inductor_pack_guess(s: str) -> str:
     mpn_m = search(r"(?<![A-Za-z0-9])(?:SCCT|SCCB|STPI|SWAI|MCW|CCCA)(\d{4})[-\w]*", s, I)
     if mpn_m:
         return mpn_m.group(1)
-    mm = search(rf"(?<![A-Za-z0-9])({PACKAGE_PATTERN})(?![A-Za-z0-9])", s, I)
+    mm = search(rf"(?<![A-Za-z0-9])[RC]?({PACKAGE_PATTERN})(?![A-Za-z0-9])", s, I)
     return mm.group(1) if mm else ""
 
 
@@ -171,8 +172,9 @@ def resistor_fields_from_cleaned_segments(segs: list[str]) -> dict[str, str]:
     fields = {"nom": "", "pack": "", "watt": "", "%": ""}
     for seg in segs:
         up = seg.upper()
-        if match(rf"^({PACKAGE_PATTERN})$", seg, I):
-            fields["pack"] = seg
+        pack_tok = match_package_token(seg)
+        if pack_tok:
+            fields["pack"] = pack_tok
         elif match(r"^\d+/\d+W$|^\d+(?:\.\d+)?W$", up):
             fields["watt"] = up
         elif "%" in seg:
@@ -194,8 +196,9 @@ def capacitor_fields_from_cleaned_segments(segs: list[str]) -> dict[str, str]:
     cap_tokens: list[str] = []
     for seg in segs:
         up = seg.upper()
-        if match(rf"^({PACKAGE_PATTERN})$", seg, I):
-            fields["pack"] = seg
+        pack_tok = match_package_token(seg)
+        if pack_tok:
+            fields["pack"] = pack_tok
         elif match(r"^[0-9.]+V$", up):
             fields["V"] = up
         elif up in MLCC_DIELECTRIC or up in ("NP0", "C0G", "COG", "NPO"):

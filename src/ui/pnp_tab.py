@@ -25,13 +25,6 @@ class PnpTabMixin:
         pnp_pv.setContentsMargins(0, 0, 0, 0)
         pnp_pv.setSpacing(0)
 
-        self.pnp_combo_vheader_spacer, self.pnp_combo_inner, self.pnp_combos_layout = (
-            self._build_mapping_row_widgets()
-        )
-        pnp_pv.addWidget(
-            self._wrap_mapping_row(self.pnp_combo_vheader_spacer, self.pnp_combo_inner)
-        )
-
         self.pnp_table = QtWidgets.QTableView()
         self.pnp_table.setAlternatingRowColors(True)
         self.pnp_model = SortableTableModel(pd.DataFrame(), editable=True)
@@ -41,8 +34,7 @@ class PnpTabMixin:
             audit_callback=self._on_table_audit_log,
         )
         self.pnp_table.setModel(self.pnp_model)
-        self.pnp_table.horizontalHeader().setMinimumSectionSize(48)
-        self._apply_compact_preview_chrome(self.pnp_table)
+        self._install_mapping_header(self.pnp_table)
         self.pnp_table.horizontalHeader().sectionResized.connect(
             self._on_pnp_section_resized
         )
@@ -58,7 +50,6 @@ class PnpTabMixin:
         self.pnp_model.dataChanged.connect(
             lambda *args: self._mark_working_dirty("pnp")
         )
-        self._connect_mapping_table_signals(self.pnp_table, "_pnp")
         pnp_pv.addWidget(self.pnp_table, 1)
         layout.addWidget(self.pnp_preview_stack, 1)
 
@@ -202,10 +193,9 @@ class PnpTabMixin:
         self._loading_working_copy = True
         self.pnp_model.update_dataframe(pd.DataFrame())
         self._loading_working_copy = False
-        while self.pnp_combos_layout.count():
-            item = self.pnp_combos_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        hh = self._mapping_header(self.pnp_table)
+        if hh is not None:
+            hh.clear_mapping_combos()
         self.pnp_col_combos = []
         configure_path_label(
             self.pnp_path_label, "", empty_text=self.ui_tr("project.no_file")

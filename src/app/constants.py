@@ -1,7 +1,7 @@
 APP_NAME = "VALVET"
 APP_EXPANSION = "Validator And Line-Verified Export Tool"
-APP_VERSION = "0.1.2"
-VERSION_DISPLAY = "ALPHA v0.1.2"
+APP_VERSION = "0.1.3"
+VERSION_DISPLAY = "ALPHA v0.1.3"
 
 SETTINGS_ORG = "VALVET"
 SETTINGS_APP = "VALVET"
@@ -14,8 +14,8 @@ PROFILE_LAST_ACTIVE_KEY = "profiles/last_active"
 # full-row preview: «spaces» loader does not promote a row into column names).
 HIDDEN_TABLE_HAS_HEADER_ROW = False
 
-# Preview table: numeric column headers only; thin horizontal header under mapping combos.
-_PREVIEW_TABLE_HDR_HEIGHT = 22
+# Mapping combos live in the horizontal header (one QComboBox per section).
+_PREVIEW_TABLE_HDR_HEIGHT = 26
 _MAPPING_COMBO_MAX_HEIGHT = 26
 
 # Cap table column auto-width so BOM/PnP load does not force a multi-screen-wide window.
@@ -58,5 +58,5 @@ _RCL_ROW_DISABLED_STYLE = (
     'QFrame#cleanRclRow[rclDisabled="true"] QCheckBox { color: #888; }'
 )
 _MAPPING_COMBO_HIGHLIGHT_STYLE = (
-    "QComboBox#boomerMappingCombo { border: 2px solid #42a5f5; }"
+    "QComboBox#valvetMappingCombo { border: 2px solid #42a5f5; }"
 )

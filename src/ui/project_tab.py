@@ -22,8 +22,9 @@ class PathLabel(QtWidgets.QLabel):
         self.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
+        self.setMinimumHeight(40)
         self.setText(empty_text)
 
     def set_path(self, path: str, *, empty_text: str | None = None) -> None:
@@ -160,44 +161,49 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.project_bom_group = DropGroupBox(
         win.ui_tr("project.bom_file"), win, win._load_bom
     )
-    group_layout = QtWidgets.QHBoxLayout(win.project_bom_group)
-
+    bom_layout = QtWidgets.QVBoxLayout(win.project_bom_group)
     win.bom_path_label = PathLabel(win.ui_tr("project.no_file"))
-    group_layout.addWidget(win.bom_path_label, 1)
-
-    win.btn_browse_bom = QtWidgets.QPushButton(win.ui_tr("project.browse"))
+    bom_layout.addWidget(win.bom_path_label)
+    win.btn_browse_bom = QtWidgets.QPushButton(win.ui_tr("project.browse_bom"))
+    win.btn_browse_bom.setMinimumHeight(32)
     win.btn_browse_bom.clicked.connect(win._browse_bom)
-    group_layout.addWidget(win.btn_browse_bom)
+    bom_layout.addWidget(win.btn_browse_bom)
 
     layout.addWidget(win.project_bom_group)
 
-    win.project_pnp_group = QtWidgets.QGroupBox(win.ui_tr("project.pnp_file"))
+    win.project_pnp_group = DropGroupBox(
+        win.ui_tr("project.pnp_file"), win, win._load_pnp
+    )
     pnp_outer = QtWidgets.QVBoxLayout(win.project_pnp_group)
 
     row1 = DropRowWidget(win, win._load_pnp)
-    row1_layout = QtWidgets.QHBoxLayout(row1)
+    row1_layout = QtWidgets.QVBoxLayout(row1)
     row1_layout.setContentsMargins(0, 0, 0, 0)
     win.pnp_path_label = PathLabel(win.ui_tr("project.no_file"))
-    row1_layout.addWidget(win.pnp_path_label, 1)
-    win.btn_browse_pnp = QtWidgets.QPushButton(win.ui_tr("project.browse"))
+    row1_layout.addWidget(win.pnp_path_label)
+    win.btn_browse_pnp = QtWidgets.QPushButton(win.ui_tr("project.browse_pnp"))
+    win.btn_browse_pnp.setMinimumHeight(32)
     win.btn_browse_pnp.clicked.connect(win._browse_pnp)
     row1_layout.addWidget(win.btn_browse_pnp)
     pnp_outer.addWidget(row1)
 
     row2 = DropRowWidget(win, win._drop_pnp_secondary)
-    row2_layout = QtWidgets.QHBoxLayout(row2)
+    row2_layout = QtWidgets.QVBoxLayout(row2)
     row2_layout.setContentsMargins(0, 0, 0, 0)
     win.pnp_path2_label = PathLabel(win.ui_tr("project.no_file"))
-    row2_layout.addWidget(win.pnp_path2_label, 1)
+    row2_layout.addWidget(win.pnp_path2_label)
+    pnp2_btns = QtWidgets.QHBoxLayout()
     win.btn_clear_pnp_optional = QtWidgets.QPushButton(
         win.ui_tr("project.pnp_clear_optional")
     )
     win.btn_clear_pnp_optional.setMaximumWidth(88)
     win.btn_clear_pnp_optional.clicked.connect(win._clear_pnp_secondary_only)
-    row2_layout.addWidget(win.btn_clear_pnp_optional)
-    win.btn_browse_pnp2 = QtWidgets.QPushButton(win.ui_tr("project.browse"))
+    pnp2_btns.addWidget(win.btn_clear_pnp_optional)
+    win.btn_browse_pnp2 = QtWidgets.QPushButton(win.ui_tr("project.browse_pnp2"))
+    win.btn_browse_pnp2.setMinimumHeight(32)
     win.btn_browse_pnp2.clicked.connect(win._browse_pnp_secondary)
-    row2_layout.addWidget(win.btn_browse_pnp2)
+    pnp2_btns.addWidget(win.btn_browse_pnp2, 1)
+    row2_layout.addLayout(pnp2_btns)
     pnp_outer.addWidget(row2)
 
     row3 = QtWidgets.QHBoxLayout()
@@ -287,7 +293,7 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.console.setReadOnly(True)
     console_outer.addWidget(win.console)
 
-    win.chk_colorful = QtWidgets.QCheckBox(win.ui_tr("project.colorful_logs"))
+    win.chk_colorful = QtWidgets.QCheckBox(win.ui_tr("project.debug_logs"))
     console_outer.addWidget(win.chk_colorful)
     win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
 

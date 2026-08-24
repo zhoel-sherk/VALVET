@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=VALVET
+Comment=Validator And Line-Verified Export Tool
+Exec=valvet
+Icon=valvet
+Terminal=false
+Categories=Electronics;Engineering;

@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller onedir build. From the VALVET project root:
    pip install -r requirements-dev.txt
-   pyinstaller boomer.spec
+   pyinstaller valvet.spec
 """
 
 from pathlib import Path
@@ -12,6 +12,7 @@ block_cipher = None
 
 datas = [
     ("lang", "lang"),
+    ("img", "img"),
     ("src/themes/design_tokens.json", "themes"),
 ]
 _font_dir = Path("src/fonts")
@@ -98,7 +99,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="BoomerTools",
+    name="VALVET",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -109,6 +110,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="img/icon.ico",
 )
 
 coll = COLLECT(
@@ -119,5 +121,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name="BoomerTools",
+    name="VALVET",
 )

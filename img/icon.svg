@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Solid CAD Dark Navy Base -->
+    <linearGradient id="cadBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e1726"/>
+      <stop offset="100%" stop-color="#070c14"/>
+    </linearGradient>
+
+    <!-- Copper / Solder Pads -->
+    <linearGradient id="copperPad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <!-- Cyan / Sky Blue Brand Gradient -->
+    <linearGradient id="valvetCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Depth Shadow -->
+    <filter id="glyphShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+  </defs>
+
+  <!-- Скругленный тайл иконки -->
+  <rect width="512" height="512" rx="112" fill="url(#cadBg)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#1e293b" stroke-width="4"/>
+
+  <!-- CAD Сетка -->
+  <g stroke="#1e2d42" stroke-width="1.5">
+    <line x1="64" y1="128" x2="448" y2="128"/>
+    <line x1="64" y1="256" x2="448" y2="256"/>
+    <line x1="64" y1="384" x2="448" y2="384"/>
+    <line x1="128" y1="64" x2="128" y2="448"/>
+    <line x1="256" y1="64" x2="256" y2="448"/>
+    <line x1="384" y1="64" x2="384" y2="448"/>
+  </g>
+
+  <!-- Footprint Courtyard & Silk -->
+  <rect x="110" y="110" width="292" height="292" rx="8" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="8 6" opacity="0.6"/>
+  <path d="M110 154 L154 110" stroke="#94a3b8" stroke-width="3" fill="none"/>
+
+  <!-- SMD Медные контактные площадки (Pads) -->
+  <g fill="url(#copperPad)" opacity="0.9">
+    <rect x="68" y="140" width="52" height="26" rx="4"/>
+    <rect x="68" y="200" width="52" height="26" rx="4"/>
+    <rect x="68" y="260" width="52" height="26" rx="4"/>
+    <rect x="68" y="320" width="52" height="26" rx="4"/>
+
+    <rect x="392" y="140" width="52" height="26" rx="4"/>
+    <rect x="392" y="200" width="52" height="26" rx="4"/>
+    <rect x="392" y="260" width="52" height="26" rx="4"/>
+    <rect x="392" y="320" width="52" height="26" rx="4"/>
+  </g>
+
+  <!-- Геометрический логотип VALVET -->
+  <g fill="url(#valvetCyan)" filter="url(#glyphShadow)">
+    <!-- Основное тело (Left Notch + V-Stem + Hook) -->
+    <path d="M 88 132 
+             H 188 
+             L 262 268 
+             H 354 
+             L 324 324 
+             H 354 
+             V 380 
+             H 232 
+             L 124 174 
+             H 88 
+             Z"/>
+
+    <!-- Верхний правый параллелограмм -->
+    <path d="M 314 174 
+             H 414 
+             L 364 268 
+             H 264 
+             Z"/>
+  </g>
+</svg>

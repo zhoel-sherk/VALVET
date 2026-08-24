@@ -19,7 +19,7 @@ def test_user_state_dir_is_absolute_under_tmp_home(monkeypatch, tmp_path) -> Non
     monkeypatch.delenv("XDG_DATA_HOME", raising=False)
     d = user_state_dir()
     assert d.is_absolute()
-    assert "BoomerTools" in str(d) or d.name == "BoomerTools"
+    assert "VALVET" in str(d) or d.name == "VALVET"
 
 
 def test_autosave_root_child_of_user_state() -> None:

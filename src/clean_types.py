@@ -67,6 +67,8 @@ class CleanConfig:
     cap_uf_micro_sign: bool = False
     # When False: strip trailing plain-ohms «R» only (12.5R→12.5); does not affect K/M.
     resistor_include_ohm_r_suffix: bool = True
+    # When True and watt slot empty: fill 0402→1/16W etc. (regex/inferit only).
+    infer_resistor_watt_from_package: bool = False
     inductor_template: Tuple[str, ...] = ("pack", "nom", "%", "Imax", "DCR")
     use_pn_codecs: bool = True
     use_vendor_pn: bool = False

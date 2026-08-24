@@ -7,9 +7,20 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 import pandas as pd
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
+
+_CLEAN_PRESET_SMT = {
+    "res": ("nom", "pack", "watt", "%"),
+    "cap": ("nom", "pack", "film", "%", "V"),
+    "ind": ("pack", "nom", "%", "Imax", "DCR"),
+}
+_CLEAN_PRESET_COMPACT = {
+    "res": ("nom", "pack", "none", "none"),
+    "cap": ("nom", "pack", "none", "none", "none"),
+    "ind": ("pack", "nom", "none", "none", "none"),
+}
 
 from app.constants import _RCL_ROW_DISABLED_STYLE
 from app.prefs import _prefs_profile_bool
@@ -41,18 +52,20 @@ class CleanTabMixin:
         tab = QtWidgets.QWidget()
         self._register_main_tab("clean_bom", tab)
         layout = QtWidgets.QVBoxLayout(tab)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
-        clean_intro = QtWidgets.QLabel(
-            "Uses the BOM column mapped to «Comment» on the BOM tab. "
-            "Import fills the table with raw Comment; Convert! runs classifiers and regex; "
-            "Apply adds _cleaned / clean_* columns. "
-            "Global settings: From DB, From Hanwha MDB (PARTNAME from Machine lib .mdb), Part numbers (vendor MPN)."
-        )
-        clean_intro.setToolTip(
-            "External hand-made BOMs may prefix THT parts with «DIP_» to mean off-line or "
-            "through-hole; that is not the same as this tab’s cleaned Comment from PnP."
-        )
-        layout.addWidget(clean_intro)
+        chip_row = QtWidgets.QHBoxLayout()
+        self.lbl_clean_context = QtWidgets.QLabel()
+        self.lbl_clean_context.setObjectName("cleanContextChip")
+        self.lbl_clean_context.setWordWrap(False)
+        chip_row.addWidget(self.lbl_clean_context, 1)
+        self.btn_clean_help = QtWidgets.QToolButton()
+        self.btn_clean_help.setText("?")
+        self.btn_clean_help.setAutoRaise(True)
+        self.btn_clean_help.clicked.connect(self._show_clean_help)
+        chip_row.addWidget(self.btn_clean_help)
+        layout.addLayout(chip_row)
 
         options = QtWidgets.QFrame()
         grid = QtWidgets.QGridLayout(options)
@@ -60,10 +73,12 @@ class CleanTabMixin:
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(2, 1)
 
-        group_global = QtWidgets.QGroupBox("Global settings")
+        group_global = QtWidgets.QGroupBox()
+        self.gb_clean_everyday = group_global
         glb_outer = QtWidgets.QVBoxLayout(group_global)
         row_sp = QtWidgets.QHBoxLayout()
-        row_sp.addWidget(QtWidgets.QLabel("Spacer (join segments):"))
+        self.lbl_clean_spacer = QtWidgets.QLabel()
+        row_sp.addWidget(self.lbl_clean_spacer)
         self.clean_spacer_combo = QtWidgets.QComboBox()
         self.clean_spacer_combo.setSizeAdjustPolicy(
             QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
@@ -80,89 +95,24 @@ class CleanTabMixin:
         self.clean_spacer_cust.setMaximumWidth(220)
         row_sp.addWidget(self.clean_spacer_combo, 0)
         row_sp.addWidget(self.clean_spacer_cust, 1)
-        self.clean_prefix_use_separator = QtWidgets.QCheckBox("Use spacer after Prefix")
-        self.clean_prefix_use_separator.setChecked(True)
-        self.clean_prefix_use_separator.setToolTip(
-            "On: Prefix C + spacer '-' + 0402-12PF -> C-0402-12PF. Off: C0402-12PF."
-        )
-        row_sp.addWidget(self.clean_prefix_use_separator)
         row_sp.addStretch(1)
         glb_outer.addLayout(row_sp)
 
         row_lib = QtWidgets.QHBoxLayout()
-        self.clean_from_db = QtWidgets.QCheckBox("From DB")
+        self.clean_from_db = QtWidgets.QCheckBox()
         self.clean_from_db.setChecked(True)
-        _db_path = default_components_path()
-        self.clean_from_db.setToolTip(
-            "On: lookup learned components from components.txt "
-            f"(default file: {_db_path}). "
-            "Set BOOMER_COMPONENTS_TXT or use Debug settings to override the path. "
-            "Off: skip library lookup."
-        )
         row_lib.addWidget(self.clean_from_db)
-        self.clean_from_hanwha_mdb = QtWidgets.QCheckBox("From machine library tab")
+        self.clean_from_hanwha_mdb = QtWidgets.QCheckBox()
         self.clean_from_hanwha_mdb.setChecked(False)
-        self.clean_from_hanwha_mdb.setToolTip(
-            "Match BOM text to names from the Machine lib tab: Hanwha PART_Det PARTNAME "
-            "and/or Yamaha .tou / Ver500 .lib (longest substring wins). "
-            "Load a library on that tab first; no match falls through to other rules."
-        )
         row_lib.addWidget(self.clean_from_hanwha_mdb)
-        self.clean_hanwha_partial_match = QtWidgets.QCheckBox(
-            "Partial match (fuzzy fallback)"
-        )
-        self.clean_hanwha_partial_match.setChecked(False)
-        self.clean_hanwha_partial_match.setToolTip(
-            "When «From machine library tab» is on: primary match is still the longest "
-            "PARTNAME key contained in the BOM key (spacer-stripped). If that misses, "
-            "try a fuzzy alignment (rapidfuzz partial_ratio) on those keys so small typos "
-            "or OCR noise can still match. Source shows PARTIAL hanwha_mdb. "
-            "Tune cutoff via CleanConfig (defaults: cutoff 88, min query length 5)."
-        )
-        row_lib.addWidget(self.clean_hanwha_partial_match)
         row_lib.addStretch(1)
         glb_outer.addLayout(row_lib)
 
-        row_dbg = QtWidgets.QHBoxLayout()
-        self.clean_double_comment_import = QtWidgets.QCheckBox("Double Comment import")
-        self.clean_double_comment_import.setToolTip(
-            "Merge every BOM column mapped to «Comment» into one line for Import / Convert! "
-            "(joined with the separator on the right). Needs two or more Comment mappings."
-        )
-        row_dbg.addWidget(self.clean_double_comment_import)
-        row_dbg.addWidget(QtWidgets.QLabel("Join:"))
-        self.clean_double_comment_sep = QtWidgets.QLineEdit()
-        self.clean_double_comment_sep.setPlaceholderText(" | ")
-        self.clean_double_comment_sep.setMaximumWidth(96)
-        self.clean_double_comment_sep.setText(" | ")
-        row_dbg.addWidget(self.clean_double_comment_sep)
-        row_dbg.addStretch(1)
-        btn_clean_debug = QtWidgets.QPushButton("Debug settings…")
-        btn_clean_debug.setToolTip(
-            "Pipeline order (inferit / vendor / library / Hanwha / regex), "
-            "toggle steps, and override components.txt path."
-        )
-        btn_clean_debug.clicked.connect(self._open_clean_pipeline_debug)
-        row_dbg.addWidget(btn_clean_debug)
-        glb_outer.addLayout(row_dbg)
-
         pn_row = QtWidgets.QHBoxLayout()
-        self.gb_clean_pn = QtWidgets.QCheckBox("Part numbers (vendor MPN)")
+        self.gb_clean_pn = QtWidgets.QCheckBox()
         self.gb_clean_pn.setChecked(True)
-        self.gb_clean_pn.setToolTip(
-            "Off: no pn_original MPN decoders (TAI RM/WR, Yageo, Murata, …); pipeline can still "
-            "use regex if enabled in Debug settings. "
-            "On: vendor step may run pn_original (order vs regex is set in Debug settings). "
-            "The inner checkbox only changes Source: «vendor» vs «pn»."
-        )
         pn_row.addWidget(self.gb_clean_pn)
-        self.clean_use_vendor = QtWidgets.QCheckBox(
-            "Label as «vendor» in Source (not «pn»)"
-        )
-        self.clean_use_vendor.setToolTip(
-            "When Part numbers is on, MPN decoders (pn_original) participate in the pipeline. "
-            "This only controls the Source column: «vendor» vs «pn» for decoded lines."
-        )
+        self.clean_use_vendor = QtWidgets.QCheckBox()
         self.clean_use_vendor.setChecked(False)
         pn_row.addWidget(self.clean_use_vendor)
         pn_row.addStretch(1)
@@ -170,20 +120,63 @@ class CleanTabMixin:
 
         grid.addWidget(group_global, 0, 0, 1, 3)
 
+        preset_row = QtWidgets.QHBoxLayout()
+        self.lbl_clean_preset = QtWidgets.QLabel()
+        self.clean_format_preset = QtWidgets.QComboBox()
+        self.clean_format_preset.addItem("", "smt")
+        self.clean_format_preset.addItem("", "compact")
+        self.clean_format_preset.addItem("", "custom")
+        preset_row.addWidget(self.lbl_clean_preset)
+        preset_row.addWidget(self.clean_format_preset)
+        preset_row.addStretch(1)
+        preset_wrap = QtWidgets.QWidget()
+        preset_wrap.setLayout(preset_row)
+        grid.addWidget(preset_wrap, 1, 0, 1, 3)
+
+        group_advanced = QtWidgets.QGroupBox()
+        self.gb_clean_advanced = group_advanced
+        adv = QtWidgets.QVBoxLayout(group_advanced)
+        row_sp_adv = QtWidgets.QHBoxLayout()
+        self.clean_prefix_use_separator = QtWidgets.QCheckBox()
+        self.clean_prefix_use_separator.setChecked(True)
+        row_sp_adv.addWidget(self.clean_prefix_use_separator)
+        row_sp_adv.addStretch(1)
+        adv.addLayout(row_sp_adv)
+        row_dbg = QtWidgets.QHBoxLayout()
+        self.clean_double_comment_import = QtWidgets.QCheckBox()
+        row_dbg.addWidget(self.clean_double_comment_import)
+        self.lbl_clean_double_join = QtWidgets.QLabel()
+        row_dbg.addWidget(self.lbl_clean_double_join)
+        self.clean_double_comment_sep = QtWidgets.QLineEdit()
+        self.clean_double_comment_sep.setPlaceholderText(" | ")
+        self.clean_double_comment_sep.setMaximumWidth(96)
+        self.clean_double_comment_sep.setText(" | ")
+        row_dbg.addWidget(self.clean_double_comment_sep)
+        row_dbg.addStretch(1)
+        self.btn_clean_debug = QtWidgets.QPushButton()
+        self.btn_clean_debug.clicked.connect(self._open_clean_pipeline_debug)
+        row_dbg.addWidget(self.btn_clean_debug)
+        adv.addLayout(row_dbg)
+        row_fuzzy = QtWidgets.QHBoxLayout()
+        self.clean_hanwha_partial_match = QtWidgets.QCheckBox()
+        self.clean_hanwha_partial_match.setChecked(False)
+        row_fuzzy.addWidget(self.clean_hanwha_partial_match)
+        row_fuzzy.addStretch(1)
+        adv.addLayout(row_fuzzy)
+        grid.addWidget(group_advanced, 3, 0, 1, 3)
+
         self.clean_res_frame = QtWidgets.QFrame()
         self.clean_res_frame.setObjectName("cleanRclRow")
         self.clean_res_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.clean_res_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
-        self.chk_clean_res = QtWidgets.QCheckBox("Resistor")
+        self.chk_clean_res = QtWidgets.QCheckBox()
         self.chk_clean_res.setChecked(True)
-        self.chk_clean_res.setToolTip(
-            "Off: resistor regex is disabled (row stays original after classification)."
-        )
         gl = QtWidgets.QHBoxLayout(self.clean_res_frame)
         gl.setContentsMargins(6, 4, 6, 4)
         gl.setSpacing(6)
         gl.addWidget(self.chk_clean_res)
         self.clean_res_template_combos: list[QtWidgets.QComboBox] = []
+        self._clean_res_slot_labels: list[QtWidgets.QLabel] = []
         res_options = [
             ("nom", "nom"),
             ("pack", "pack"),
@@ -192,7 +185,9 @@ class CleanTabMixin:
             ("none", "none"),
         ]
         for i, default in enumerate(("nom", "pack", "watt", "%")):
-            gl.addWidget(QtWidgets.QLabel(str(i + 1)))
+            slot = QtWidgets.QLabel(str(i + 1))
+            self._clean_res_slot_labels.append(slot)
+            gl.addWidget(slot)
             combo = QtWidgets.QComboBox()
             for label, data in res_options:
                 combo.addItem(label, data)
@@ -201,39 +196,36 @@ class CleanTabMixin:
             self._style_clean_template_combo(combo)
             self.clean_res_template_combos.append(combo)
             gl.addWidget(combo)
-        gl.addWidget(QtWidgets.QLabel("Prefix:"))
+        self.lbl_clean_res_prefix = QtWidgets.QLabel()
+        gl.addWidget(self.lbl_clean_res_prefix)
         self.clean_res_prefix = QtWidgets.QLineEdit()
         self.clean_res_prefix.setPlaceholderText("R")
         self.clean_res_prefix.setMaximumWidth(54)
         gl.addWidget(self.clean_res_prefix)
-        self.clean_res_ohm_r = QtWidgets.QCheckBox("R (Ω)")
+        self.clean_res_ohm_r = QtWidgets.QCheckBox()
         self.clean_res_ohm_r.setChecked(True)
-        self.clean_res_ohm_r.setToolTip(
-            "When on, plain ohm magnitudes keep a trailing «R» (e.g. 12.5R). "
-            "When off, that suffix is dropped (12.5R→12.5). Does not change K/M "
-            "(e.g. 12.5K stays 12.5K)."
-        )
         gl.addWidget(self.clean_res_ohm_r)
+        self.clean_res_watt_from_pack = QtWidgets.QCheckBox()
+        self.clean_res_watt_from_pack.setChecked(False)
+        gl.addWidget(self.clean_res_watt_from_pack)
         self.lbl_clean_res_example = QtWidgets.QLabel()
         self.lbl_clean_res_example.setStyleSheet("color: #9e9e9e; font-style: italic;")
         gl.addWidget(self.lbl_clean_res_example)
         gl.addStretch(1)
-        grid.addWidget(self.clean_res_frame, 1, 0)
+        grid.addWidget(self.clean_res_frame, 2, 0)
 
         self.clean_cap_frame = QtWidgets.QFrame()
         self.clean_cap_frame.setObjectName("cleanRclRow")
         self.clean_cap_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.clean_cap_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
-        self.chk_clean_cap = QtWidgets.QCheckBox("Capacitor")
+        self.chk_clean_cap = QtWidgets.QCheckBox()
         self.chk_clean_cap.setChecked(True)
-        self.chk_clean_cap.setToolTip(
-            "Off: capacitor regex/MLCC helper is disabled (row stays original when typed as cap)."
-        )
         cgrid = QtWidgets.QHBoxLayout(self.clean_cap_frame)
         cgrid.setContentsMargins(6, 4, 6, 4)
         cgrid.setSpacing(6)
         cgrid.addWidget(self.chk_clean_cap)
         self.clean_cap_template_combos: list[QtWidgets.QComboBox] = []
+        self._clean_cap_slot_labels: list[QtWidgets.QLabel] = []
         cap_options = [
             ("nom", "nom"),
             ("pack", "pack"),
@@ -244,7 +236,9 @@ class CleanTabMixin:
             ("none", "none"),
         ]
         for i, default in enumerate(("nom", "pack", "film", "%", "V")):
-            cgrid.addWidget(QtWidgets.QLabel(str(i + 1)))
+            slot = QtWidgets.QLabel(str(i + 1))
+            self._clean_cap_slot_labels.append(slot)
+            cgrid.addWidget(slot)
             combo = QtWidgets.QComboBox()
             for label, data in cap_options:
                 combo.addItem(label, data)
@@ -253,16 +247,14 @@ class CleanTabMixin:
             self._style_clean_template_combo(combo)
             self.clean_cap_template_combos.append(combo)
             cgrid.addWidget(combo)
-        self.clean_cap_nf = QtWidgets.QCheckBox("Convert nF → µF (simple)")
+        self.clean_cap_nf = QtWidgets.QCheckBox()
         self.clean_cap_nf.setChecked(False)
         cgrid.addWidget(self.clean_cap_nf)
-        self.clean_cap_uf_micro = QtWidgets.QCheckBox("µ in uF")
+        self.clean_cap_uf_micro = QtWidgets.QCheckBox()
         self.clean_cap_uf_micro.setChecked(False)
-        self.clean_cap_uf_micro.setToolTip(
-            "Show microfarads with the Unicode micro sign (µF) instead of ASCII «uF»."
-        )
         cgrid.addWidget(self.clean_cap_uf_micro)
-        cgrid.addWidget(QtWidgets.QLabel("Prefix:"))
+        self.lbl_clean_cap_prefix = QtWidgets.QLabel()
+        cgrid.addWidget(self.lbl_clean_cap_prefix)
         self.clean_cap_prefix = QtWidgets.QLineEdit()
         self.clean_cap_prefix.setPlaceholderText("C")
         self.clean_cap_prefix.setMaximumWidth(54)
@@ -271,23 +263,20 @@ class CleanTabMixin:
         self.lbl_clean_cap_example.setStyleSheet("color: #9e9e9e; font-style: italic;")
         cgrid.addWidget(self.lbl_clean_cap_example)
         cgrid.addStretch(1)
-        grid.addWidget(self.clean_cap_frame, 1, 1)
+        grid.addWidget(self.clean_cap_frame, 2, 1)
 
         self.clean_ind_frame = QtWidgets.QFrame()
         self.clean_ind_frame.setObjectName("cleanRclRow")
         self.clean_ind_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.clean_ind_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
-        self.chk_clean_ind = QtWidgets.QCheckBox("Inductor")
+        self.chk_clean_ind = QtWidgets.QCheckBox()
         self.chk_clean_ind.setChecked(True)
-        self.chk_clean_ind.setToolTip(
-            "Off: inductor-specific regex is disabled; classified inductor lines use the same path as "
-            "OTHER (vendor MPN for passives, From DB, From Hanwha MDB, then general OTHER regex)."
-        )
         ind_row = QtWidgets.QHBoxLayout(self.clean_ind_frame)
         ind_row.setContentsMargins(6, 4, 6, 4)
         ind_row.setSpacing(6)
         ind_row.addWidget(self.chk_clean_ind)
         self.clean_ind_template_combos: list[QtWidgets.QComboBox] = []
+        self._clean_ind_slot_labels: list[QtWidgets.QLabel] = []
         ind_options = [
             ("pack", "pack"),
             ("nom", "nom"),
@@ -297,7 +286,9 @@ class CleanTabMixin:
             ("none", "none"),
         ]
         for i, default in enumerate(("pack", "nom", "%", "Imax", "DCR")):
-            ind_row.addWidget(QtWidgets.QLabel(str(i + 1)))
+            slot = QtWidgets.QLabel(str(i + 1))
+            self._clean_ind_slot_labels.append(slot)
+            ind_row.addWidget(slot)
             combo = QtWidgets.QComboBox()
             for label, data in ind_options:
                 combo.addItem(label, data)
@@ -306,7 +297,8 @@ class CleanTabMixin:
             self._style_clean_template_combo(combo)
             self.clean_ind_template_combos.append(combo)
             ind_row.addWidget(combo)
-        ind_row.addWidget(QtWidgets.QLabel("Prefix:"))
+        self.lbl_clean_ind_prefix = QtWidgets.QLabel()
+        ind_row.addWidget(self.lbl_clean_ind_prefix)
         self.clean_ind_prefix = QtWidgets.QLineEdit()
         self.clean_ind_prefix.setPlaceholderText("L")
         self.clean_ind_prefix.setMaximumWidth(54)
@@ -315,37 +307,34 @@ class CleanTabMixin:
         self.lbl_clean_ind_example.setStyleSheet("color: #9e9e9e; font-style: italic;")
         ind_row.addWidget(self.lbl_clean_ind_example)
         ind_row.addStretch(1)
-        grid.addWidget(self.clean_ind_frame, 1, 2)
+        grid.addWidget(self.clean_ind_frame, 2, 2)
 
-        group_mpn_www = QtWidgets.QGroupBox("MPN web lookup")
+        group_mpn_www = QtWidgets.QGroupBox()
+        self.gb_clean_mpn = group_mpn_www
         mpn_w = QtWidgets.QHBoxLayout(group_mpn_www)
-        mpn_w.addWidget(QtWidgets.QLabel("Search:"))
+        self.lbl_clean_mpn_search = QtWidgets.QLabel()
+        mpn_w.addWidget(self.lbl_clean_mpn_search)
         self.clean_mpn_search_provider = QtWidgets.QComboBox()
         self.clean_mpn_search_provider.addItem("Digi-Key", "digikey")
         self.clean_mpn_search_provider.addItem("Mouser", "mouser")
         self.clean_mpn_search_provider.addItem("Octopart (search page)", "octopart")
         mpn_w.addWidget(self.clean_mpn_search_provider)
-        mpn_w.addWidget(QtWidgets.QLabel("API key (optional, reserved):"))
+        self.lbl_clean_octopart_key = QtWidgets.QLabel()
+        self.lbl_clean_octopart_key.hide()
+        mpn_w.addWidget(self.lbl_clean_octopart_key)
         self.clean_octopart_api_key = QtWidgets.QLineEdit()
         self.clean_octopart_api_key.setEchoMode(
             QtWidgets.QLineEdit.EchoMode.PasswordEchoOnEdit
         )
-        self.clean_octopart_api_key.setPlaceholderText(
-            "Octopart / Nexar — not used in UI yet"
-        )
-        self.clean_octopart_api_key.setMaximumWidth(280)
+        self.clean_octopart_api_key.hide()
         mpn_w.addWidget(self.clean_octopart_api_key, 0)
-        self.btn_mpn_open_search = QtWidgets.QPushButton("Open search for selected row")
-        self.btn_mpn_open_search.setToolTip(
-            "Uses «Original» from the table below (VENDOR/MPN normalized to bare MPN). "
-            "Select a cell in the Clean BOM preview, then click."
-        )
+        self.btn_mpn_open_search = QtWidgets.QPushButton()
         self.btn_mpn_open_search.clicked.connect(self._open_mpn_search_browser)
         mpn_w.addWidget(self.btn_mpn_open_search)
         mpn_w.addStretch(1)
-        grid.addWidget(group_mpn_www, 3, 0, 1, 3)
+        group_mpn_www.hide()
 
-        layout.addWidget(options)
+        self.clean_options_panel = options
 
         for w in (
             *self.clean_res_template_combos,
@@ -379,6 +368,7 @@ class CleanTabMixin:
         self.clean_prefix_use_separator.stateChanged.connect(self._save_clean_settings)
         self.clean_res_prefix.textChanged.connect(self._save_clean_settings)
         self.clean_res_ohm_r.stateChanged.connect(self._save_clean_settings)
+        self.clean_res_watt_from_pack.stateChanged.connect(self._save_clean_settings)
         self.clean_cap_prefix.textChanged.connect(self._save_clean_settings)
         self.clean_ind_prefix.textChanged.connect(self._save_clean_settings)
         for sig in (
@@ -402,49 +392,34 @@ class CleanTabMixin:
         self.clean_octopart_api_key.editingFinished.connect(
             self._save_clean_mpn_lookup_settings
         )
+        self.clean_format_preset.currentIndexChanged.connect(self._on_clean_preset_changed)
 
         buttons = QtWidgets.QHBoxLayout()
-        self.btn_clean_import = QtWidgets.QPushButton("Import from BOM")
-        self.btn_clean_import.setToolTip(
-            "Reads the BOM column mapped to «Comment»; fills the preview with raw values."
-        )
+        self.btn_clean_import = QtWidgets.QPushButton()
         self.btn_clean_import.clicked.connect(self._clean_import)
-        self.btn_clean_convert = QtWidgets.QPushButton("Convert!")
-        self.btn_clean_convert.setToolTip(
-            "Runs classifiers, clean_component regex, and optional vendor MPN (pn_original)."
-        )
+        self.btn_clean_convert = QtWidgets.QPushButton()
         self.btn_clean_convert.setEnabled(False)
         self.btn_clean_convert.clicked.connect(self._run_clean_preview)
-        self.btn_clean_apply = QtWidgets.QPushButton("Apply to BOM (add columns)")
-        self.btn_clean_apply.setToolTip(
-            "Adds Comment_cleaned, clean_type, clean_part_code, clean_vendor (drops prior clean_* if re-run)"
-        )
+        self.btn_clean_apply = QtWidgets.QPushButton()
         self.btn_clean_apply.setEnabled(False)
         self.btn_clean_apply.clicked.connect(self._clean_apply)
-        self.clean_apply_replace = QtWidgets.QCheckBox("Replace source column")
-        self.clean_apply_replace.setToolTip(
-            "On: write Cleaned back into the source Comment column. "
-            "Off: update/add the *_cleaned and clean_* columns."
-        )
+        self.clean_apply_replace = QtWidgets.QCheckBox()
         self.clean_apply_replace.stateChanged.connect(self._save_clean_settings)
-        self.btn_clean_learn_other = QtWidgets.QPushButton("Learn selected OTHER")
-        self.btn_clean_learn_other.setToolTip(
-            "Approve and append the selected OTHER row to components.txt for future imports."
-        )
+        self.btn_clean_learn_other = QtWidgets.QPushButton()
         self.btn_clean_learn_other.setEnabled(False)
         self.btn_clean_learn_other.clicked.connect(self._learn_selected_other)
-        self.btn_clean_save = QtWidgets.QPushButton("Save Excel…")
+        self.btn_clean_save = QtWidgets.QPushButton()
         self.btn_clean_save.clicked.connect(self._clean_save_excel)
         for b in (
             self.btn_clean_import,
             self.btn_clean_convert,
             self.btn_clean_apply,
-            self.btn_clean_learn_other,
-            self.btn_clean_save,
         ):
             buttons.addWidget(b)
         buttons.addWidget(self.clean_apply_replace)
         buttons.addStretch()
+        buttons.addWidget(self.btn_clean_learn_other)
+        buttons.addWidget(self.btn_clean_save)
         layout.addLayout(buttons)
 
         self.clean_apply_ok_banner = QtWidgets.QFrame()
@@ -460,7 +435,7 @@ class CleanTabMixin:
         self.clean_apply_ok_label.setStyleSheet(
             "color: #c8e6c9; font-weight: bold; border: none; background: transparent;"
         )
-        self.btn_clean_go_bom = QtWidgets.QPushButton(self.ui_tr("clean.go_to_bom"))
+        self.btn_clean_go_bom = QtWidgets.QPushButton()
         self.btn_clean_go_bom.clicked.connect(
             lambda: self.tabs.setCurrentIndex(self._tab_index("bom"))
         )
@@ -468,9 +443,7 @@ class CleanTabMixin:
         clean_ok_lay.addWidget(self.btn_clean_go_bom)
         layout.addWidget(self.clean_apply_ok_banner)
 
-        self.lbl_clean_source = QtWidgets.QLabel(
-            self.ui_tr("clean.source_hint")
-        )
+        self.lbl_clean_source = QtWidgets.QLabel()
         self.lbl_clean_source.setWordWrap(True)
         layout.addWidget(self.lbl_clean_source)
 
@@ -481,12 +454,266 @@ class CleanTabMixin:
 
         self.clean_preview_table = QtWidgets.QTableView()
         self.clean_preview_table.setAlternatingRowColors(True)
+        self.clean_preview_table.setContextMenuPolicy(
+            QtCore.Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.clean_preview_table.customContextMenuRequested.connect(
+            self._clean_preview_context_menu
+        )
         self.clean_preview_model = CleanPreviewTableModel(
             pd.DataFrame(columns=["#", "Original", "Cleaned", "Type", "Source"])
         )
         self.clean_preview_table.setModel(self.clean_preview_model)
         self.clean_preview_table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.clean_preview_table, 1)
+
+        self.btn_clean_options_toggle = QtWidgets.QToolButton()
+        self.btn_clean_options_toggle.setCheckable(True)
+        self.btn_clean_options_toggle.setToolButtonStyle(
+            QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
+        self.btn_clean_options_toggle.setArrowType(QtCore.Qt.ArrowType.RightArrow)
+        self.btn_clean_options_toggle.toggled.connect(self._on_clean_options_toggled)
+        layout.addWidget(self.btn_clean_options_toggle)
+        layout.addWidget(self.clean_options_panel)
+        expanded = False
+        if hasattr(self, "_settings"):
+            expanded = bool(self._settings.value("clean/options_expanded", False, type=bool))
+        self.btn_clean_options_toggle.blockSignals(True)
+        self.btn_clean_options_toggle.setChecked(expanded)
+        self.btn_clean_options_toggle.blockSignals(False)
+        self.clean_options_panel.setVisible(expanded)
+        self.btn_clean_options_toggle.setArrowType(
+            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+        )
+
+        for w in (
+            *self.clean_res_template_combos,
+            *self.clean_cap_template_combos,
+            *self.clean_ind_template_combos,
+        ):
+            w.currentIndexChanged.connect(self._sync_clean_preset_from_combos)
+        self._refresh_clean_tab_static_texts()
+        self._sync_clean_preset_from_combos()
+        self._sync_clean_primary_buttons()
+        self._refresh_clean_context_chip()
+
+    def _show_clean_help(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            self.ui_tr("clean.help_title"),
+            self.ui_tr("clean.help_body"),
+        )
+
+    def _on_clean_options_toggled(self, expanded: bool) -> None:
+        self.clean_options_panel.setVisible(expanded)
+        self.btn_clean_options_toggle.setArrowType(
+            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+        )
+        if hasattr(self, "_settings") and not getattr(self, "_restoring_settings", False):
+            self._settings.setValue("clean/options_expanded", expanded)
+
+    def _mark_clean_preview_stale(self) -> None:
+        if getattr(self, "_clean_last_preview", None):
+            self._clean_preview_stale = True
+        if hasattr(self, "_refresh_shell_status"):
+            self._refresh_shell_status()
+        else:
+            self._refresh_clean_context_chip()
+
+    def _refresh_clean_context_chip(self) -> None:
+        if not hasattr(self, "lbl_clean_context"):
+            return
+        bom = (
+            Path(self._bom_source_path).name
+            if getattr(self, "_bom_source_path", "")
+            else self.ui_tr("status.no_bom")
+        )
+        comment = self.ui_tr("status.comment_unmapped")
+        try:
+            cols = self._get_bom_comment_column_names()
+        except Exception:
+            cols = []
+        if cols:
+            comment = ", ".join(str(c) for c in cols)
+        first = "1"
+        last = ""
+        if hasattr(self, "bom_first_row"):
+            first = str(self.bom_first_row.text() or "1")
+            last = str(self.bom_last_row.text() or "").strip()
+        rows = f"{first}–{last}" if last else f"{first}–…"
+        self.lbl_clean_context.setText(
+            self.ui_tr("clean.context_chip", file=bom, cols=comment, rows=rows)
+        )
+
+    def _sync_clean_primary_buttons(self) -> None:
+        if not hasattr(self, "btn_clean_convert"):
+            return
+        conv = self.btn_clean_convert.isEnabled()
+        apply_on = self.btn_clean_apply.isEnabled()
+        self.btn_clean_import.setDefault(not conv and not apply_on)
+        self.btn_clean_convert.setDefault(conv and not apply_on)
+        self.btn_clean_apply.setDefault(apply_on)
+
+    def _set_clean_custom_slots_visible(self, visible: bool) -> None:
+        for lbls, combos in (
+            (getattr(self, "_clean_res_slot_labels", []), self.clean_res_template_combos),
+            (getattr(self, "_clean_cap_slot_labels", []), self.clean_cap_template_combos),
+            (getattr(self, "_clean_ind_slot_labels", []), self.clean_ind_template_combos),
+        ):
+            for w in (*lbls, *combos):
+                w.setVisible(visible)
+
+    def _clean_template_tuple(self, combos: list) -> tuple[str, ...]:
+        return tuple(self._template_from_combos(combos))
+
+    def _sync_clean_preset_from_combos(self) -> None:
+        if getattr(self, "_applying_clean_preset", False):
+            return
+        if not hasattr(self, "clean_format_preset"):
+            return
+        res = self._clean_template_tuple(self.clean_res_template_combos)
+        cap = self._clean_template_tuple(self.clean_cap_template_combos)
+        ind = self._clean_template_tuple(self.clean_ind_template_combos)
+        if (
+            res == _CLEAN_PRESET_SMT["res"]
+            and cap == _CLEAN_PRESET_SMT["cap"]
+            and ind == _CLEAN_PRESET_SMT["ind"]
+        ):
+            key = "smt"
+        elif (
+            res == _CLEAN_PRESET_COMPACT["res"]
+            and cap == _CLEAN_PRESET_COMPACT["cap"]
+            and ind == _CLEAN_PRESET_COMPACT["ind"]
+        ):
+            key = "compact"
+        else:
+            key = "custom"
+        idx = self.clean_format_preset.findData(key)
+        self.clean_format_preset.blockSignals(True)
+        if idx >= 0:
+            self.clean_format_preset.setCurrentIndex(idx)
+        self.clean_format_preset.blockSignals(False)
+        self._set_clean_custom_slots_visible(key == "custom")
+
+    def _on_clean_preset_changed(self, *_args) -> None:
+        if getattr(self, "_applying_clean_preset", False):
+            return
+        if not hasattr(self, "clean_res_template_combos"):
+            return
+        key = self.clean_format_preset.currentData()
+        if key == "custom":
+            self._set_clean_custom_slots_visible(True)
+            return
+        preset = _CLEAN_PRESET_SMT if key == "smt" else _CLEAN_PRESET_COMPACT
+        self._applying_clean_preset = True
+        try:
+            self._set_template_combos(
+                self.clean_res_template_combos, ",".join(preset["res"]), preset["res"]
+            )
+            self._set_template_combos(
+                self.clean_cap_template_combos, ",".join(preset["cap"]), preset["cap"]
+            )
+            self._set_template_combos(
+                self.clean_ind_template_combos, ",".join(preset["ind"]), preset["ind"]
+            )
+        finally:
+            self._applying_clean_preset = False
+        self._set_clean_custom_slots_visible(False)
+        self._update_clean_rcl_examples()
+        self._save_clean_settings()
+
+    def _clean_preview_context_menu(self, pos) -> None:
+        idx = self.clean_preview_table.indexAt(pos)
+        if idx.isValid():
+            self.clean_preview_table.setCurrentIndex(idx)
+        menu = QtWidgets.QMenu(self.clean_preview_table)
+        act = menu.addAction(self.ui_tr("clean.mpn_search"))
+        chosen = menu.exec(self.clean_preview_table.viewport().mapToGlobal(pos))
+        if chosen is act:
+            self._open_mpn_search_browser()
+
+    def _refresh_clean_tab_static_texts(self) -> None:
+        if not hasattr(self, "btn_clean_import"):
+            return
+        self.btn_clean_help.setToolTip(self.ui_tr("clean.help_title"))
+        self.gb_clean_everyday.setTitle(self.ui_tr("clean.everyday"))
+        self.gb_clean_advanced.setTitle(self.ui_tr("clean.advanced"))
+        self.lbl_clean_spacer.setText(self.ui_tr("clean.spacer"))
+        self.clean_spacer_cust.setPlaceholderText(self.ui_tr("clean.spacer_custom"))
+        _si = self.clean_spacer_combo.currentIndex()
+        self.clean_spacer_combo.blockSignals(True)
+        for i, key in enumerate(
+            (
+                "clean.spacer_underscore",
+                "clean.spacer_hyphen",
+                "clean.spacer_space",
+                "clean.spacer_tab",
+                "clean.spacer_custom_item",
+            )
+        ):
+            if i < self.clean_spacer_combo.count():
+                self.clean_spacer_combo.setItemText(i, self.ui_tr(key))
+        self.clean_spacer_combo.setCurrentIndex(_si)
+        self.clean_spacer_combo.blockSignals(False)
+        self.clean_from_db.setText(self.ui_tr("clean.from_db"))
+        self.clean_from_db.setToolTip(self.ui_tr("clean.from_db_tip"))
+        self.clean_from_hanwha_mdb.setText(self.ui_tr("clean.from_machine"))
+        self.clean_from_hanwha_mdb.setToolTip(self.ui_tr("clean.from_machine_tip"))
+        self.gb_clean_pn.setText(self.ui_tr("clean.pn"))
+        self.gb_clean_pn.setToolTip(self.ui_tr("clean.pn_tip"))
+        self.clean_use_vendor.setText(self.ui_tr("clean.pn_vendor_label"))
+        self.clean_use_vendor.setToolTip(self.ui_tr("clean.pn_vendor_tip"))
+        self.lbl_clean_preset.setText(self.ui_tr("clean.preset"))
+        self.clean_format_preset.blockSignals(True)
+        self.clean_format_preset.setItemText(0, self.ui_tr("clean.preset_smt"))
+        self.clean_format_preset.setItemText(1, self.ui_tr("clean.preset_compact"))
+        self.clean_format_preset.setItemText(2, self.ui_tr("clean.preset_custom"))
+        self.clean_format_preset.blockSignals(False)
+        self.clean_prefix_use_separator.setText(self.ui_tr("clean.prefix_spacer"))
+        self.clean_prefix_use_separator.setToolTip(self.ui_tr("clean.prefix_spacer_tip"))
+        self.clean_double_comment_import.setText(self.ui_tr("clean.double_comment"))
+        self.clean_double_comment_import.setToolTip(self.ui_tr("clean.double_comment_tip"))
+        self.lbl_clean_double_join.setText(self.ui_tr("clean.double_join"))
+        self.btn_clean_debug.setText(self.ui_tr("clean.advanced_debug"))
+        self.btn_clean_debug.setToolTip(self.ui_tr("clean.advanced_debug_tip"))
+        self.clean_hanwha_partial_match.setText(self.ui_tr("clean.partial_match"))
+        self.clean_hanwha_partial_match.setToolTip(self.ui_tr("clean.partial_match_tip"))
+        self.chk_clean_res.setText(self.ui_tr("clean.resistor"))
+        self.chk_clean_res.setToolTip(self.ui_tr("clean.resistor_tip"))
+        self.chk_clean_cap.setText(self.ui_tr("clean.capacitor"))
+        self.chk_clean_cap.setToolTip(self.ui_tr("clean.capacitor_tip"))
+        self.chk_clean_ind.setText(self.ui_tr("clean.inductor"))
+        self.chk_clean_ind.setToolTip(self.ui_tr("clean.inductor_tip"))
+        self.lbl_clean_res_prefix.setText(self.ui_tr("clean.prefix"))
+        self.lbl_clean_cap_prefix.setText(self.ui_tr("clean.prefix"))
+        self.lbl_clean_ind_prefix.setText(self.ui_tr("clean.prefix"))
+        self.clean_res_ohm_r.setText(self.ui_tr("clean.ohm_r"))
+        self.clean_res_ohm_r.setToolTip(self.ui_tr("clean.ohm_r_tip"))
+        self.clean_res_watt_from_pack.setText(self.ui_tr("clean.watt_from_pack"))
+        self.clean_res_watt_from_pack.setToolTip(self.ui_tr("clean.watt_from_pack_tip"))
+        self.clean_cap_nf.setText(self.ui_tr("clean.cap_nf"))
+        self.clean_cap_uf_micro.setText(self.ui_tr("clean.cap_uf_micro"))
+        self.clean_cap_uf_micro.setToolTip(self.ui_tr("clean.cap_uf_micro_tip"))
+        self.gb_clean_mpn.setTitle(self.ui_tr("clean.mpn_group"))
+        self.lbl_clean_mpn_search.setText(self.ui_tr("clean.mpn_search_label"))
+        self.btn_mpn_open_search.setText(self.ui_tr("clean.mpn_open"))
+        self.btn_clean_import.setText(self.ui_tr("clean.btn_import"))
+        self.btn_clean_import.setToolTip(self.ui_tr("clean.btn_import_tip"))
+        self.btn_clean_convert.setText(self.ui_tr("clean.btn_convert"))
+        self.btn_clean_convert.setToolTip(self.ui_tr("clean.btn_convert_tip"))
+        self.btn_clean_apply.setText(self.ui_tr("clean.btn_apply"))
+        self.btn_clean_apply.setToolTip(self.ui_tr("clean.btn_apply_tip"))
+        self.clean_apply_replace.setText(self.ui_tr("clean.replace_source"))
+        self.clean_apply_replace.setToolTip(self.ui_tr("clean.replace_source_tip"))
+        self.btn_clean_learn_other.setText(self.ui_tr("clean.btn_learn"))
+        self.btn_clean_learn_other.setToolTip(self.ui_tr("clean.btn_learn_tip"))
+        self.btn_clean_save.setText(self.ui_tr("clean.btn_save"))
+        self.btn_clean_go_bom.setText(self.ui_tr("clean.go_to_bom"))
+        self.btn_clean_options_toggle.setText(self.ui_tr("clean.options_toggle"))
+        if not self._clean_imported_comments and not self._clean_last_preview:
+            self.lbl_clean_source.setText(self.ui_tr("clean.source_hint"))
+        self._refresh_clean_context_chip()
 
     def _get_bom_comment_column_names(
         self, df: pd.DataFrame | None = None
@@ -578,6 +805,7 @@ class CleanTabMixin:
             *self.clean_res_template_combos,
             self.clean_res_prefix,
             self.clean_res_ohm_r,
+            self.clean_res_watt_from_pack,
         ):
             w.setEnabled(on)
         self.clean_res_frame.setProperty("rclDisabled", not on)
@@ -708,6 +936,7 @@ class CleanTabMixin:
             cap_nf_to_uf=self.clean_cap_nf.isChecked(),
             cap_uf_micro_sign=self.clean_cap_uf_micro.isChecked(),
             res_ohm_r_suffix=self.clean_res_ohm_r.isChecked(),
+            infer_resistor_watt_from_package=self.clean_res_watt_from_pack.isChecked(),
             use_pn_codecs=self.gb_clean_pn.isChecked(),
             use_vendor_pn=self.gb_clean_pn.isChecked()
             and self.clean_use_vendor.isChecked(),
@@ -752,6 +981,10 @@ class CleanTabMixin:
         s.setValue("clean/cap_nf", self.clean_cap_nf.isChecked())
         s.setValue("clean/cap_uf_micro", self.clean_cap_uf_micro.isChecked())
         s.setValue("clean/res_ohm_r_suffix", self.clean_res_ohm_r.isChecked())
+        s.setValue(
+            "clean/infer_resistor_watt_from_package",
+            self.clean_res_watt_from_pack.isChecked(),
+        )
         s.setValue("clean/use_vendor", self.clean_use_vendor.isChecked())
         s.setValue("clean/group_res", self.chk_clean_res.isChecked())
         s.setValue("clean/group_cap", self.chk_clean_cap.isChecked())
@@ -784,6 +1017,11 @@ class CleanTabMixin:
             s.setValue(
                 "clean/double_comment_sep",
                 self.clean_double_comment_sep.text(),
+            )
+        if hasattr(self, "btn_clean_options_toggle"):
+            s.setValue(
+                "clean/options_expanded",
+                self.btn_clean_options_toggle.isChecked(),
             )
 
     def _clean_import(self) -> None:
@@ -868,6 +1106,10 @@ class CleanTabMixin:
         self.btn_clean_apply.setEnabled(False)
         self.btn_clean_learn_other.setEnabled(False)
         self._clean_last_preview = []
+        self._clean_preview_stale = False
+        self._sync_clean_primary_buttons()
+        if hasattr(self, "_refresh_shell_status"):
+            self._refresh_shell_status()
         pending = "\u2014"
         raw_df = pd.DataFrame(
             {
@@ -905,6 +1147,7 @@ class CleanTabMixin:
             logger.error("Clean BOM clean_preview failed: %s", e)
             return
         self._clean_last_preview = rows
+        self._clean_preview_stale = False
         if rows and len(rows[0]) == 8:
             df = pd.DataFrame(
                 rows,
@@ -961,6 +1204,9 @@ class CleanTabMixin:
             )
         self.btn_clean_apply.setEnabled(bool(rows))
         self.btn_clean_learn_other.setEnabled(bool(rows))
+        self._sync_clean_primary_buttons()
+        if hasattr(self, "_refresh_shell_status"):
+            self._refresh_shell_status()
 
     def _footprint_for_clean_row(self, one_based_row: int) -> str:
         self._sync_bom_df_from_model()
@@ -1149,6 +1395,7 @@ class CleanTabMixin:
             "cap_nf": self.clean_cap_nf.isChecked(),
             "cap_uf_micro": self.clean_cap_uf_micro.isChecked(),
             "res_ohm_r_suffix": self.clean_res_ohm_r.isChecked(),
+            "infer_resistor_watt_from_package": self.clean_res_watt_from_pack.isChecked(),
             "use_vendor": self.clean_use_vendor.isChecked(),
             "from_db": self.clean_from_db.isChecked(),
             "from_hanwha_mdb": self.clean_from_hanwha_mdb.isChecked(),
@@ -1173,6 +1420,9 @@ class CleanTabMixin:
             "octopart_api_key": self.clean_octopart_api_key.text()
             if hasattr(self, "clean_octopart_api_key")
             else "",
+            "options_expanded": self.btn_clean_options_toggle.isChecked()
+            if hasattr(self, "btn_clean_options_toggle")
+            else False,
         }
 
     def _apply_clean_prefs_dict(self, c: dict[str, Any]) -> None:
@@ -1199,6 +1449,7 @@ class CleanTabMixin:
             self.clean_prefix_use_separator,
             self.clean_res_prefix,
             self.clean_res_ohm_r,
+            self.clean_res_watt_from_pack,
             self.clean_cap_prefix,
             self.clean_ind_prefix,
             self.clean_apply_replace,
@@ -1228,6 +1479,9 @@ class CleanTabMixin:
         )
         self.clean_res_ohm_r.setChecked(
             _prefs_profile_bool(c.get("res_ohm_r_suffix"), True)
+        )
+        self.clean_res_watt_from_pack.setChecked(
+            _prefs_profile_bool(c.get("infer_resistor_watt_from_package"), False)
         )
         self.clean_use_vendor.setChecked(
             _prefs_profile_bool(c.get("use_vendor"), False)
@@ -1279,6 +1533,7 @@ class CleanTabMixin:
             self.clean_prefix_use_separator,
             self.clean_res_prefix,
             self.clean_res_ohm_r,
+            self.clean_res_watt_from_pack,
             self.clean_cap_prefix,
             self.clean_ind_prefix,
             self.clean_apply_replace,
@@ -1310,6 +1565,18 @@ class CleanTabMixin:
             self._on_gb_clean_cap_toggled(self.chk_clean_cap.isChecked())
             self._on_gb_clean_ind_toggled(self.chk_clean_ind.isChecked())
             self._on_gb_clean_pn_toggled(self.gb_clean_pn.isChecked())
+        if hasattr(self, "btn_clean_options_toggle"):
+            expanded = _prefs_profile_bool(c.get("options_expanded"), False)
+            self.btn_clean_options_toggle.blockSignals(True)
+            self.btn_clean_options_toggle.setChecked(expanded)
+            self.btn_clean_options_toggle.blockSignals(False)
+            self.clean_options_panel.setVisible(expanded)
+            self.btn_clean_options_toggle.setArrowType(
+                QtCore.Qt.ArrowType.DownArrow
+                if expanded
+                else QtCore.Qt.ArrowType.RightArrow
+            )
+        self._sync_clean_preset_from_combos()
 
     def _update_clean_rcl_examples(self) -> None:
         if not hasattr(self, "lbl_clean_res_example"):

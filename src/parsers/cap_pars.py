@@ -27,7 +27,8 @@ from parsers.bom_text_utils import (
     snap_cap_tolerance_pf_to_std_pct,
     tokenize_bom_spec,
 )
-from parsers.constants import MLCC_DIELECTRIC, PACKAGE_PATTERN
+from parsers.chip_tokens import canonical_voltage_token, find_package_in_text, match_package_token
+from parsers.constants import MLCC_DIELECTRIC
 from parsers.formatting import format_cap_fields
 from parsers.inferit_pars import parse_inferit_capacitor, try_parse_mlcc_underscore_cap_fields
 from parsers.regex_api import I, escape, findall, match, search
@@ -49,19 +50,17 @@ def try_parse_mlcc_bom_line_slots(
         f"{vm.group(1)}{vm.group(2)}", cap_uf_micro_sign=cfg.cap_uf_micro_sign
     )
     vraw = vm.group(4).upper()
-    voltage = f"{vm.group(3)}kV" if vraw in ("KV", "KV") else f"{vm.group(3)}V"
+    voltage = canonical_voltage_token(vm.group(3), vraw)
     package = ""
     pm = search(r"\((\d{4}(?:/[A-Z])?)\)", s)
     if pm:
         package = pm.group(1)
     if not package:
+        package = find_package_in_text(s)
+    if not package:
         pm2 = search(r"\b(\d{4}/[A-Z])\b", s, I)
         if pm2:
             package = pm2.group(1)
-    if not package:
-        pm3 = search(rf"(?<![A-Za-z0-9])({PACKAGE_PATTERN})(?![A-Za-z0-9])", s, I)
-        if pm3:
-            package = pm3.group(1)
     dielectric = ""
     diel_alts = sorted(MLCC_DIELECTRIC | {"COG"}, key=len, reverse=True)
     m_stuck = search(
@@ -152,8 +151,9 @@ def parse_capacitor_token_fields(
     for part in parts:
         if not part:
             continue
-        if match(rf"^({PACKAGE_PATTERN})$", part, I):
-            package = part
+        pack_tok = match_package_token(part)
+        if pack_tok:
+            package = pack_tok
             continue
         if match(r"^[\d\.]+V$", part, I):
             voltage = part.upper()
@@ -197,8 +197,9 @@ def parse_capacitor_token_fields(
 
     if not package:
         for part in parts:
-            if match(rf"^({PACKAGE_PATTERN})$", part, I):
-                package = part
+            pack_tok = match_package_token(part)
+            if pack_tok:
+                package = pack_tok
                 break
         if not package:
             pm = search(r"\((\d{4}(?:/[A-Z])?)\)", spec2)
@@ -216,6 +217,10 @@ def parse_capacitor_token_fields(
         and "UF" not in value.upper()
     ):
         try:
+            from parsers.si_units import convert_nf_token_to_uf
+
+            value = convert_nf_token_to_uf(value)
+        except Exception:
             m = match(r"^([\d.]+)NF$", value, I)
             if m:
                 n = float(m.group(1))
@@ -223,8 +228,6 @@ def parse_capacitor_token_fields(
                     value = f"{int(n // 1000)}UF"
                 elif n >= 1:
                     value = f"{n / 1000.0}UF".replace(".0UF", "UF")
-        except (ValueError, TypeError):
-            pass
 
     if value:
         for part in parts:

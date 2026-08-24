@@ -7,7 +7,7 @@ import os
 import re
 from typing import Any
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import QSettings
 
 from app.constants import (
@@ -332,6 +332,7 @@ class ProfilesMixin:
                 self.clean_cap_nf,
                 self.clean_cap_uf_micro,
                 self.clean_res_ohm_r,
+                self.clean_res_watt_from_pack,
                 self.clean_use_vendor,
                 self.clean_from_db,
                 self.clean_from_hanwha_mdb,
@@ -371,6 +372,12 @@ class ProfilesMixin:
             self.clean_res_ohm_r.setChecked(
                 s.value("clean/res_ohm_r_suffix", True, type=bool)
             )
+            if hasattr(self, "clean_res_watt_from_pack"):
+                self.clean_res_watt_from_pack.setChecked(
+                    s.value(
+                        "clean/infer_resistor_watt_from_package", False, type=bool
+                    )
+                )
             self.clean_use_vendor.setChecked(
                 s.value("clean/use_vendor", False, type=bool)
             )
@@ -429,6 +436,7 @@ class ProfilesMixin:
                 self.clean_cap_nf,
                 self.clean_cap_uf_micro,
                 self.clean_res_ohm_r,
+                self.clean_res_watt_from_pack,
                 self.clean_use_vendor,
                 self.clean_from_db,
                 self.clean_from_hanwha_mdb,
@@ -468,6 +476,19 @@ class ProfilesMixin:
                 self._on_gb_clean_cap_toggled(self.chk_clean_cap.isChecked())
                 self._on_gb_clean_ind_toggled(self.chk_clean_ind.isChecked())
                 self._on_gb_clean_pn_toggled(self.gb_clean_pn.isChecked())
+            if hasattr(self, "btn_clean_options_toggle"):
+                expanded = bool(s.value("clean/options_expanded", False, type=bool))
+                self.btn_clean_options_toggle.blockSignals(True)
+                self.btn_clean_options_toggle.setChecked(expanded)
+                self.btn_clean_options_toggle.blockSignals(False)
+                self.clean_options_panel.setVisible(expanded)
+                self.btn_clean_options_toggle.setArrowType(
+                    QtCore.Qt.ArrowType.DownArrow
+                    if expanded
+                    else QtCore.Qt.ArrowType.RightArrow
+                )
+            if hasattr(self, "_sync_clean_preset_from_combos"):
+                self._sync_clean_preset_from_combos()
         if hasattr(self, "chk_critical"):
             self.chk_critical.setChecked(
                 s.value("report/show_critical", True, type=bool)

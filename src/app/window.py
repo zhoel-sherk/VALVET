@@ -26,6 +26,7 @@ from themes.colour_prefs import (
 )
 from themes.fonts_loader import apply_app_font, build_mono_font
 from themes.stylesheet import apply_composed_stylesheet
+from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 from ui.bom_tab import BomTabMixin
 from ui.clean_tab import CleanTabMixin
 from ui.files import FilesMixin
@@ -40,6 +41,19 @@ from ui.table_actions import TableActionsMixin
 from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n
 
 import logger
+
+
+_TAB_GROUP_KEY = {
+    "project": "data",
+    "bom": "data",
+    "pnp": "data",
+    "clean_bom": "transform",
+    "merge": "transform",
+    "report": "output",
+    "pcb_preview": "view",
+    "step_3d": "view",
+    "machine_lib": "view",
+}
 
 
 class MainWindow(
@@ -117,6 +131,10 @@ class MainWindow(
         self._pnp_undo_stack = QtGui.QUndoStack(self)
         self._bom_mapping_highlight: int = -1
         self._pnp_mapping_highlight: int = -1
+        self.bom_col_combos: list = []
+        self.pnp_col_combos: list = []
+
+        self._clean_preview_stale: bool = False
 
         self._ui_colours: dict[str, str] = dict(DEFAULT_UI_COLOURS)
         self._table_colours: dict[str, str] = dict(DEFAULT_TABLE_COLOURS)
@@ -142,12 +160,8 @@ class MainWindow(
 
         main_layout = QtWidgets.QVBoxLayout(central)
 
-        self._wip_banner = QtWidgets.QLabel(self.ui_tr("wip.banner"))
-        self._wip_banner.setObjectName("WipBanner")
-        self._wip_banner.setWordWrap(True)
-        main_layout.addWidget(self._wip_banner)
-
         self.tabs = QtWidgets.QTabWidget()
+        self.tabs.tabBar().setExpanding(True)
         main_layout.addWidget(self.tabs)
         self._tab_keys_in_order = []
 
@@ -179,21 +193,63 @@ class MainWindow(
         self._create_menus()
         self._install_edit_shortcuts()
 
-        self.statusBar().showMessage(self.ui_tr("status.ready"))
+        self._refresh_shell_status()
 
     def _sync_tab_titles_i18n(self) -> None:
         for i, key in enumerate(self._tab_keys_in_order):
-            self.tabs.setTabText(i, self.ui_tr(f"tab.{key}"))
+            group = _TAB_GROUP_KEY.get(key, "")
+            title = self.ui_tr(f"tab.{key}")
+            if group:
+                g = self.ui_tr(f"tab.group.{group}")
+                title = f"{g} · {title}"
+            self.tabs.setTabText(i, title.upper())
+
+    def _refresh_shell_status(self) -> None:
+        bom = Path(self._bom_source_path).name if self._bom_source_path else self.ui_tr(
+            "status.no_bom"
+        )
+        comment = self.ui_tr("status.comment_unmapped")
+        if hasattr(self, "_get_bom_comment_column_names"):
+            try:
+                cols = self._get_bom_comment_column_names()
+            except Exception:
+                cols = []
+            if cols:
+                comment = ", ".join(str(c) for c in cols)
+        rows = self.ui_tr("status.rows_all")
+        if hasattr(self, "bom_first_row") and hasattr(self, "bom_last_row"):
+            first = str(self.bom_first_row.text() or "1")
+            last = str(self.bom_last_row.text() or "").strip()
+            rows = f"{first}–{last}" if last else f"{first}–…"
+        stale = (
+            self.ui_tr("status.clean_stale")
+            if getattr(self, "_clean_preview_stale", False)
+            else ""
+        )
+        self.statusBar().showMessage(
+            self.ui_tr(
+                "status.shell",
+                bom=bom,
+                comment=comment,
+                rows=rows,
+                stale=stale,
+            )
+        )
+        if hasattr(self, "_refresh_clean_context_chip"):
+            self._refresh_clean_context_chip()
 
     def _refresh_static_ui_texts(self) -> None:
         """Re-apply translated strings (after language change)."""
         self.setWindowTitle(self.ui_tr("app.window_title"))
-        self._wip_banner.setText(self.ui_tr("wip.banner"))
-        self.statusBar().showMessage(self.ui_tr("status.ready"))
         self._sync_tab_titles_i18n()
         self._refresh_project_tab_static_texts()
+        if hasattr(self, "_refresh_clean_tab_static_texts"):
+            self._refresh_clean_tab_static_texts()
+        if hasattr(self, "_pcb_tab") and hasattr(self._pcb_tab, "refresh_static_texts"):
+            self._pcb_tab.refresh_static_texts()
         if hasattr(self, "_step_3d_tab"):
             self._step_3d_tab.refresh_static_texts()
+        self._refresh_shell_status()
 
     def apply_ui_font_from_settings(self) -> None:
         """Apply UI font from QSettings (Debug Fonts tab and startup)."""
@@ -224,12 +280,12 @@ class MainWindow(
         self.project_pnp_group.setTitle(self.ui_tr("project.pnp_file"))
         self.project_settings_group.setTitle(self.ui_tr("project.settings"))
         self.project_console_group.setTitle(self.ui_tr("project.console"))
-        self.btn_browse_bom.setText(self.ui_tr("project.browse"))
-        self.btn_browse_pnp.setText(self.ui_tr("project.browse"))
+        self.btn_browse_bom.setText(self.ui_tr("project.browse_bom"))
+        self.btn_browse_pnp.setText(self.ui_tr("project.browse_pnp"))
         self.profile_label.setText(self.ui_tr("project.profile"))
         self.btn_profile_clone.setText(self.ui_tr("project.profile_clone"))
         self.btn_profile_delete.setText(self.ui_tr("project.profile_delete"))
-        self.chk_colorful.setText(self.ui_tr("project.colorful_logs"))
+        self.chk_colorful.setText(self.ui_tr("project.debug_logs"))
         self.lang_label.setText(self.ui_tr("project.language"))
         if self._bom_source_path:
             configure_path_label(
@@ -262,7 +318,7 @@ class MainWindow(
                 self.pnp_path2_label, "", empty_text=self.ui_tr("project.no_file")
             )
         if hasattr(self, "btn_browse_pnp2"):
-            self.btn_browse_pnp2.setText(self.ui_tr("project.browse"))
+            self.btn_browse_pnp2.setText(self.ui_tr("project.browse_pnp2"))
         if hasattr(self, "btn_clear_pnp_optional"):
             self.btn_clear_pnp_optional.setText(
                 self.ui_tr("project.pnp_clear_optional")
@@ -357,11 +413,12 @@ class MainWindow(
             and hasattr(self, "tabs")
         ):
             self._settings.setValue("ui/main_tab_index", idx)
+        self._refresh_shell_status()
         if (
             0 <= idx < len(self._tab_keys_in_order)
             and self._tab_keys_in_order[idx] == "pcb_preview"
         ):
-            self._refresh_pcb_preview_from_ui()
+            self._refresh_pcb_preview_from_ui(force=False)
 
     def _pcb_preview_bridge_kwargs(self) -> Optional[dict]:
         self._sync_pnp_df_from_model()
@@ -394,12 +451,14 @@ class MainWindow(
             "coord_unit_mm": self._pnp_xy_stored_in_mm(),
         }
 
-    def _refresh_pcb_preview_from_ui(self) -> None:
+    def _refresh_pcb_preview_from_ui(self, *, force: bool = True) -> None:
         kwargs = self._pcb_preview_bridge_kwargs()
         if kwargs is None:
             return
         if hasattr(self, "_pcb_tab"):
-            self._pcb_tab.set_placements_from_dataframe(self._pnp_df, **kwargs)
+            self._pcb_tab.set_placements_from_dataframe(
+                self._pnp_df, force=force, **kwargs
+            )
 
     def _create_menus(self) -> None:
         # File menu removed — same actions live as buttons on the Project tab (right of Settings).
@@ -409,12 +468,12 @@ class MainWindow(
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             self.ui_tr("menu.save_boomerpack"),
-            str(Path.home() / "session.boomerpack"),
-            "Boomerpack (*.boomerpack);;All (*)",
+            str(Path.home() / "session.valvetpack"),
+            SAVE_FILTER,
         )
         if path:
-            if not path.lower().endswith(".boomerpack"):
-                path += ".boomerpack"
+            if not path.lower().endswith(VALVETPACK_EXT):
+                path += VALVETPACK_EXT
             self._debug_save_boomerpack(path)
 
     def _menu_load_boomerpack(self) -> None:
@@ -422,7 +481,7 @@ class MainWindow(
             self,
             self.ui_tr("menu.load_boomerpack"),
             str(Path.home()),
-            "Boomerpack (*.boomerpack);;All (*)",
+            OPEN_FILTER,
         )
         if path:
             self._debug_load_boomerpack(path)
@@ -565,10 +624,14 @@ class MainWindow(
 
     def _on_log_message(self, message: str, level: str):
         color = {
-            "error": "red",
-            "warning": "orange",
-            "info": "black",
-            "debug": "gray",
-        }.get(level, "black")
+            "error": "#ff6b6b",
+            "warning": "#ffa94d",
+            "info": "#d8dee9",
+            "debug": "#9aa7b5",
+        }.get(level, "#d8dee9")
+
+        if level == "debug":
+            if not getattr(self, "chk_colorful", None) or not self.chk_colorful.isChecked():
+                return
 
         self.console.append(f'<span style="color:{color}">{message}</span>')

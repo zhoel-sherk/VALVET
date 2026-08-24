@@ -6,7 +6,7 @@
 - **Data tables (BOM/PnP grids, tree views, headers):** `ui/table_font_family` (`jetbrains` / `inter` / `system`), `ui/table_font_point_size`, `ui/table_font_style`. Default table face is **JetBrains Mono** when bundled.
 - **Project tab console log:** always monospace — JetBrains Mono when bundled, else Consolas / DejaVu Sans Mono / similar. Uses `ui/font_point_size` (clamped for the log).
 
-PyInstaller copies `*.ttf` from this directory into the bundle under `fonts/` (see `boomer.spec`).
+PyInstaller copies `*.ttf` from this directory into the bundle under `fonts/` (see `valvet.spec`).
 
 ## Inter (SIL OFL 1.1)
 
@@ -14,7 +14,7 @@ PyInstaller copies `*.ttf` from this directory into the bundle under `fonts/` (s
 
 ### Obtain the files
 
-**Script (from repo `boomer/` root, network required):**
+**Script (from repo `VALVET/` root, network required):**
 
 ```bash
 source venv/bin/activate
@@ -36,7 +36,7 @@ If none are present, the UI falls back to the system sans stack.
 
 ### Obtain the files
 
-**Script (from repo `boomer/` root, network required):**
+**Script (from repo `VALVET/` root, network required):**
 
 ```bash
 source venv/bin/activate

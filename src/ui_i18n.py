@@ -1,4 +1,4 @@
-"""Load UI strings from ``boomer/lang/<locale>.json`` (fallback: English)."""
+"""Load UI strings from ``lang/<locale>.json`` (fallback: English)."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ UI_LANGUAGE_OPTIONS: tuple[tuple[str, str], ...] = (
 
 
 def lang_directory() -> Path:
-    """``boomer/lang`` next to ``boomer/src`` (dev); PyInstaller bundle has ``lang`` under ``_MEIPASS``."""
+    """``lang`` next to ``src`` (dev); PyInstaller bundle has ``lang`` under ``_MEIPASS``."""
     if getattr(sys, "frozen", False):
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:

@@ -24,13 +24,6 @@ class BomTabMixin:
         bom_pv.setContentsMargins(0, 0, 0, 0)
         bom_pv.setSpacing(0)
 
-        self.bom_combo_vheader_spacer, self.bom_combo_inner, self.bom_combos_layout = (
-            self._build_mapping_row_widgets()
-        )
-        bom_pv.addWidget(
-            self._wrap_mapping_row(self.bom_combo_vheader_spacer, self.bom_combo_inner)
-        )
-
         self.bom_table = QtWidgets.QTableView()
         self.bom_table.setAlternatingRowColors(True)
         self.bom_model = SortableTableModel(pd.DataFrame(), editable=True)
@@ -40,8 +33,7 @@ class BomTabMixin:
             audit_callback=self._on_table_audit_log,
         )
         self.bom_table.setModel(self.bom_model)
-        self.bom_table.horizontalHeader().setMinimumSectionSize(48)
-        self._apply_compact_preview_chrome(self.bom_table)
+        self._install_mapping_header(self.bom_table)
         self.bom_table.horizontalHeader().sectionResized.connect(
             self._on_bom_section_resized
         )
@@ -57,7 +49,6 @@ class BomTabMixin:
         self.bom_model.dataChanged.connect(
             lambda *args: self._mark_working_dirty("bom")
         )
-        self._connect_mapping_table_signals(self.bom_table, "_bom")
         bom_pv.addWidget(self.bom_table, 1)
         layout.addWidget(self.bom_preview_stack, 1)
 
@@ -151,10 +142,9 @@ class BomTabMixin:
         self._loading_working_copy = True
         self.bom_model.update_dataframe(pd.DataFrame())
         self._loading_working_copy = False
-        while self.bom_combos_layout.count():
-            item = self.bom_combos_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        hh = self._mapping_header(self.bom_table)
+        if hh is not None:
+            hh.clear_mapping_combos()
         self.bom_col_combos = []
         configure_path_label(
             self.bom_path_label, "", empty_text=self.ui_tr("project.no_file")

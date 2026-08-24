@@ -1,4 +1,4 @@
-"""Debug / advanced settings dialog (autosave snapshots, cache, .boomerpack)."""
+"""Debug / advanced settings dialog (autosave snapshots, cache, .valvetpack)."""
 
 from __future__ import annotations
 
@@ -37,6 +37,7 @@ from themes.fonts_loader import (
     read_ui_family,
     read_ui_style,
 )
+from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 from working_copy import SnapshotIndex, delete_snapshot_pair, list_snapshot_indices
 
 if TYPE_CHECKING:
@@ -595,7 +596,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             self._main.ui_tr("debug.export_zip_save_title"),
-            str(Path.home() / "boomer_snapshots_export.zip"),
+            str(Path.home() / "valvet_snapshots_export.zip"),
             "ZIP (*.zip);;All (*)",
         )
         if not path:
@@ -651,13 +652,13 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             self._main.ui_tr("debug.save_boomerpack"),
-            str(Path.home() / "session.boomerpack"),
-            "Boomerpack (*.boomerpack);;All (*)",
+            str(Path.home() / "session.valvetpack"),
+            SAVE_FILTER,
         )
         if not path:
             return
-        if not path.lower().endswith(".boomerpack"):
-            path += ".boomerpack"
+        if not path.lower().endswith(VALVETPACK_EXT):
+            path += VALVETPACK_EXT
         self._main._debug_save_boomerpack(path)
 
     def _load_boomerpack(self) -> None:
@@ -665,7 +666,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
             self,
             self._main.ui_tr("debug.load_boomerpack"),
             str(Path.home()),
-            "Boomerpack (*.boomerpack);;All (*)",
+            OPEN_FILTER,
         )
         if not path:
             return

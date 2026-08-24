@@ -91,7 +91,7 @@ def connect_mdb(mdb_path: str | Path) -> Any:
     except pyodbc.Error as e:
         raise AccessOdbcError(
             "Could not open the .mdb via ODBC. Install the Microsoft Access Database Engine "
-            "(ACE) redistributable and ensure its bitness matches this Boomer build."
+            "(ACE) redistributable and ensure its bitness matches this VALVET build."
         ) from e
 
 
@@ -105,10 +105,10 @@ def driver_status_message(driver: str | None) -> str:
     return (
         "No Microsoft Access ODBC driver was detected.\n\n"
         "Install the **Microsoft Access Database Engine 2016 Redistributable** "
-        "(same bitness as Boomer — 64-bit Python needs 64-bit ACE).\n\n"
+        "(same bitness as VALVET — 64-bit Python needs 64-bit ACE).\n\n"
         "If Access or Office is already installed with a different bitness, "
         "Windows may block the other ACE installer — see Microsoft documentation "
-        "for the /quiet layout workaround or use a matching Boomer build.\n\n"
+        "for the /quiet layout workaround or use a matching VALVET build.\n\n"
         f"Download page:\n{ACCESS_ENGINE_2016_REDIST_URL}"
     )
 

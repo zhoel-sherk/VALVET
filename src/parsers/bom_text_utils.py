@@ -10,7 +10,7 @@ from parsers.regex_api import I, fullmatch, match, search, split, sub
 DEFAULT_DOUBLE_COMMENT_JOIN = " | "
 
 # Thickness / height stack before tokenize splits on «+» (e.g. 0.8+0.15/-0.10mm).
-_STACK_PLACEHOLDER = "__BOOMER_STACK_{}__"
+_STACK_PLACEHOLDER = "__VALVET_STACK_{}__"
 
 
 def merge_clean_comment_cell_parts(parts: list[object], sep_raw: str) -> str:
@@ -148,6 +148,11 @@ def normalize_res_ohm_value(
     compact = sub(r"\s+", "", str(text)).strip()
     if not compact:
         return ""
+    from parsers.chip_tokens import expand_compact_rkm
+
+    compact_rkm = expand_compact_rkm(compact)
+    if compact_rkm:
+        compact = compact_rkm
     # Case-sensitive milli before .upper() (1m OHM ≠ 1M OHM).
     m_milli = match(r"^([0-9]+(?:\.[0-9]+)?)m(?:[Rr]|[Oo][Hh][Mm])?$", compact)
     if m_milli:

@@ -1,4 +1,4 @@
-"""Session links, boomerpack debug, snapshot recovery (MainWindow mixin)."""
+"""Session links, valvetpack debug, snapshot recovery (MainWindow mixin)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,14 @@ from typing import Any
 from PySide6 import QtWidgets
 import pandas as pd
 
-from boomerpack import BoomerpackError, load_boomerpack, save_boomerpack
+from valvetpack import (
+    OPEN_FILTER,
+    SAVE_FILTER,
+    VALVETPACK_EXT,
+    ValvetpackError,
+    load_valvetpack,
+    save_valvetpack,
+)
 from facades.session_links import apply_session_links_payload, session_links_to_pairs
 from working_copy import find_snapshot
 from working_copy_ui import prompt_recover_snapshot
@@ -164,7 +171,7 @@ class SessionMixin:
             "pnp_mappings": pnp_maps,
         }
         try:
-            save_boomerpack(
+            save_valvetpack(
                 path,
                 bom_df=self._bom_df,
                 pnp_df=self._pnp_df,
@@ -172,7 +179,7 @@ class SessionMixin:
                 meta=meta,
             )
         except Exception as e:
-            self._log(f"Save .boomerpack failed: {e}", "error")
+            self._log(f"Save .valvetpack failed: {e}", "error")
             QtWidgets.QMessageBox.critical(
                 self, self.ui_tr("debug.window_title"), str(e)
             )
@@ -181,15 +188,15 @@ class SessionMixin:
 
     def _debug_load_boomerpack(self, path: str) -> None:
         try:
-            data = load_boomerpack(path)
-        except BoomerpackError as e:
+            data = load_valvetpack(path)
+        except ValvetpackError as e:
             self._log(str(e), "error")
             QtWidgets.QMessageBox.critical(
                 self, self.ui_tr("debug.window_title"), str(e)
             )
             return
         except Exception as e:
-            self._log(f"Load .boomerpack failed: {e}", "error")
+            self._log(f"Load .valvetpack failed: {e}", "error")
             QtWidgets.QMessageBox.critical(
                 self, self.ui_tr("debug.window_title"), str(e)
             )

@@ -23,6 +23,7 @@ from parsers.bom_text_utils import (
     normalize_value_unit,
     snap_cap_tolerance_pf_to_std_pct,
 )
+from parsers.chip_tokens import canonical_voltage_token, match_package_token, watt_for_package
 from parsers.constants import PACKAGE_PATTERN
 from parsers.formatting import (
     format_cap_fields,
@@ -30,7 +31,7 @@ from parsers.formatting import (
     format_resistor_fields,
     inductor_pack_guess,
 )
-from parsers.regex_api import I, S, search, sub
+from parsers.regex_api import I, S, match, search, sub
 from parsers.registry import ParserModuleInfo, register_parser_module
 
 # Catalog labels (shown in Debug settings dialog)
@@ -54,7 +55,7 @@ def parse_inferit_resistor_fields(
         return None
     # NETRES-SMD 0402-8P4R 33 OHM +/-5% LEAD-FREE
     m = search(
-        rf"^NETRES[-\s]+SMD\s+(?P<pack>{PACKAGE_PATTERN})-8P4R\s+"
+        rf"^NETRES[-\s]+SMD\s+(?P<pack>[RC]?({PACKAGE_PATTERN}))-8P4R\s+"
         r"(?P<value>[0-9]+(?:\.[0-9]+)?(?:[KMR]\b|\s*(?:OHM|Ω)\b))"
         r".*?(?:\+/-|±)\s*(?P<tol>[0-9]+(?:\.[0-9]+)?)\s*%",
         s,
@@ -63,7 +64,7 @@ def parse_inferit_resistor_fields(
     if not m:
         # Prefer pack-first form; also accept value-first «RES 1m OHM 2W (2512) 1%».
         m = search(
-            rf"\bRES(?:ISTOR)?\s+(?P<pack>{PACKAGE_PATTERN})\s+"
+            rf"\bRES(?:ISTOR)?\s+(?P<pack>[RC]?({PACKAGE_PATTERN}))\s+"
             r"(?P<value>[0-9]+(?:\.[0-9]+)?(?:[KMR]\b|\s*(?:OHM|Ω)\b))"
             r".*?(?:\+/-|±)\s*(?P<tol>[0-9]+(?:\.[0-9]+)?)\s*%",
             s,
@@ -73,17 +74,20 @@ def parse_inferit_resistor_fields(
         m = search(
             rf"\bRES(?:ISTOR)?\s+"
             rf"(?P<value>[0-9]+(?:\.[0-9]+)?(?:[KMR]\b|\s*(?:OHM|Ω)\b))"
-            rf".*?(?:\(|\b)(?P<pack>{PACKAGE_PATTERN})(?:\)|\b)"
+            rf".*?(?:\(|\b)(?P<pack>[RC]?({PACKAGE_PATTERN}))(?:\)|\b)"
             rf".*?(?:\+/-|±)?\s*(?P<tol>[0-9]+(?:\.[0-9]+)?)\s*%",
             s,
             I,
         )
     if not m:
         return None
+    pack = match_package_token(m.group("pack")) or m.group("pack")
     watt = ""
     wm = search(r"\b(\d+/\d+W|\d+(?:\.\d+)?W)\b", s, I)
     if wm:
         watt = wm.group(1).upper()
+    if not watt and c.infer_resistor_watt_from_package:
+        watt = watt_for_package(pack)
     # Preserve original case of value token for milli vs mega (1m vs 1M).
     val_span = m.span("value")
     val_raw = s[val_span[0] : val_span[1]]
@@ -95,7 +99,7 @@ def parse_inferit_resistor_fields(
     ).strip()
     val_raw = sub(r"\s+", "", val_raw)
     raw: Dict[str, str] = {
-        "pack": m.group("pack"),
+        "pack": pack,
         "nom": normalize_res_ohm_value(
             val_raw,
             include_ohm_r_suffix=c.resistor_include_ohm_r_suffix,
@@ -163,7 +167,7 @@ def parse_inferit_capacitor_fields(
     if under is not None:
         return under
     m = search(
-        rf"\bCAP(?:[\s_-]*SMD)?\s+(?P<pack>{PACKAGE_PATTERN})\s+"
+        rf"\bCAP(?:[\s_-]*SMD)?\s+(?P<pack>[RC]?({PACKAGE_PATTERN}))\s+"
         r"(?P<value>[0-9]+(?:\.[0-9]+)?\s*(?:PF|NF|UF|F))\s*/\s*"
         r"(?P<voltage>[0-9]+(?:\.[0-9]+)?(?:kV|KV|V))"
         r".*?(?:\+/-|±)\s*(?P<tol>[0-9]+(?:\.[0-9]+)?)\s*(?P<tol_unit>%|PF|pF)"
@@ -185,13 +189,19 @@ def parse_inferit_capacitor_fields(
         pct_s = snap_cap_tolerance_pf_to_std_pct(tol_val, nom_pf)
         if not pct_s:
             pct_s = f"{m.group('tol')}PF"
+    vol_m = match(r"^([\d.]+)(kV|KV|V)$", m.group("voltage"), I)
+    volt = (
+        canonical_voltage_token(vol_m.group(1), vol_m.group(2))
+        if vol_m
+        else m.group("voltage").upper()
+    )
     raw = {
-        "pack": m.group("pack"),
+        "pack": match_package_token(m.group("pack")) or m.group("pack"),
         "nom": normalize_value_unit(
             m.group("value"),
             cap_uf_micro_sign=c.cap_uf_micro_sign,
         ),
-        "V": m.group("voltage").upper(),
+        "V": volt,
         "film": film,
         "%": pct_s,
     }

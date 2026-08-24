@@ -14,7 +14,7 @@ from settings_paths import path_settings_hash
 
 
 def test_bom_ui_settings_roundtrip() -> None:
-    org = f"BoomerTest_{uuid.uuid4().hex[:12]}"
+    org = f"ValvetTest_{uuid.uuid4().hex[:12]}"
     app_name = "Roundtrip"
     s = QSettings(org, app_name)
     path = "/tmp/example_bom_for_settings.csv"

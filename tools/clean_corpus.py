@@ -54,12 +54,18 @@ from machine_library.hanwha_partnames import (  # noqa: E402
 
 
 def _profile_path() -> Path:
-    raw = os.environ.get("BOOMER_CLEAN_CORPUS_PROFILE", "").strip()
+    raw = (
+        os.environ.get("VALVET_CLEAN_CORPUS_PROFILE", "").strip()
+        or os.environ.get("BOOMER_CLEAN_CORPUS_PROFILE", "").strip()
+    )
     return Path(raw) if raw else DEFAULT_PROFILE
 
 
 def _golden_path() -> Path:
-    raw = os.environ.get("BOOMER_CLEAN_CORPUS_GOLDEN", "").strip()
+    raw = (
+        os.environ.get("VALVET_CLEAN_CORPUS_GOLDEN", "").strip()
+        or os.environ.get("BOOMER_CLEAN_CORPUS_GOLDEN", "").strip()
+    )
     if raw:
         return Path(raw)
     return resolve_golden_path()

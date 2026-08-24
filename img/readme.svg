@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 280" role="img" aria-label="VALVET">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e1726"/>
+      <stop offset="100%" stop-color="#070c14"/>
+    </linearGradient>
+    <linearGradient id="pad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1100" height="280" rx="28" fill="url(#bg)"/>
+  <rect x="3" y="3" width="1094" height="274" rx="25" fill="none" stroke="#1e293b" stroke-width="3"/>
+
+  <g transform="translate(36,18) scale(0.475)">
+    <rect width="512" height="512" rx="112" fill="#0a1220"/>
+    <g stroke="#1e2d42" stroke-width="1.5">
+      <line x1="64" y1="128" x2="448" y2="128"/>
+      <line x1="64" y1="256" x2="448" y2="256"/>
+      <line x1="64" y1="384" x2="448" y2="384"/>
+      <line x1="128" y1="64" x2="128" y2="448"/>
+      <line x1="256" y1="64" x2="256" y2="448"/>
+      <line x1="384" y1="64" x2="384" y2="448"/>
+    </g>
+    <rect x="110" y="110" width="292" height="292" rx="8" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="8 6" opacity="0.6"/>
+    <g fill="url(#pad)" opacity="0.9">
+      <rect x="68" y="140" width="52" height="26" rx="4"/>
+      <rect x="68" y="200" width="52" height="26" rx="4"/>
+      <rect x="68" y="260" width="52" height="26" rx="4"/>
+      <rect x="68" y="320" width="52" height="26" rx="4"/>
+      <rect x="392" y="140" width="52" height="26" rx="4"/>
+      <rect x="392" y="200" width="52" height="26" rx="4"/>
+      <rect x="392" y="260" width="52" height="26" rx="4"/>
+      <rect x="392" y="320" width="52" height="26" rx="4"/>
+    </g>
+    <g fill="url(#cyan)">
+      <path d="M 88 132 H 188 L 262 268 H 354 L 324 324 H 354 V 380 H 232 L 124 174 H 88 Z"/>
+      <path d="M 314 174 H 414 L 364 268 H 264 Z"/>
+    </g>
+  </g>
+
+  <text x="320" y="128" fill="#f8fafc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="800" letter-spacing="10">VALVET</text>
+  <text x="320" y="178" fill="#7dd3fc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" letter-spacing="1.5">Validator And Line-Verified Export Tool</text>
+  <text x="320" y="218" fill="#94a3b8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18">ALPHA v0.1.3 · BOM · PnP · Clean · Merge</text>
+</svg>

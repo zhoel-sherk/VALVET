@@ -141,7 +141,7 @@ class CleanPipelineDebugDialog(QtWidgets.QDialog):
         self._path_edit = QtWidgets.QLineEdit()
         raw_p = str(settings.value("clean/components_txt_path", "") or "")
         self._path_edit.setPlaceholderText(
-            "(empty — use BOOMER_COMPONENTS_TXT or repo components.txt)"
+            "(empty — use VALVET_COMPONENTS_TXT or repo components.txt)"
         )
         self._path_edit.setText(raw_p)
         lib_row.addWidget(self._path_edit, 1)

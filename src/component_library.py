@@ -29,7 +29,10 @@ class ComponentEntry:
 
 
 def default_components_path() -> Path:
-    env = os.environ.get("BOOMER_COMPONENTS_TXT")
+    env = (
+        os.environ.get("VALVET_COMPONENTS_TXT", "").strip()
+        or os.environ.get("BOOMER_COMPONENTS_TXT", "").strip()
+    )
     if env:
         return Path(env)
     return Path(__file__).resolve().parents[1] / "components.txt"

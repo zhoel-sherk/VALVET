@@ -86,15 +86,19 @@ def default_user_parsers_dir() -> Path:
 
     canonical = user_parsers_dir()
     if sys.platform == "win32":
-        legacy = (
-            Path(os.environ.get("APPDATA", "") or str(Path.home()))
-            / "boomer"
-            / "user_parsers"
-        )
+        appdata = Path(os.environ.get("APPDATA", "") or str(Path.home()))
+        legacy_paths = [
+            appdata / "boomer" / "user_parsers",
+            appdata / "BoomerTools" / "user_parsers",
+        ]
     else:
-        legacy = Path.home() / ".local/share/boomer/user_parsers"
-    if legacy.is_dir() and not any(canonical.glob("*.py")) and any(legacy.glob("*.py")):
-        return legacy
+        legacy_paths = [
+            Path.home() / ".local/share/boomer/user_parsers",
+            Path.home() / ".local/share/BoomerTools/user_parsers",
+        ]
+    for legacy in legacy_paths:
+        if legacy.is_dir() and not any(canonical.glob("*.py")) and any(legacy.glob("*.py")):
+            return legacy
     return canonical
 
 

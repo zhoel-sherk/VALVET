@@ -304,6 +304,8 @@ class TableActionsMixin:
     def _on_bom_first_last_row_changed(self, *_args) -> None:
         self._refresh_active_row_highlight("bom")
         self._schedule_save_bom_tab_settings()
+        if hasattr(self, "_mark_clean_preview_stale"):
+            self._mark_clean_preview_stale()
     def _on_pnp_first_last_row_changed(self, *_args) -> None:
         self._refresh_active_row_highlight("pnp")
         self._schedule_save_pnp_tab_settings()

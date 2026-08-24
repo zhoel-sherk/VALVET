@@ -62,13 +62,22 @@ class FootprintStore:
         self._conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_norm ON footprints(norm_key)"
         )
+        self._aliases_cache: dict[str, str] | None = None
+        self._aliases_mtime: float | None = None
 
     def close(self) -> None:
         self._conn.close()
 
     def _aliases(self) -> dict[str, str]:
+        mtime: float | None = None
+        if self._aliases_path.is_file():
+            mtime = self._aliases_path.stat().st_mtime
+        if self._aliases_cache is not None and self._aliases_mtime == mtime:
+            return self._aliases_cache
         out: dict[str, str] = {}
         if not self._aliases_path.is_file():
+            self._aliases_cache = out
+            self._aliases_mtime = mtime
             return out
         for line in self._aliases_path.read_text(
             encoding="utf-8", errors="replace"
@@ -86,6 +95,8 @@ class FootprintStore:
                     continue
                 a, b = parts
             out[normalize_footprint_key(a.strip())] = b.strip()
+        self._aliases_cache = out
+        self._aliases_mtime = mtime
         return out
 
     @staticmethod

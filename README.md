@@ -1,10 +1,17 @@
-# VALVET — **ALPHA v0.1.2**
+# VALVET — **ALPHA v0.1.3**
+
+<p align="center">
+  <img src="img/icon-512.png" alt="VALVET logo" width="160"/>
+</p>
+<p align="center">
+  <img src="img/readme.svg" alt="VALVET — Validator And Line-Verified Export Tool" width="880"/>
+</p>
 
 **VALVET** (*Validator And Line-Verified Export Tool*) is a standalone PySide6 desktop app for electronics production: load BOM and Pick-and-Place files, clean component names, cross-check BOM/PnP consistency, and export machine-oriented placement data.
 
 Home: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). This is **not** a GitHub fork of [marmidr/boomer](https://github.com/marmidr/boomer); the codebase has diverged enough to live as its own project.
 
-**ALPHA v0.1.2** is developed on GitHub branch **`main`**.
+**ALPHA v0.1.3** is developed on GitHub branch **`main`**.
 
 ## Current Status
 
@@ -18,7 +25,7 @@ python src/main.py
 
 Alias (deprecated import path): `python src/app_pyside6.py`
 
-**ALPHA:** Expect rough edges. The main window shows a **Work in progress** strip; Hanwha MDB edit, **PCB Preview**, and **Step 3D** (VTK) are especially experimental. `QSettings` uses organization **`VALVET`** / application **`VALVET`**.
+**ALPHA:** Expect rough edges. Hanwha MDB edit, **PCB Preview**, and **Step 3D** (VTK) are especially experimental. `QSettings` uses organization **`VALVET`** / application **`VALVET`**.
 
 **UI profiles:** On the Project tab you can pick a **profile** (`default` or cloned names). Checkboxes, combos, and tab options for BOM/PnP (except which file is open), Clean, Merge, Report, and PCB Preview **mirror/units/nudge** are saved into the active profile when you **close the app**. **Step 3D** converter command (`step_3d/converter_command`) is stored in **global** `QSettings`, not inside profile JSON. **Loaded BOM/PnP file paths are not restored** after restart (hash-keyed options still apply when you open the same path again). Use **Clear** on the BOM or PnP tab to unload a file from the workspace without changing saved profile defaults.
 
@@ -46,7 +53,7 @@ Install viewer dependencies when you need this tab:
 pip install -r requirements-step3d.txt
 ```
 
-Mouse: **drag** to rotate, **wheel** to zoom, **middle button** or **Shift+drag** to pan (VTK defaults). Pick a converter whose **license** fits your distribution; Boomer only ships MIT/BSD Python pieces ([PyVista](https://github.com/pyvista/pyvista), [pyvistaqt](https://github.com/pyvista/pyvistaqt), VTK).
+Mouse: **drag** to rotate, **wheel** to zoom, **middle button** or **Shift+drag** to pan (VTK defaults). Pick a converter whose **license** fits your distribution; VALVET only ships MIT/BSD Python pieces ([PyVista](https://github.com/pyvista/pyvista), [pyvistaqt](https://github.com/pyvista/pyvistaqt), VTK).
 
 **Linux / X11:** The VTK widget is created only when the Step 3D tab is first shown (avoids `BadWindow` / `vtkXOpenGLRenderWindow` errors while the tab is still hidden). If you still see X11 errors under Wayland, try launching with **`QT_QPA_PLATFORM=xcb`** (forces the X11 Qt plugin so VTK’s GLX path matches).
 
@@ -189,7 +196,7 @@ python tools/fetch_inter.py
 python tools/fetch_jetbrains_mono.py
 ```
 
-**Data directories:** autosave, optional user BOM parsers, and PCB preview cache use the paths described in [`doc/info/PACKAGING_WINDOWS.md`](doc/info/PACKAGING_WINDOWS.md) (Roaming `%APPDATA%\VALVET\VALVET\…` on Windows). A frozen **PyInstaller** build is documented there as well.
+**Data directories:** autosave, optional user BOM parsers, and PCB preview cache use the paths described in [`doc/info/PACKAGING_WINDOWS.md`](doc/info/PACKAGING_WINDOWS.md) (Roaming `%APPDATA%\VALVET\VALVET\…` on Windows). A frozen **PyInstaller** build uses [`valvet.spec`](valvet.spec).
 
 ## Running
 

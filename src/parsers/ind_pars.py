@@ -13,7 +13,7 @@ from typing import Dict, Optional, Tuple
 from clean_types import CleanConfig, default_clean_config
 
 from parsers.bom_text_utils import normalize_for_regex_parsing
-from parsers.constants import PACKAGE_PATTERN
+from parsers.chip_tokens import match_package_token
 from parsers.formatting import format_inductor_fields, inductor_pack_guess
 from parsers.inferit_pars import parse_inferit_inductor
 from parsers.regex_api import I, compile, match, split, sub
@@ -83,8 +83,9 @@ def parse_inductor_token_fields(
     for part in parts:
         if not part:
             continue
-        if match(rf"^({PACKAGE_PATTERN})$", part, I):
-            package = part
+        pack_tok = match_package_token(part)
+        if pack_tok:
+            package = pack_tok
         elif (
             "V" in part.upper()
             and any(c.isdigit() for c in part)
@@ -116,8 +117,9 @@ def parse_inductor_token_fields(
 
     if not package:
         for part in parts:
-            if match(rf"^({PACKAGE_PATTERN})$", part, I):
-                package = part
+            pack_tok = match_package_token(part)
+            if pack_tok:
+                package = pack_tok
                 break
 
     fields = {"pack": package, "nom": value, "Imax": imax, "%": tolerance, "DCR": dcr}

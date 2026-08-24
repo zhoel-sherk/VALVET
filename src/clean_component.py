@@ -671,8 +671,7 @@ def _collect_vendor_arbiter_candidate(
     pnv, eff = pnr[0], pnr[1]
     from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
-    bom_for_merge = joined_clean_comment_bom_prose(s)
-    pnv = enrich_vendor_cleaned_from_bom(bom_for_merge, pnv, eff, cfg)
+    pnv = enrich_vendor_cleaned_from_bom(s, pnv, eff, cfg)
     pnv = reformat_cleaned_pn(pnv, eff, cfg)
     src_note = "vendor" if cfg.use_vendor_pn else "pn"
     slots = vendor_pn_slots_from_string(pnv, cfg.output_separator)
@@ -876,8 +875,7 @@ def _clean_one_pipeline_legacy(
                 pnr = _try_parse_vendor_pn_res_cap_any(s, cfg, eff_vendor)
             if pnr:
                 pnv, eff = pnr[0], pnr[1]
-                bom_for_merge = joined_clean_comment_bom_prose(s)
-                pnv = enrich_vendor_cleaned_from_bom(bom_for_merge, pnv, eff, cfg)
+                pnv = enrich_vendor_cleaned_from_bom(s, pnv, eff, cfg)
                 pnv = reformat_cleaned_pn(pnv, eff, cfg)
                 src = "vendor" if cfg.use_vendor_pn else "pn"
                 return (
@@ -975,7 +973,10 @@ def clean_preview(
     cfg = default_clean_config(config)
     want_extra = cfg.regex_master_enabled and cfg.regex_master_preview_scores
     results: list[tuple] = []
-    echo_preview = os.environ.get("BOOMER_CLEAN_PREVIEW_LOG", "").strip().lower() in (
+    echo_preview = (
+        os.environ.get("VALVET_CLEAN_PREVIEW_LOG", "").strip().lower()
+        or os.environ.get("BOOMER_CLEAN_PREVIEW_LOG", "").strip().lower()
+    ) in (
         "1",
         "true",
         "yes",

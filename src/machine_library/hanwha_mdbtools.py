@@ -118,7 +118,7 @@ def list_mdb_tables(mdb_path: str | Path) -> list[str]:
         raise HanwhaMdbToolsError(
             f"{odbc_msg}\n\n"
             "Install the Microsoft Access Database Engine (ACE) ODBC driver "
-            "(same bitness as Boomer). mdbtools is not used inside the frozen Windows build."
+            "(same bitness as VALVET). mdbtools is not used inside the frozen Windows build."
         )
 
     return _list_mdb_tables_cli(p)
@@ -154,7 +154,7 @@ def export_table_csv(mdb_path: str | Path, table: str) -> str:
         raise HanwhaMdbToolsError(
             f"{odbc_msg}\n\n"
             "Install the Microsoft Access Database Engine (ACE) ODBC driver "
-            "(same bitness as Boomer). mdbtools is not used inside the frozen Windows build."
+            "(same bitness as VALVET). mdbtools is not used inside the frozen Windows build."
         )
 
     return _export_table_csv_cli(p, table)

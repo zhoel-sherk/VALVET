@@ -208,6 +208,8 @@ class FilesMixin:
             QtCore.QTimer.singleShot(0, self._save_bom_tab_settings_to_disk)
             self._hide_merge_cross_check_ok_banner()
             self._register_session_link()
+            if hasattr(self, "_mark_clean_preview_stale"):
+                self._mark_clean_preview_stale()
         except SMTProcessorError as e:
             self._log(f"Error loading BOM: {e}", "error")
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
@@ -360,6 +362,8 @@ class FilesMixin:
         if kind == "bom":
             self._sync_bom_df_from_model()
             self._bom_dirty = True
+            if hasattr(self, "_mark_clean_preview_stale"):
+                self._mark_clean_preview_stale()
         elif kind == "pnp":
             self._sync_pnp_df_from_model()
             self._pnp_dirty = True

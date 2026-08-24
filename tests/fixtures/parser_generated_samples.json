@@ -1,0 +1,359 @@
+[
+  {
+    "mpn_or_bom": "C1005NP0508CGTS",
+    "ctype": "CAP",
+    "expected": "0402_0.5pF_C0G_50V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402C0G180J500NTB",
+    "ctype": "CAP",
+    "expected": "0402_18pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0402CG101J500NT",
+    "ctype": "CAP",
+    "expected": "0402_100pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "RC-02U3R30FT",
+    "ctype": "RES",
+    "expected": "0402_3.3R_1%",
+    "path": "vendor",
+    "file": "fenghua_resistor.md"
+  },
+  {
+    "mpn_or_bom": "GRM1555C1H100JA01D",
+    "ctype": "CAP",
+    "expected": "0402_10pF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "TA-I/RM04JTN100",
+    "ctype": "RES",
+    "expected": "0402_10R_5%",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "WR08X000PTL",
+    "ctype": "RES",
+    "expected": "0805_0R",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "WALSIN/0402N100J500CT",
+    "ctype": "CAP",
+    "expected": "0402_10pF_50V_5%",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "0402B101K500CT",
+    "ctype": "CAP",
+    "expected": "0402_100pF_X7R_50V_10%",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "TAIYO/EMK105B7223KV-F",
+    "ctype": "CAP",
+    "expected": "0402_22nF_16V_X5R_10%",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "V105K0201X5R160NXT",
+    "ctype": "CAP",
+    "expected": "0201_1uF_X5R_10%_16V",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "V223K0201X5R160NAT",
+    "ctype": "CAP",
+    "expected": "0201_22nF_X5R_10%_16V",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "0603WAF220KT5E",
+    "ctype": "RES",
+    "expected": "0603_22R_10%_1/10W",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "0402WGJ0472TCE",
+    "ctype": "RES",
+    "expected": "0402_4.7K_5%_1/16W",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "0402WGF499JTCE",
+    "ctype": "RES",
+    "expected": "0402_49.9R_5%_1/16W",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "0402WGJ0000TCE",
+    "ctype": "RES",
+    "expected": "0402_0R_5%_1/16W",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "C0402C0G180J500NTB",
+    "ctype": "CAP",
+    "expected": "0402_18pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "RES_22K_+/-5%_1/16W_R0402_SMD",
+    "ctype": "RES",
+    "expected": "0402_22K_1/16W_5%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "RES_39K2_+/-1%_1/16W_R0402_SMD",
+    "ctype": "RES",
+    "expected": "0402_39.2K_1/16W_1%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "RES_4K7_+/-5%_1/16W_R0402_SMD",
+    "ctype": "RES",
+    "expected": "0402_4.7K_1/16W_5%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "RES_2K49_+/-1%_1/16W_R0402_SMD",
+    "ctype": "RES",
+    "expected": "0402_2.49K_1/16W_1%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "RES_2K2_+/-5%_1/16W_R0402_SMD",
+    "ctype": "RES",
+    "expected": "0402_2.2K_1/16W_5%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "RES_4K99_+/-1%_1/16W_R0402_SMD",
+    "ctype": "RES",
+    "expected": "0402_4.99K_1/16W_1%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "RES_0R_+/-5%_1/10W_R0603_SMD",
+    "ctype": "RES",
+    "expected": "0603_0R_1/10W_5%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "NETRES-SMD 0402-8P4R 33 OHM +/-5% LEAD-FREE - Y01",
+    "ctype": "RES",
+    "expected": "0402_33R_5%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "CAP-SMD 1812 2200PF/3KV +/-10% X7R LEAD-FREE",
+    "ctype": "CAP",
+    "expected": "1812_2200pF_X7R_10%_3KV",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "MLCC 22uF/6.3V 0603 X5R 20%",
+    "ctype": "CAP",
+    "expected": "0603_22uF_X5R_20%_6.3V",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "RES 0402 10K OHM +/-1%",
+    "ctype": "RES",
+    "expected": "0402_10K_1%",
+    "path": "regex",
+    "file": "regex_tokens.md"
+  },
+  {
+    "mpn_or_bom": "0603WAF220KT5E",
+    "ctype": "RES",
+    "expected": "0603_22R_10%_1/10W",
+    "path": "vendor",
+    "file": "royalohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "CL05A105MQ5NNNC",
+    "ctype": "CAP",
+    "expected": "0402_1uF_6.3V_X5R_20%",
+    "path": "vendor",
+    "file": "samsung_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "RM04JTN100",
+    "ctype": "RES",
+    "expected": "0402_10R_5%",
+    "path": "vendor",
+    "file": "tai_rm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "TAIYO/UMK105CH120JV-F",
+    "ctype": "CAP",
+    "expected": "12pF",
+    "path": "vendor",
+    "file": "taiyo_mlcc_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGJ0223TCE",
+    "ctype": "RES",
+    "expected": "0402_22K_5%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGF3922TCE",
+    "ctype": "RES",
+    "expected": "0402_39.2K_1%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGJ0472TCE",
+    "ctype": "RES",
+    "expected": "0402_4.7K_5%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGF4991TCE",
+    "ctype": "RES",
+    "expected": "0402_4.99K_1%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGJ0000TCE",
+    "ctype": "RES",
+    "expected": "0402_0R_5%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "V105K0201X5R160NXT",
+    "ctype": "CAP",
+    "expected": "0201_1uF_X5R_10%_16V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0402N100J500CT",
+    "ctype": "CAP",
+    "expected": "0402_10pF_50V_5%",
+    "path": "vendor",
+    "file": "walsin_mlcc_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "WR04X1001FTL",
+    "ctype": "RES",
+    "expected": "0402_1K_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR04X68R0FTL",
+    "ctype": "RES",
+    "expected": "0402_68R_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR04X6201FTL",
+    "ctype": "RES",
+    "expected": "0402_6.2K_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR04X2491FTL",
+    "ctype": "RES",
+    "expected": "0402_2.49K_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR06X472JTL",
+    "ctype": "RES",
+    "expected": "0603_4.7K_5%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WW06RR050FTL",
+    "ctype": "RES",
+    "expected": "0603_0.05R_1%",
+    "path": "vendor",
+    "file": "walsin_ww_resistor.md"
+  },
+  {
+    "mpn_or_bom": "CC0402KRX7R9BB102",
+    "ctype": "CAP",
+    "expected": "0402_1nF_50V_X7R_10%",
+    "path": "vendor",
+    "file": "yageo_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "RC0402FR-0710KL",
+    "ctype": "RES",
+    "expected": "0402_10K_1%",
+    "path": "vendor",
+    "file": "yageo_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RC0402FR-07499RL",
+    "ctype": "RES",
+    "expected": "0402_49.9R_1%",
+    "path": "vendor",
+    "file": "yageo_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RC0402FR-07124RL",
+    "ctype": "RES",
+    "expected": "0402_124R_1%",
+    "path": "vendor",
+    "file": "yageo_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RC0402JR-0710KL",
+    "ctype": "RES",
+    "expected": "0402_10K_5%",
+    "path": "vendor",
+    "file": "yageo_resistor.md"
+  },
+  {
+    "mpn_or_bom": "YAGEO/RC0402FR-0749K9L",
+    "ctype": "RES",
+    "expected": "0402_49.9K_1%",
+    "path": "vendor",
+    "file": "yageo_resistor.md"
+  }
+]
