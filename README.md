@@ -1,9 +1,6 @@
 # VALVET — **ALPHA v0.2.0**
 
 <p align="center">
-  <img src="img/icon-512.png" alt="VALVET logo" width="160"/>
-</p>
-<p align="center">
   <img src="img/readme.svg" alt="VALVET — Validator And Line-Verified Export Tool" width="880"/>
 </p>
 
@@ -12,6 +9,41 @@
 Home: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). This is **not** a GitHub fork of [marmidr/boomer](https://github.com/marmidr/boomer); the codebase has diverged enough to live as its own project.
 
 **ALPHA v0.2.0** is developed on GitHub branch **`main`**.
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="img/data_bom.png" alt="DATA BOM — column mapping PN name and PnJoin" width="100%"/>
+<p><em>DATA — BOM</em></p>
+</td>
+<td width="50%" valign="top">
+<img src="img/data_pnp.png" alt="DATA PnP" width="100%"/>
+<p><em>DATA — PnP</em></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="img/transform_clean.png" alt="TRANSFORM Clean BOM Parser Settings" width="100%"/>
+<p><em>TRANSFORM — Clean BOM</em></p>
+</td>
+<td width="50%" valign="top">
+<img src="img/transform_merge.png" alt="TRANSFORM Merge and export" width="100%"/>
+<p><em>TRANSFORM — Merge / Export</em></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<img src="img/output_report.png" alt="OUTPUT Report" width="100%"/>
+<p><em>OUTPUT — Report</em></p>
+</td>
+<td width="50%" valign="top">
+<img src="img/view_machine.png" alt="VIEW Machine library" width="100%"/>
+<p><em>VIEW — Machine lib</em></p>
+</td>
+</tr>
+</table>
 
 ## Current Status
 
@@ -202,7 +234,7 @@ python tools/fetch_inter.py
 python tools/fetch_jetbrains_mono.py
 ```
 
-**Data directories:** autosave, optional user BOM parsers, and PCB preview cache use the paths described in [`doc/info/PACKAGING_WINDOWS.md`](doc/info/PACKAGING_WINDOWS.md) (Roaming `%APPDATA%\VALVET\VALVET\…` on Windows). A frozen **PyInstaller** build uses [`valvet.spec`](valvet.spec).
+**Data directories:** autosave, optional user BOM parsers, and PCB preview cache use the paths described in [`doc/info/PACKAGING_WINDOWS.md`](doc/info/PACKAGING_WINDOWS.md) (Roaming `%APPDATA%\VALVET\VALVET\…` on Windows). A frozen **PyInstaller** onedir uses [`valvet.spec`](valvet.spec). Windows zip for GitHub Releases is built by the manual **Release Windows** workflow; WinGet id **ZhoelSherk.VALVET** (see [`winget/README.md`](winget/README.md)). After install, optional provenance check: `gh attestation verify VALVET-<ver>-windows-x64.zip --repo zhoel-sherk/VALVET`. Community WinGet (`winget install ZhoelSherk.VALVET`) is available only after a public Release and a merged `winget-pkgs` PR.
 
 ## Running
 
@@ -320,3 +352,9 @@ Core services
 ```
 
 The PySide6 desktop UI remains the primary supported interface for now.
+
+## Logo
+
+<p align="center">
+  <img src="img/icon-512.png" alt="VALVET logo" width="160"/>
+</p>
