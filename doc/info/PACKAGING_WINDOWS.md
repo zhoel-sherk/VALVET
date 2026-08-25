@@ -6,7 +6,7 @@ From the repo root (with `.venv` and `requirements-dev.txt`):
 pyinstaller valvet.spec
 ```
 
-That produces an **onedir** folder `dist/VALVET/` (`VALVET.exe` plus Qt DLLs), not a single portable file. Smoke-check on a clean PC:
+That produces an **onedir** folder `dist/VALVET/` (`VALVET.exe` plus Qt DLLs), not a single portable file. The freeze copies `img/icon.ico` and `img/icon-256.png` only (README screenshots stay out of the zip). Repo `examples/` (BOM/PnP fixtures, `UPD.MDB`, gerbers) is not bundled. Unused PySide6 modules (WebEngine, Qt3D, Charts, QML/Quick, …) are excluded. Smoke-check on a clean PC:
 
 1. Launch `VALVET.exe` (or `python src/main.py --smoke` in CI).
 2. Confirm the window icon and **Help → About**.

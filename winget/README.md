@@ -9,7 +9,15 @@ Templates for the [Windows Package Manager community repo](https://github.com/mi
 3. SHA256 of that zip (job log `sha256sum`, or `CertUtil -hashfile … SHA256`).
 4. Put the hash in [`0.2.0/ZhoelSherk.VALVET.installer.yaml`](0.2.0/ZhoelSherk.VALVET.installer.yaml) (`InstallerSha256`, 64 hex chars). The all-zero value is a placeholder and must not be submitted.
 
+Manifests use schema **1.12** (`ManifestVersion: 1.12.0`). Validate without admin:
+
+```text
+winget validate --manifest winget\0.2.0
+```
+
 ### Local install test
+
+Admin PowerShell first: `winget settings --enable LocalManifestFiles`. Then:
 
 ```text
 winget install --manifest winget\0.2.0

@@ -10,9 +10,11 @@ from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
+# App icons only (not README screenshots / readme.svg).
 datas = [
     ("lang", "lang"),
-    ("img", "img"),
+    ("img/icon.ico", "img"),
+    ("img/icon-256.png", "img"),
     ("src/themes/design_tokens.json", "themes"),
 ]
 _font_dir = Path("src/fonts")
@@ -22,10 +24,98 @@ if _font_dir.is_dir():
 binaries: list = []
 hiddenimports: list = []
 
+# Qt modules VALVET does not import (grep src/). Keep Widgets/Gui/Core/Network/Svg/PrintSupport/OpenGL.
+_PYSIDE_EXCLUDES = [
+    "PySide6.QtBluetooth",
+    "PySide6.QtCharts",
+    "PySide6.QtDataVisualization",
+    "PySide6.QtDesigner",
+    "PySide6.Qt3DAnimation",
+    "PySide6.Qt3DCore",
+    "PySide6.Qt3DExtras",
+    "PySide6.Qt3DInput",
+    "PySide6.Qt3DLogic",
+    "PySide6.Qt3DRender",
+    "PySide6.QtHelp",
+    "PySide6.QtHttpServer",
+    "PySide6.QtLocation",
+    "PySide6.QtMultimedia",
+    "PySide6.QtMultimediaWidgets",
+    "PySide6.QtNfc",
+    "PySide6.QtPdf",
+    "PySide6.QtPdfWidgets",
+    "PySide6.QtPositioning",
+    "PySide6.QtQml",
+    "PySide6.QtQuick",
+    "PySide6.QtQuick3D",
+    "PySide6.QtQuickWidgets",
+    "PySide6.QtRemoteObjects",
+    "PySide6.QtScxml",
+    "PySide6.QtSensors",
+    "PySide6.QtSerialBus",
+    "PySide6.QtStateMachine",
+    "PySide6.QtTest",
+    "PySide6.QtTextToSpeech",
+    "PySide6.QtUiTools",
+    "PySide6.QtWebChannel",
+    "PySide6.QtWebEngineCore",
+    "PySide6.QtWebEngineQuick",
+    "PySide6.QtWebEngineWidgets",
+    "PySide6.QtWebSockets",
+]
+
+_PYSIDE_DROP_SUBSTR = (
+    "QtWebEngine",
+    "Qt6WebEngine",
+    "Qt3D",
+    "Qt63D",
+    "Quick3D",
+    "QtCharts",
+    "Qt6Charts",
+    "DataVisualization",
+    "QtBluetooth",
+    "Qt6Bluetooth",
+    "QtNfc",
+    "Qt6Nfc",
+    "QtSensors",
+    "Qt6Sensors",
+    "SerialBus",
+    "RemoteObjects",
+    "QtPdf",
+    "Qt6Pdf",
+    "HttpServer",
+    "QtDesigner",
+    "designer.exe",
+    "QtQuick",
+    "Qt6Quick",
+    "QtQml",
+    "Qt6Qml",
+    "QtLocation",
+    "QtPositioning",
+    "QtMultimedia",
+    "QtWebChannel",
+    "QtWebSockets",
+    "QtTextToSpeech",
+    "QtScxml",
+    "QtStateMachine",
+    "QtHelp",
+    "QtUiTools",
+    "lupdate",
+    "lrelease",
+    "linguist",
+)
+
+
+def _keep_pyside_item(item) -> bool:
+    path = item[0] if isinstance(item, (tuple, list)) else str(item)
+    low = str(path).replace("\\", "/").lower()
+    return not any(x.lower() in low for x in _PYSIDE_DROP_SUBSTR)
+
+
 tmp_ret = collect_all("PySide6")
-datas += tmp_ret[0]
-binaries += tmp_ret[1]
-hiddenimports += tmp_ret[2]
+datas += [x for x in tmp_ret[0] if _keep_pyside_item(x)]
+binaries += [x for x in tmp_ret[1] if _keep_pyside_item(x)]
+hiddenimports += [h for h in tmp_ret[2] if _keep_pyside_item(h)]
 
 tmp_qd = collect_all("qdarkstyle")
 datas += tmp_qd[0]
@@ -76,6 +166,19 @@ for _pkg in ("pyvista", "pyvistaqt"):
 
 hiddenimports += ["app.window", "main"]
 
+
+def _not_repo_examples(item) -> bool:
+    """Keep tests/dev fixtures (examples/) out of the WinGet zip."""
+    parts = item if isinstance(item, (tuple, list)) else (item,)
+    blob = " ".join(str(p).replace("\\", "/") for p in parts).lower()
+    if blob == "examples" or blob.endswith("/examples"):
+        return False
+    return "/examples/" not in blob
+
+
+datas = [x for x in datas if _not_repo_examples(x)]
+binaries = [x for x in binaries if _not_repo_examples(x)]
+
 a = Analysis(
     ["src/main.py"],
     pathex=["."],
@@ -85,12 +188,15 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=_PYSIDE_EXCLUDES,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
+
+a.datas = [e for e in a.datas if _not_repo_examples(e)]
+a.binaries = [e for e in a.binaries if _not_repo_examples(e)]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
