@@ -90,13 +90,40 @@ def test_debug_settings_dialog_tabs(import_parsers, qapp, tmp_path) -> None:
     try:
         tabs = dlg.findChild(QtWidgets.QTabWidget)
         assert tabs is not None
-        assert tabs.count() == 6
+        assert tabs.count() == 7
         for i in range(tabs.count()):
             tabs.setCurrentIndex(i)
             qapp.processEvents()
     finally:
         dlg.close()
         main.close()
+
+
+def test_debug_settings_reopen_keeps_profile_widgets(
+    import_parsers, qapp, tmp_path
+) -> None:
+    from app.window import MainWindow
+
+    settings = _ini_settings(tmp_path)
+    _set_experimental(settings, enabled=False)
+    win = MainWindow(settings=settings)
+    try:
+        win._open_debug_settings()
+        qapp.processEvents()
+        dlg = win._debug_settings_dialog
+        assert dlg is not None
+        dlg.close()
+        qapp.processEvents()
+        assert win.profile_combo.currentText() == "default"
+        win._open_debug_settings()
+        qapp.processEvents()
+        win._debug_settings_dialog.close()
+        qapp.processEvents()
+        win.close()
+        qapp.processEvents()
+    finally:
+        if win.isVisible():
+            win.close()
 
 
 def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
@@ -121,6 +148,13 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         assert win.btn_clean_convert.isEnabled() is False
         assert win.btn_clean_apply.isEnabled() is False
         assert win.clean_res_watt_from_pack.text() == win.ui_tr("clean.watt_from_pack")
+        assert win.gb_clean_everyday.title() == win.ui_tr("clean.everyday")
+        assert win.lbl_clean_preset.text() == win.ui_tr("clean.preset")
+        assert win.clean_format_preset.parent() is not None
+        assert win.clean_res_frame.parent() is win.gb_clean_everyday or (
+            win.clean_res_frame.parent() is not None
+            and win.gb_clean_everyday.isAncestorOf(win.clean_res_frame)
+        )
         assert win.gb_clean_mpn.isVisible() is False
         assert win.btn_clean_debug is not None
         status = win.statusBar().currentMessage()
@@ -128,6 +162,17 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         assert win.findChild(QtWidgets.QLabel, "WipBanner") is None
         assert win.chk_colorful.text() == win.ui_tr("project.debug_logs")
         assert win.btn_browse_bom.text() == win.ui_tr("project.browse_bom")
+        from ui.chrome import LEFT_RAIL_W
+
+        assert LEFT_RAIL_W == 200
+        for w in (
+            win.gb_bom_file.parentWidget(),
+            win.gb_pnp_file.parentWidget(),
+            win.btn_merge.parentWidget(),
+            win.btn_cross_check.parentWidget(),
+        ):
+            assert w is not None
+            assert w.width() == LEFT_RAIL_W
     finally:
         win.close()
 

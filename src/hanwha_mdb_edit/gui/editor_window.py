@@ -69,57 +69,60 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
 
         central = QtWidgets.QWidget()
         self.setCentralWidget(central)
-        layout = QtWidgets.QVBoxLayout(central)
+        layout = QtWidgets.QHBoxLayout(central)
+        layout.setContentsMargins(6, 6, 6, 6)
 
+        left = QtWidgets.QWidget()
+        left.setFixedWidth(280)
+        left.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Preferred,
+        )
+        left_l = QtWidgets.QVBoxLayout(left)
+        left_l.setContentsMargins(0, 0, 8, 0)
+
+        path_row = QtWidgets.QHBoxLayout()
         self._path_label = QtWidgets.QLabel(str(self._mdb_path))
-        self._path_label.setWordWrap(True)
+        self._path_label.setWordWrap(False)
         self._path_label.setTextInteractionFlags(
             QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        layout.addWidget(self._path_label)
+        self._path_label.setToolTip(str(self._mdb_path))
+        path_row.addWidget(self._path_label, 1)
+        help_btn = QtWidgets.QToolButton()
+        help_btn.setText("?")
+        help_btn.setAutoRaise(True)
+        help_btn.setToolTip("Field meanings and save rules")
+        help_btn.clicked.connect(self._show_editor_help)
+        path_row.addWidget(help_btn)
+        left_l.addLayout(path_row)
 
-        legend = QtWidgets.QLabel(
-            "<b>WIP — Wide load:</b> merged tables as <code>Table__column</code>. "
-            "Column headers use <b>T-OLP–style names</b> (tooltip shows the real MDB field). "
-            "<b>Hide standard library (S)</b> only affects the table view — "
-            "<code>Save</code> still writes the full library. "
-            "Unsaved edits can be recovered after a crash via the same autosave mechanism as BOM/PnP. "
-            "<b>Component…</b> edits the selected row with the same labels."
-        )
-        legend.setWordWrap(True)
-        legend.setTextFormat(QtCore.Qt.TextFormat.RichText)
-        layout.addWidget(legend)
-
-        toolbar = QtWidgets.QHBoxLayout()
         reload_btn = QtWidgets.QPushButton("Reload")
         reload_btn.setToolTip(
             "Reload from the .mdb file on disk (skip recovered autosave)"
         )
         reload_btn.clicked.connect(lambda: self._reload(force_original=True))
-        toolbar.addWidget(reload_btn)
+        left_l.addWidget(reload_btn)
         save_btn = QtWidgets.QPushButton("Save")
         save_btn.clicked.connect(self._save)
-        toolbar.addWidget(save_btn)
+        left_l.addWidget(save_btn)
         cfg_btn = QtWidgets.QPushButton("Config…")
         cfg_btn.setToolTip("Open column visibility (saved per this .mdb file)")
         cfg_btn.clicked.connect(self._open_column_config)
-        toolbar.addWidget(cfg_btn)
+        left_l.addWidget(cfg_btn)
         comp_btn = QtWidgets.QPushButton("Component…")
         comp_btn.setToolTip(
             "Edit the selected row in a separate window (friendly field names)"
         )
         comp_btn.clicked.connect(self._open_part_detail)
-        toolbar.addWidget(comp_btn)
-        toolbar.addStretch()
-        layout.addLayout(toolbar)
+        left_l.addWidget(comp_btn)
 
-        filt_row = QtWidgets.QHBoxLayout()
-        self._chk_hide_standard_s = QtWidgets.QCheckBox(
-            "Hide standard library (S) — parts with «__…» name or [STDVER.] in description"
-        )
+        self._chk_hide_standard_s = QtWidgets.QCheckBox("Hide standard library (S)")
         self._chk_hide_standard_s.setToolTip(
-            "Matches T-OLP vendor «S» library rows. Hidden rows are not removed from the file on Save."
+            "Hides «__…» names or [STDVER.] in description (T-OLP vendor S). "
+            "View filter only — Save still writes the full library."
         )
+        self._chk_hide_standard_s.setWordWrap(True)
         _fs = QtCore.QSettings("VALVET", "HanwhaMdbEdit")
         _fs.beginGroup(self._column_settings_group)
         _hide_val = _fs.value("hide_standard_library_s", True)
@@ -128,32 +131,34 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
             _hide_val not in (False, "false", "0", "no")
         )
         self._chk_hide_standard_s.toggled.connect(self._on_hide_standard_s_toggled)
-        filt_row.addWidget(self._chk_hide_standard_s)
-        filt_row.addStretch()
-        layout.addLayout(filt_row)
+        left_l.addWidget(self._chk_hide_standard_s)
 
         bulk = QtWidgets.QGroupBox("Bulk edit")
-        brow = QtWidgets.QHBoxLayout(bulk)
-        b1 = QtWidgets.QPushButton("Bulk parent profile…")
+        brow = QtWidgets.QVBoxLayout(bulk)
+        b1 = QtWidgets.QPushButton("Parent profile…")
         b1.setToolTip(
-            "Set PARENTPROFILE where it matches a value (parent profile template, not Chip-* class)"
+            "Set PARENTPROFILE where it matches a value (parent profile template, not Chip-* Type)"
         )
         b1.clicked.connect(self._bulk_base)
         brow.addWidget(b1)
-        b2 = QtWidgets.QPushButton("Bulk feeding speed…")
+        b2 = QtWidgets.QPushButton("Feeding speed…")
         b2.setToolTip("FEEDINGSPEEDLEVEL for one profile or all rows with same parent profile")
         b2.clicked.connect(self._bulk_feed_speed)
         brow.addWidget(b2)
-        b3 = QtWidgets.QPushButton("Bulk Q speed…")
+        b3 = QtWidgets.QPushButton("Q speed…")
         b3.setToolTip("OVERALL_SPEED_LEVEL for one profile or all rows with same parent profile")
         b3.clicked.connect(self._bulk_q_speed)
         brow.addWidget(b3)
-        layout.addWidget(bulk)
+        left_l.addWidget(bulk)
+        left_l.addStretch(1)
+        layout.addWidget(left, 0)
 
         self._table = QtWidgets.QTableView()
         self._table.setAlternatingRowColors(True)
         self._table.setModel(self._proxy)
         self._table.setSortingEnabled(True)
+        hdr = self._table.horizontalHeader()
+        hdr.setStretchLastSection(False)
         layout.addWidget(self._table, 1)
 
         self._source_model.dataChanged.connect(self._on_hanwha_grid_changed)
@@ -193,6 +198,25 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
 
     def source_model(self) -> PandasTableModel:
         return self._source_model
+
+    def _show_editor_help(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            "Hanwha MDB editor",
+            "Wide grid: PART_Det plus joined profile/speed columns "
+            "(merged tables as Table__column). Headers use shop names; "
+            "hover a header for the MDB field.\n\n"
+            "Type (UPDPARTGROUPNAME) is the Chip-* / Trimmer class from "
+            "PARTGROUP_Map — read-only. Parent profile (PARENTPROFILE) is a "
+            "profile template (3301-…, _M_…), not Type. Bulk parent profile "
+            "rewrites PARENTPROFILE only.\n\n"
+            "Level (CONFIDENCE_LEVEL) is T-OLP ST 0/10/20/40. 0 is not "
+            "MASTER/STANDART. LIBRARY_TYPE 0/1 is working vs small master-like "
+            "set — not confidence.\n\n"
+            "Hide S is a view filter (__ prefix or [STDVER.] in description). "
+            "Save still writes the full library. Unsaved edits use the same "
+            "autosave as BOM/PnP. Config… hides columns per this .mdb file.",
+        )
 
     def format_column_for_config_list(self, column_name: str) -> str:
         return format_column_for_checklist(column_name)

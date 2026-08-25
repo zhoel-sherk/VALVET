@@ -12,6 +12,12 @@ from app.constants import (
     _PNP_MAPPING_ROLES,
     _TABLE_COL_MAX_WIDTH,
 )
+from services.column_mapping import (
+    guess_bom_role,
+    guess_pnp_role,
+    uniquify_roles,
+    BOM_EXCLUSIVE_ROLES,
+)
 from ui.mapping_header import MappingComboBox, MappingHeaderView
 
 
@@ -91,7 +97,7 @@ class MappingMixin:
         if data is not None:
             return str(data)
         text = combo.currentText()
-        for role in _PNP_MAPPING_ROLES:
+        for role in _PNP_MAPPING_ROLES + _BOM_MAPPING_ROLES:
             if text == role or text == self._mapping_role_label(role):
                 return role
         return "-"
@@ -100,7 +106,7 @@ class MappingMixin:
         self, combo: QtWidgets.QComboBox, role: str
     ) -> None:
         idx = combo.findData(role)
-        if idx < 0 and role in _PNP_MAPPING_ROLES:
+        if idx < 0 and role in (*_PNP_MAPPING_ROLES, *_BOM_MAPPING_ROLES):
             idx = combo.findText(self._mapping_role_label(role))
         if idx < 0:
             idx = combo.findData("-")
@@ -146,6 +152,19 @@ class MappingMixin:
         combo.setToolTip(self._mapping_column_tooltip(index))
         return combo
 
+    def _apply_bom_role_list(self, roles: list[str]) -> None:
+        if not getattr(self, "bom_col_combos", None):
+            return
+        n = len(self.bom_col_combos)
+        padded = list(roles) + ["-"] * max(0, n - len(roles))
+        padded = uniquify_roles(
+            padded[:n], exclusive=BOM_EXCLUSIVE_ROLES, last_wins=()
+        )
+        for combo, role in zip(self.bom_col_combos, padded, strict=True):
+            combo.blockSignals(True)
+            self._set_mapping_combo_role(combo, role)
+            combo.blockSignals(False)
+
     def _fill_bom_combos(self, *, preserved_roles: list[str] | None = None):
         """Create per-column role dropdowns in the BOM header."""
         if self._bom_df is None:
@@ -159,27 +178,25 @@ class MappingMixin:
 
         for i, col_name in enumerate(cols):
             combo = self._make_mapping_combo(i, _BOM_MAPPING_ROLES)
-            role = "-"
             if preserved_roles and i < len(preserved_roles):
                 role = preserved_roles[i]
             else:
-                col_name_str = str(col_name) if col_name else ""
-                col_upper = col_name_str.upper()
-                if "DESIGNATOR" in col_upper or "REF" in col_upper:
-                    role = "REF"
-                elif (
-                    "COMMENT" in col_upper
-                    or "VALUE" in col_upper
-                    or "NAME" in col_upper
-                ):
-                    role = "Comment"
+                role = guess_bom_role(str(col_name) if col_name else "")
             self._set_mapping_combo_role(combo, role)
+            combos.append(combo)
+        roles = uniquify_roles(
+            self._mapping_roles_from_combos(combos),
+            exclusive=BOM_EXCLUSIVE_ROLES,
+            last_wins=(),
+        )
+        for combo, role in zip(combos, roles, strict=True):
+            self._set_mapping_combo_role(combo, role)
+        for i, combo in enumerate(combos):
             combo.currentIndexChanged.connect(
                 lambda *_a, c=combo, idx=i: self._on_bom_col_mapping_changed(
                     idx, self._mapping_combo_role(c)
                 )
             )
-            combos.append(combo)
 
         self.bom_col_combos = combos
         hh.set_mapping_combos(combos)
@@ -199,64 +216,21 @@ class MappingMixin:
 
         for i, col_name in enumerate(cols):
             combo = self._make_mapping_combo(i, _PNP_MAPPING_ROLES)
-            role = "-"
             if preserved_roles and i < len(preserved_roles):
                 role = preserved_roles[i]
             else:
-                col_name_str = str(col_name) if col_name else ""
-                col_upper = col_name_str.upper()
-                compact = col_upper.replace(" ", "")
-                if "DESIGNATOR" in col_upper or "REFDES" in compact:
-                    role = "REF"
-                elif "POS-X" in compact and "MIL" not in col_upper:
-                    role = "X"
-                elif "POS-Y" in compact and "MIL" not in col_upper:
-                    role = "Y"
-                elif "MID-X" in col_upper or "MID-Y" in col_upper:
-                    role = "-"
-                elif (
-                    "FOOTPRINT" in col_upper
-                    or "PATTERN" in col_upper
-                    or "PACKAGE" in col_upper
-                ):
-                    role = "Footprint"
-                elif "COMMENT" in col_upper and "VALUE" not in col_name_str:
-                    role = "-"
-                elif "VALUE" in col_upper and "POS" not in col_upper:
-                    role = "-"
-                elif "CENTER-X" in col_upper and "MID" not in col_upper:
-                    role = "X"
-                elif "CENTER-Y" in col_upper and "MID" not in col_upper:
-                    role = "Y"
-                elif (
-                    col_upper.strip() == "X"
-                    and "MIL" not in col_upper
-                    and "PAD" not in col_upper
-                    and "MID" not in col_upper
-                ):
-                    role = "X"
-                elif (
-                    col_upper.strip() == "Y"
-                    and "MIL" not in col_upper
-                    and "PAD" not in col_upper
-                    and "MID" not in col_upper
-                ):
-                    role = "Y"
-                elif "ROTATION" in col_upper:
-                    role = "Rotation"
-                elif (
-                    "LAYER" in col_upper
-                    or "SIDE" in col_upper
-                    or "MIRROR" in col_upper
-                ):
-                    role = "Layer"
+                role = guess_pnp_role(str(col_name) if col_name else "")
             self._set_mapping_combo_role(combo, role)
+            combos.append(combo)
+        roles = uniquify_roles(self._mapping_roles_from_combos(combos))
+        for combo, role in zip(combos, roles, strict=True):
+            self._set_mapping_combo_role(combo, role)
+        for i, combo in enumerate(combos):
             combo.currentIndexChanged.connect(
                 lambda *_a, c=combo, idx=i: self._on_pnp_col_mapping_changed(
                     idx, self._mapping_combo_role(c)
                 )
             )
-            combos.append(combo)
 
         self.pnp_col_combos = combos
         hh.set_mapping_combos(combos)
@@ -275,14 +249,51 @@ class MappingMixin:
             f"PnP cols: REF={self.pnp_ref_combo.currentText() if hasattr(self, 'pnp_ref_combo') else 'N/A'}, Comment={self.pnp_comment_combo.currentText() if hasattr(self, 'pnp_comment_combo') else 'N/A'}",
             "debug",
         )
+    def _exclusive_mapping_role(
+        self,
+        combos: list[QtWidgets.QComboBox],
+        changed_idx: int,
+        role: str,
+        *,
+        exclusive_roles: frozenset[str] | None = None,
+    ) -> None:
+        if role in ("-", ""):
+            return
+        if exclusive_roles is not None and role not in exclusive_roles:
+            return
+        for i, combo in enumerate(combos):
+            if i == changed_idx:
+                continue
+            if self._mapping_combo_role(combo) == role:
+                combo.blockSignals(True)
+                self._set_mapping_combo_role(combo, "-")
+                combo.blockSignals(False)
+
+    def _show_pn_join_help(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            self.ui_tr("mapping.pn_join_help_title"),
+            self.ui_tr("mapping.pn_join_help"),
+        )
+
     def _on_bom_col_mapping_changed(self, col_idx, mapping):
         """Per-column BOM role dropdown changed."""
+        if getattr(self, "bom_col_combos", None):
+            self._exclusive_mapping_role(
+                self.bom_col_combos,
+                col_idx,
+                mapping,
+                exclusive_roles=frozenset(BOM_EXCLUSIVE_ROLES),
+            )
         self._log(f"BOM col {col_idx} -> {mapping}", "debug")
         self._schedule_save_bom_tab_settings()
         if hasattr(self, "_mark_clean_preview_stale"):
             self._mark_clean_preview_stale()
+
     def _on_pnp_col_mapping_changed(self, col_idx, mapping):
         """Per-column PnP role dropdown changed."""
+        if getattr(self, "pnp_col_combos", None):
+            self._exclusive_mapping_role(self.pnp_col_combos, col_idx, mapping)
         self._log(f"PnP col {col_idx} -> {mapping}", "debug")
         self._schedule_save_pnp_tab_settings()
     def _on_bom_header_click(self, section: int):

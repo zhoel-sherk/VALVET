@@ -45,10 +45,113 @@ class MergeTabMixin:
         tab = QtWidgets.QWidget()
         self._register_main_tab("merge", tab)
 
-        layout = QtWidgets.QVBoxLayout(tab)
+        from ui.chrome import CHROME_MARGIN, CHROME_SPACING, action_button, apply_equal_widths, left_rail_widget
+
+        root = QtWidgets.QHBoxLayout(tab)
+        root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)
+        root.setSpacing(CHROME_SPACING)
+
+        left = left_rail_widget()
+        left_l = QtWidgets.QVBoxLayout(left)
+        left_l.setContentsMargins(0, 0, 8, 0)
+        left_l.setSpacing(CHROME_SPACING)
 
         info = QtWidgets.QLabel("Merge uses column settings from BOM and PnP tabs")
-        layout.addWidget(info)
+        info.setWordWrap(True)
+        left_l.addWidget(info)
+
+        self.merge_delete_dnp = QtWidgets.QCheckBox("Delete DNP components")
+        self.merge_delete_dnp.stateChanged.connect(self._on_merge_settings_changed)
+        left_l.addWidget(self.merge_delete_dnp)
+        xy_row = QtWidgets.QHBoxLayout()
+        xy_row.addWidget(QtWidgets.QLabel("PnP XY:"))
+        self.merge_pnp_units_mm = QtWidgets.QRadioButton("mm")
+        self.merge_pnp_units_mils = QtWidgets.QRadioButton("mils")
+        self.merge_pnp_units_mm.setChecked(True)
+        self.merge_pnp_units_mm.setToolTip(self.pnp_units_mm.toolTip())
+        self.merge_pnp_units_mils.setToolTip(self.pnp_units_mils.toolTip())
+        self.merge_pnp_units_mm.toggled.connect(
+            lambda on: on and self._on_user_pnp_xy_unit_choice(True)
+        )
+        self.merge_pnp_units_mils.toggled.connect(
+            lambda on: on and self._on_user_pnp_xy_unit_choice(False)
+        )
+        xy_row.addWidget(self.merge_pnp_units_mm)
+        xy_row.addWidget(self.merge_pnp_units_mils)
+        xy_row.addStretch(1)
+        left_l.addLayout(xy_row)
+
+        self.btn_merge = action_button("Merge")
+        self.btn_merge.clicked.connect(self._run_merge)
+        left_l.addWidget(self.btn_merge)
+        self.btn_replace_pnp_from_merge = action_button("Replace PNP")
+        self.btn_replace_pnp_from_merge.setToolTip(
+            "Replace all rows/columns on the PnP tab with the current Merge result."
+        )
+        self.btn_replace_pnp_from_merge.clicked.connect(self._replace_pnp_from_merge)
+        left_l.addWidget(self.btn_replace_pnp_from_merge)
+
+        files_group = QtWidgets.QGroupBox(self.ui_tr("merge.files_group"))
+        files_l = QtWidgets.QVBoxLayout(files_group)
+        self.btn_save_merge_csv = action_button("Save CSV")
+        self.btn_save_merge_csv.clicked.connect(self._save_merge_csv)
+        files_l.addWidget(self.btn_save_merge_csv)
+        self.btn_save_merge_excel = action_button("Save Excel")
+        self.btn_save_merge_excel.clicked.connect(self._save_merge_excel)
+        files_l.addWidget(self.btn_save_merge_excel)
+        self.btn_export_top = action_button("Export Top")
+        self.btn_export_top.setToolTip(
+            "Export Merge rows whose Layer matches the selected TOP value."
+        )
+        self.btn_export_top.clicked.connect(lambda: self._export_merge_layer("top"))
+        files_l.addWidget(self.btn_export_top)
+        self.merge_top_layer_combo = QtWidgets.QComboBox()
+        files_l.addWidget(self.merge_top_layer_combo)
+        self.btn_export_bot = action_button("Export Bot")
+        self.btn_export_bot.setToolTip(
+            "Export Merge rows whose Layer matches the selected BOT/mirror value."
+        )
+        self.btn_export_bot.clicked.connect(lambda: self._export_merge_layer("bot"))
+        files_l.addWidget(self.btn_export_bot)
+        self.merge_bot_layer_combo = QtWidgets.QComboBox()
+        files_l.addWidget(self.merge_bot_layer_combo)
+        self.btn_export_mmd_top = action_button("Export MMD Top")
+        self.btn_export_mmd_top.setToolTip(
+            "Export MERCURY-style .mmd (INI) for placements whose Layer matches the selected TOP value; "
+            "coordinates use mm × 25.4 as in examples/mmd."
+        )
+        self.btn_export_mmd_top.clicked.connect(
+            lambda: self._export_merge_layer_mmd("top")
+        )
+        files_l.addWidget(self.btn_export_mmd_top)
+        self.btn_export_mmd_bot = action_button("Export MMD Bot")
+        self.btn_export_mmd_bot.setToolTip(
+            "Export MERCURY-style .mmd (INI) for placements whose Layer matches the selected BOT/mirror value."
+        )
+        self.btn_export_mmd_bot.clicked.connect(
+            lambda: self._export_merge_layer_mmd("bot")
+        )
+        files_l.addWidget(self.btn_export_mmd_bot)
+        self._update_merge_layer_export_controls()
+        left_l.addWidget(files_group)
+        apply_equal_widths(
+            (
+                self.btn_merge,
+                self.btn_replace_pnp_from_merge,
+                self.btn_save_merge_csv,
+                self.btn_save_merge_excel,
+                self.btn_export_top,
+                self.btn_export_bot,
+                self.btn_export_mmd_top,
+                self.btn_export_mmd_bot,
+            )
+        )
+        left_l.addStretch(1)
+        root.addWidget(left)
+
+        right = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(right)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.merge_cc_ok_banner = QtWidgets.QFrame()
         self.merge_cc_ok_banner.setObjectName("mergeCcOkBanner")
@@ -84,123 +187,12 @@ class MergeTabMixin:
         cc_ok_lay.addStretch()
         layout.addWidget(self.merge_cc_ok_banner)
 
-        # TODO(full Merge): import paired TOP + BOT (see examples/example9) and align with
-        # Manual_BOM when present; current UI merges a single loaded BOM+PnP only.
-
-        # Options
-        options = QtWidgets.QHBoxLayout()
-        self.merge_delete_dnp = QtWidgets.QCheckBox("Delete DNP components")
-        self.merge_delete_dnp.stateChanged.connect(self._on_merge_settings_changed)
-        options.addWidget(self.merge_delete_dnp)
-        options.addSpacing(16)
-        options.addWidget(QtWidgets.QLabel("PnP XY:"))
-        self.merge_pnp_units_mm = QtWidgets.QRadioButton("mm")
-        self.merge_pnp_units_mils = QtWidgets.QRadioButton("mils")
-        self.merge_pnp_units_mm.setChecked(True)
-        self.merge_pnp_units_mm.setToolTip(self.pnp_units_mm.toolTip())
-        self.merge_pnp_units_mils.setToolTip(self.pnp_units_mils.toolTip())
-        self.merge_pnp_units_mm.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(True)
-        )
-        self.merge_pnp_units_mils.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(False)
-        )
-        options.addWidget(self.merge_pnp_units_mm)
-        options.addWidget(self.merge_pnp_units_mils)
-        options.addStretch()
-        layout.addLayout(options)
-
-        # Table actions
-        table_actions = QtWidgets.QHBoxLayout()
-        self.btn_merge = QtWidgets.QPushButton("Merge")
-        self.btn_merge.clicked.connect(self._run_merge)
-        table_actions.addWidget(self.btn_merge)
-
-        self.btn_replace_pnp_from_merge = QtWidgets.QPushButton("Replace PNP")
-        self.btn_replace_pnp_from_merge.setToolTip(
-            "Replace all rows/columns on the PnP tab with the current Merge result."
-        )
-        self.btn_replace_pnp_from_merge.clicked.connect(self._replace_pnp_from_merge)
-        table_actions.addWidget(self.btn_replace_pnp_from_merge)
-        table_actions.addStretch()
-        layout.addLayout(table_actions)
-
-        # File export actions
-        files_group = QtWidgets.QGroupBox(self.ui_tr("merge.files_group"))
-        buttons = QtWidgets.QHBoxLayout(files_group)
-
-        self.btn_save_merge_csv = QtWidgets.QPushButton("Save CSV")
-        self.btn_save_merge_csv.clicked.connect(self._save_merge_csv)
-        buttons.addWidget(self.btn_save_merge_csv)
-
-        self.btn_save_merge_excel = QtWidgets.QPushButton("Save Excel")
-        self.btn_save_merge_excel.clicked.connect(self._save_merge_excel)
-        buttons.addWidget(self.btn_save_merge_excel)
-
-        sep = QtWidgets.QFrame()
-        sep.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        sep.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        buttons.addWidget(sep)
-
-        self.btn_export_top = QtWidgets.QPushButton("Export Top")
-        self.btn_export_top.setToolTip(
-            "Export Merge rows whose Layer matches the selected TOP value."
-        )
-        self.btn_export_top.clicked.connect(lambda: self._export_merge_layer("top"))
-        buttons.addWidget(self.btn_export_top)
-        self.merge_top_layer_combo = QtWidgets.QComboBox()
-        self.merge_top_layer_combo.setMinimumWidth(90)
-        buttons.addWidget(self.merge_top_layer_combo)
-
-        sep2 = QtWidgets.QFrame()
-        sep2.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        sep2.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        buttons.addWidget(sep2)
-
-        self.btn_export_bot = QtWidgets.QPushButton("Export Bot")
-        self.btn_export_bot.setToolTip(
-            "Export Merge rows whose Layer matches the selected BOT/mirror value."
-        )
-        self.btn_export_bot.clicked.connect(lambda: self._export_merge_layer("bot"))
-        buttons.addWidget(self.btn_export_bot)
-        self.merge_bot_layer_combo = QtWidgets.QComboBox()
-        self.merge_bot_layer_combo.setMinimumWidth(90)
-        buttons.addWidget(self.merge_bot_layer_combo)
-
-        sep_mmd = QtWidgets.QFrame()
-        sep_mmd.setFrameShape(QtWidgets.QFrame.Shape.VLine)
-        sep_mmd.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        buttons.addWidget(sep_mmd)
-
-        self.btn_export_mmd_top = QtWidgets.QPushButton("Export MMD Top")
-        self.btn_export_mmd_top.setToolTip(
-            "Export MERCURY-style .mmd (INI) for placements whose Layer matches the selected TOP value; "
-            "coordinates use mm × 25.4 as in examples/mmd."
-        )
-        self.btn_export_mmd_top.clicked.connect(
-            lambda: self._export_merge_layer_mmd("top")
-        )
-        buttons.addWidget(self.btn_export_mmd_top)
-
-        self.btn_export_mmd_bot = QtWidgets.QPushButton("Export MMD Bot")
-        self.btn_export_mmd_bot.setToolTip(
-            "Export MERCURY-style .mmd (INI) for placements whose Layer matches the selected BOT/mirror value."
-        )
-        self.btn_export_mmd_bot.clicked.connect(
-            lambda: self._export_merge_layer_mmd("bot")
-        )
-        buttons.addWidget(self.btn_export_mmd_bot)
-
-        self._update_merge_layer_export_controls()
-        buttons.addStretch()
-        layout.addWidget(files_group)
-
-        # Merge result table
         self.merge_table = QtWidgets.QTableView()
         self.merge_table.setAlternatingRowColors(True)
         self.merge_model = SortableTableModel(pd.DataFrame())
         self.merge_table.setModel(self.merge_model)
         layout.addWidget(self.merge_table, 1)
+        root.addWidget(right, 1)
 
     def _on_merge_settings_changed(self) -> None:
         if not self._restoring_settings and hasattr(self, "merge_delete_dnp"):
@@ -224,11 +216,14 @@ class MergeTabMixin:
             self._log("BOM dropdowns not created - reload BOM file", "error")
             return None
 
+        bom_roles = [
+            self._mapping_combo_role(combo) for combo in self.bom_col_combos
+        ]
+        bom_cols = list(self._bom_df.columns)
         bom_mappings: dict[str, str] = {}
-        for i, combo in enumerate(self.bom_col_combos):
-            mapping = self._mapping_combo_role(combo)
-            if mapping != "-":
-                bom_mappings[mapping] = list(self._bom_df.columns)[i]
+        for i, mapping in enumerate(bom_roles):
+            if mapping not in ("-", "PnJoin") and i < len(bom_cols):
+                bom_mappings[mapping] = bom_cols[i]
 
         pnp_mappings: dict[str, str] = {}
         for i, combo in enumerate(self.pnp_col_combos):
@@ -236,24 +231,24 @@ class MergeTabMixin:
             if mapping != "-":
                 pnp_mappings[mapping] = list(self._pnp_df.columns)[i]
 
-        pnp_ref = pnp_mappings.get("REF")
-        if not pnp_ref:
-            for col in self._pnp_df.columns:
-                if "DESIGNATOR" in str(col).upper():
-                    pnp_ref = col
-                    self._log(f"PnP: auto-detected REF as '{col}'", "debug")
-                    break
+        from smt_processor import SMTColumnNotFoundError
 
-        return build_processor_config(
-            self._bom_df,
-            self._pnp_df,
-            bom_mappings,
-            pnp_mappings,
-            pnp_xy_are_mils=not self._pnp_xy_stored_in_mm(),
-            overlap_min_mm=float(self.spin_overlap_mm.value()),
-            check_overlap=self.chk_overlap.isChecked(),
-            progress_callback=lambda m, level: self.log_message.emit(m, level),
-        )
+        try:
+            return build_processor_config(
+                self._bom_df,
+                self._pnp_df,
+                bom_mappings,
+                pnp_mappings,
+                bom_column_roles=bom_roles,
+                pnp_xy_are_mils=not self._pnp_xy_stored_in_mm(),
+                overlap_min_mm=float(self.spin_overlap_mm.value()),
+                check_overlap=self.chk_overlap.isChecked(),
+                progress_callback=lambda m, level: self.log_message.emit(m, level),
+            )
+        except SMTColumnNotFoundError as e:
+            self._log(str(e), "error")
+            QtWidgets.QMessageBox.warning(self, "Column mapping", str(e))
+            return None
 
     def _hide_merge_cross_check_ok_banner(self) -> None:
         if hasattr(self, "merge_cc_ok_banner"):
@@ -304,6 +299,24 @@ class MergeTabMixin:
         if result is None:
             self._hide_merge_cross_check_ok_banner()
             return
+        from services.column_mapping import likely_ref_mapped_to_pn
+
+        if not result.empty and "IssueType" in result.columns:
+            miss_pnp = result[result["IssueType"] == "missing_in_pnp"]
+            miss_bom = result[result["IssueType"] == "missing_in_bom"]
+            if likely_ref_mapped_to_pn(
+                miss_pnp["Designator"].astype(str),
+                miss_bom["Designator"].astype(str),
+                miss_bom["PnP_Value"].astype(str),
+            ):
+                msg = (
+                    "Cross-check keys barely overlap: BOM REF looks like part numbers "
+                    "(PN), while PnP REF looks like designators. "
+                    "On the BOM tab set REF to the designator column and PN name "
+                    "to the cleaned comment column, then run Cross-check again."
+                )
+                self._log(msg, "warning")
+                QtWidgets.QMessageBox.warning(self, "Column mapping", msg)
         cross_check_clean = bool(result.empty)
         try:
             filtered = result
@@ -413,7 +426,11 @@ class MergeTabMixin:
         self._loading_working_copy = True
         self.pnp_model.update_dataframe(self._pnp_df)
         self._loading_working_copy = False
-        self._fill_pnp_combos()
+        from services.column_mapping import merge_result_pnp_roles
+
+        self._fill_pnp_combos(
+            preserved_roles=merge_result_pnp_roles(list(self._pnp_df.columns))
+        )
         self._autoresize_pnp_columns()
         self._mark_working_dirty("pnp")
         self._log(

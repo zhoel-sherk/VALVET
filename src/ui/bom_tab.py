@@ -17,7 +17,80 @@ class BomTabMixin:
         self._bom_tab_widget = tab
         self._register_main_tab("bom", tab)
 
-        layout = QtWidgets.QVBoxLayout(tab)
+        from ui.chrome import (
+            CHROME_MARGIN,
+            CHROME_SPACING,
+            action_button,
+            apply_equal_widths,
+            help_button,
+            left_rail_widget,
+        )
+
+        root = QtWidgets.QHBoxLayout(tab)
+        root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)
+        root.setSpacing(CHROME_SPACING)
+
+        left = left_rail_widget()
+        left_l = QtWidgets.QVBoxLayout(left)
+        left_l.setContentsMargins(0, 0, 8, 0)
+        left_l.setSpacing(CHROME_SPACING)
+
+        self.gb_bom_file = QtWidgets.QGroupBox(self.ui_tr("bom.group_file"))
+        file_l = QtWidgets.QVBoxLayout(self.gb_bom_file)
+        sep_row = QtWidgets.QHBoxLayout()
+        self.lbl_bom_separator = QtWidgets.QLabel(self.ui_tr("bom.separator"))
+        sep_row.addWidget(self.lbl_bom_separator)
+        self.bom_separator = QtWidgets.QComboBox()
+        self.bom_separator.addItems(["auto", ",", ";", "\\t", "space"])
+        self.bom_separator.setCurrentText("auto")
+        self.bom_separator.setMinimumWidth(70)
+        sep_row.addWidget(self.bom_separator, 1)
+        self.btn_bom_pn_join_help = help_button(self._show_pn_join_help)
+        self.btn_bom_pn_join_help.setToolTip(self.ui_tr("mapping.pn_join_help_title"))
+        sep_row.addWidget(self.btn_bom_pn_join_help)
+        file_l.addLayout(sep_row)
+        self.btn_reload_bom = action_button(self.ui_tr("bom.reload"))
+        self.btn_reload_bom.clicked.connect(self._reload_bom)
+        file_l.addWidget(self.btn_reload_bom)
+        left_l.addWidget(self.gb_bom_file)
+
+        self.gb_bom_edit = QtWidgets.QGroupBox(self.ui_tr("bom.group_edit"))
+        edit_l = QtWidgets.QVBoxLayout(self.gb_bom_edit)
+        self.btn_bom_undo = action_button(self.ui_tr("bom.undo"))
+        self.btn_bom_redo = action_button(self.ui_tr("bom.redo"))
+        self.btn_bom_undo.setEnabled(False)
+        self.btn_bom_redo.setEnabled(False)
+        self._bom_undo_stack.canUndoChanged.connect(self.btn_bom_undo.setEnabled)
+        self._bom_undo_stack.canRedoChanged.connect(self.btn_bom_redo.setEnabled)
+        self.btn_bom_undo.clicked.connect(self._bom_undo_stack.undo)
+        self.btn_bom_redo.clicked.connect(self._bom_undo_stack.redo)
+        edit_l.addWidget(self.btn_bom_undo)
+        edit_l.addWidget(self.btn_bom_redo)
+        self.btn_bom_find = action_button(self.ui_tr("bom.find_replace"))
+        self.btn_bom_find.clicked.connect(lambda: self._find_replace_table("bom"))
+        edit_l.addWidget(self.btn_bom_find)
+        left_l.addWidget(self.gb_bom_edit)
+
+        self.gb_bom_workspace = QtWidgets.QGroupBox(self.ui_tr("bom.group_workspace"))
+        ws_l = QtWidgets.QVBoxLayout(self.gb_bom_workspace)
+        self.btn_clear_bom = action_button(self.ui_tr("bom.clear_workspace"))
+        self.btn_clear_bom.setObjectName("dangerClearBtn")
+        self.btn_clear_bom.setStyleSheet(_DANGER_CLEAR_BTN_STYLE)
+        self.btn_clear_bom.setToolTip(self.ui_tr("bom.clear_workspace_tip"))
+        self.btn_clear_bom.clicked.connect(self._confirm_clear_bom_workspace)
+        ws_l.addWidget(self.btn_clear_bom)
+        left_l.addWidget(self.gb_bom_workspace)
+        apply_equal_widths(
+            (
+                self.btn_reload_bom,
+                self.btn_bom_undo,
+                self.btn_bom_redo,
+                self.btn_bom_find,
+                self.btn_clear_bom,
+            )
+        )
+        left_l.addStretch(1)
+        root.addWidget(left)
 
         self.bom_preview_stack = QtWidgets.QWidget()
         bom_pv = QtWidgets.QVBoxLayout(self.bom_preview_stack)
@@ -50,48 +123,7 @@ class BomTabMixin:
             lambda *args: self._mark_working_dirty("bom")
         )
         bom_pv.addWidget(self.bom_table, 1)
-        layout.addWidget(self.bom_preview_stack, 1)
-
-        # Bottom config row
-        config = QtWidgets.QFrame()
-        config_layout = QtWidgets.QHBoxLayout(config)
-
-        self.lbl_bom_separator = QtWidgets.QLabel(self.ui_tr("bom.separator"))
-        config_layout.addWidget(self.lbl_bom_separator)
-        self.bom_separator = QtWidgets.QComboBox()
-        self.bom_separator.addItems(["auto", ",", ";", "\\t", "space"])
-        self.bom_separator.setCurrentText("auto")
-        self.bom_separator.setMinimumWidth(70)
-        config_layout.addWidget(self.bom_separator)
-
-        btn_reload_bom = QtWidgets.QPushButton(self.ui_tr("bom.reload"))
-        btn_reload_bom.clicked.connect(self._reload_bom)
-        config_layout.addWidget(btn_reload_bom)
-
-        self.btn_bom_undo = QtWidgets.QPushButton(self.ui_tr("bom.undo"))
-        self.btn_bom_redo = QtWidgets.QPushButton(self.ui_tr("bom.redo"))
-        self.btn_bom_undo.setEnabled(False)
-        self.btn_bom_redo.setEnabled(False)
-        self._bom_undo_stack.canUndoChanged.connect(self.btn_bom_undo.setEnabled)
-        self._bom_undo_stack.canRedoChanged.connect(self.btn_bom_redo.setEnabled)
-        self.btn_bom_undo.clicked.connect(self._bom_undo_stack.undo)
-        self.btn_bom_redo.clicked.connect(self._bom_undo_stack.redo)
-        config_layout.addWidget(self.btn_bom_undo)
-        config_layout.addWidget(self.btn_bom_redo)
-
-        config_layout.addStretch()
-        btn_find = QtWidgets.QPushButton(self.ui_tr("bom.find_replace"))
-        btn_find.clicked.connect(lambda: self._find_replace_table("bom"))
-        config_layout.addWidget(btn_find)
-
-        self.btn_clear_bom = QtWidgets.QPushButton(self.ui_tr("bom.clear_workspace"))
-        self.btn_clear_bom.setObjectName("dangerClearBtn")
-        self.btn_clear_bom.setStyleSheet(_DANGER_CLEAR_BTN_STYLE)
-        self.btn_clear_bom.setToolTip(self.ui_tr("bom.clear_workspace_tip"))
-        self.btn_clear_bom.clicked.connect(self._confirm_clear_bom_workspace)
-        config_layout.addWidget(self.btn_clear_bom)
-
-        layout.addWidget(config)
+        root.addWidget(self.bom_preview_stack, 1)
 
         self.bom_separator.currentTextChanged.connect(
             lambda *_: self._schedule_save_bom_tab_settings()
@@ -142,9 +174,9 @@ class BomTabMixin:
             return
         self._bom_ui_restoring = True
         try:
-            for i, role in enumerate(pm):
-                if isinstance(role, str):
-                    self._set_mapping_combo_role(self.bom_col_combos[i], role)
+            self._apply_bom_role_list(
+                [str(r) if isinstance(r, str) else "-" for r in pm]
+            )
         finally:
             self._bom_ui_restoring = False
         self._profile_restore_bom_mappings = None

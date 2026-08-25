@@ -1,7 +1,7 @@
 APP_NAME = "VALVET"
 APP_EXPANSION = "Validator And Line-Verified Export Tool"
-APP_VERSION = "0.1.3"
-VERSION_DISPLAY = "ALPHA v0.1.3"
+APP_VERSION = "0.2.0"
+VERSION_DISPLAY = "ALPHA v0.2.0"
 
 SETTINGS_ORG = "VALVET"
 SETTINGS_APP = "VALVET"
@@ -21,7 +21,7 @@ _MAPPING_COMBO_MAX_HEIGHT = 26
 # Cap table column auto-width so BOM/PnP load does not force a multi-screen-wide window.
 _TABLE_COL_MAX_WIDTH = 400
 
-_BOM_MAPPING_ROLES = ("-", "REF", "Comment")
+_BOM_MAPPING_ROLES = ("-", "REF", "Comment", "PnJoin")
 _PNP_MAPPING_ROLES = (
     "-",
     "REF",
@@ -37,6 +37,7 @@ _MAPPING_I18N_KEY = {
     "-": "mapping.none",
     "REF": "mapping.ref",
     "Comment": "mapping.pn_name",
+    "PnJoin": "mapping.pn_join",
     "Value": "mapping.value",
     "Footprint": "mapping.footprint",
     "X": "mapping.x",

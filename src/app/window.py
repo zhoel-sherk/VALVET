@@ -276,6 +276,7 @@ class MainWindow(
     def _refresh_project_tab_static_texts(self) -> None:
         if not hasattr(self, "project_bom_group"):
             return
+        self.project_load_group.setTitle(self.ui_tr("project.load_files"))
         self.project_bom_group.setTitle(self.ui_tr("project.bom_file"))
         self.project_pnp_group.setTitle(self.ui_tr("project.pnp_file"))
         self.project_settings_group.setTitle(self.ui_tr("project.settings"))
@@ -342,13 +343,33 @@ class MainWindow(
         if hasattr(self, "btn_bom_undo"):
             self.btn_bom_undo.setText(self.ui_tr("bom.undo"))
             self.btn_bom_redo.setText(self.ui_tr("bom.redo"))
+        if hasattr(self, "gb_bom_file"):
+            self.gb_bom_file.setTitle(self.ui_tr("bom.group_file"))
+            self.gb_bom_edit.setTitle(self.ui_tr("bom.group_edit"))
+            self.gb_bom_workspace.setTitle(self.ui_tr("bom.group_workspace"))
+            self.btn_reload_bom.setText(self.ui_tr("bom.reload"))
+            self.btn_bom_find.setText(self.ui_tr("bom.find_replace"))
+            self.btn_clear_bom.setText(self.ui_tr("bom.clear_workspace"))
+        if hasattr(self, "gb_pnp_file"):
+            self.gb_pnp_file.setTitle(self.ui_tr("pnp.group_file"))
+            self.gb_pnp_coords.setTitle(self.ui_tr("pnp.group_coords"))
+            self.gb_pnp_edit.setTitle(self.ui_tr("pnp.group_edit"))
+            self.gb_pnp_workspace.setTitle(self.ui_tr("pnp.group_workspace"))
+            self.btn_reload_pnp.setText(self.ui_tr("pnp.reload"))
+            self.btn_pnp_find.setText(self.ui_tr("pnp.find_replace"))
+            self.btn_clear_pnp.setText(self.ui_tr("pnp.clear_workspace"))
+            self.btn_pnp_help.setToolTip(self.ui_tr("pnp.help_title"))
+        if hasattr(self, "btn_bom_pn_join_help"):
+            self.btn_bom_pn_join_help.setToolTip(
+                self.ui_tr("mapping.pn_join_help_title")
+            )
         if hasattr(self, "btn_pnp_undo"):
             self.btn_pnp_undo.setText(self.ui_tr("pnp.undo"))
             self.btn_pnp_redo.setText(self.ui_tr("pnp.redo"))
         if hasattr(self, "btn_project_debug"):
-            self.btn_project_debug.setText(self.ui_tr("menu.debug_settings"))
-            self.btn_project_save_pack.setText(self.ui_tr("menu.save_boomerpack"))
-            self.btn_project_load_pack.setText(self.ui_tr("menu.load_boomerpack"))
+            self.btn_project_debug.setText(self.ui_tr("project.advanced"))
+            self.btn_project_save_pack.setText(self.ui_tr("project.save_session"))
+            self.btn_project_load_pack.setText(self.ui_tr("project.load_session"))
 
     def _on_ui_language_changed(self) -> None:
         if getattr(self, "_restoring_settings", False):
@@ -468,7 +489,7 @@ class MainWindow(
     def _menu_save_boomerpack(self) -> None:
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            self.ui_tr("menu.save_boomerpack"),
+            self.ui_tr("project.save_session"),
             str(Path.home() / "session.valvetpack"),
             SAVE_FILTER,
         )
@@ -480,7 +501,7 @@ class MainWindow(
     def _menu_load_boomerpack(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
-            self.ui_tr("menu.load_boomerpack"),
+            self.ui_tr("project.load_session"),
             str(Path.home()),
             OPEN_FILTER,
         )
@@ -488,7 +509,17 @@ class MainWindow(
             self._debug_load_boomerpack(path)
 
     def _open_debug_settings(self) -> None:
+        from shiboken6 import isValid
+
+        dlg = getattr(self, "_debug_settings_dialog", None)
+        if dlg is not None and isValid(dlg):
+            dlg.show()
+            dlg.raise_()
+            dlg.activateWindow()
+            return
         dlg = DebugSettingsDialog(self, self)
+        self._debug_settings_dialog = dlg
+        dlg.destroyed.connect(lambda *_: setattr(self, "_debug_settings_dialog", None))
         dlg.show()
 
     def _install_edit_shortcuts(self) -> None:

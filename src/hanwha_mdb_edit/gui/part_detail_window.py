@@ -40,6 +40,7 @@ class HanwhaPartDetailWindow(QtWidgets.QWidget):
         self.setWindowFlag(QtCore.Qt.WindowType.Window, True)
         self.setWindowFlag(QtCore.Qt.WindowType.Tool, True)
         self.resize(520, 640)
+        self.setMaximumWidth(560)
 
         root = QtWidgets.QVBoxLayout(self)
         self._subtitle = QtWidgets.QLabel()
@@ -102,8 +103,11 @@ class HanwhaPartDetailWindow(QtWidgets.QWidget):
             else:
                 le.setText(str(v))
             le.setToolTip(tip)
+            le.setMaximumWidth(420)
             lbl = QtWidgets.QLabel(label_text)
             lbl.setToolTip(tip)
+            lbl.setMaximumWidth(200)
+            lbl.setWordWrap(True)
             self._form.addRow(lbl, le)
             self._edits[str(col)] = le
 

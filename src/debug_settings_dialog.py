@@ -64,7 +64,6 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self._main = main
         self.setWindowTitle(main.ui_tr("debug.window_title"))
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose, True)
         flags = QtCore.Qt.WindowType.Window
         self.setWindowFlags(self.windowFlags() | flags)
         self.resize(780, 640)
@@ -381,6 +380,14 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         exp_l.addStretch(1)
         tabs.addTab(exp_w, main.ui_tr("debug.tab_experimental"))
 
+        prefs_w = QtWidgets.QWidget()
+        prefs_l = QtWidgets.QVBoxLayout(prefs_w)
+        self._prefs_page = prefs_w
+        self._prefs_layout = prefs_l
+        self._attach_prefs_host()
+        prefs_l.addStretch(1)
+        tabs.insertTab(0, prefs_w, main.ui_tr("debug.tab_prefs"))
+
         close_row = QtWidgets.QHBoxLayout()
         close_row.addStretch(1)
         btn_close = QtWidgets.QPushButton(main.ui_tr("debug.close"))
@@ -394,8 +401,41 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         self._refresh_font_preview()
         self._load_colours_tab_state()
 
+    def _alive_prefs_host(self) -> QtWidgets.QWidget | None:
+        host = getattr(self._main, "_prefs_host", None)
+        if host is None:
+            return None
+        from shiboken6 import isValid
+
+        if not isValid(host):
+            return None
+        return host
+
+    def _attach_prefs_host(self) -> None:
+        host = self._alive_prefs_host()
+        if host is None or not hasattr(self, "_prefs_layout"):
+            return
+        self._prefs_layout.insertWidget(0, host)
+        host.show()
+
+    def _release_prefs_host(self) -> None:
+        host = self._alive_prefs_host()
+        if host is None:
+            return
+        host.setParent(self._main)
+        host.hide()
+
+    def done(self, result: int) -> None:
+        self._release_prefs_host()
+        super().done(result)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self._release_prefs_host()
+        super().closeEvent(event)
+
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
+        self._attach_prefs_host()
         self._load_fonts_tab_state()
         self._refresh_font_preview()
         self._load_colours_tab_state()

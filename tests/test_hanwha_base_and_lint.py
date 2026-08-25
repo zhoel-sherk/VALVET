@@ -44,7 +44,7 @@ def test_parent_profile_label_is_not_chip_base() -> None:
     assert "Parent profile" == label
     assert "Chip" in tip
     g_label, g_tip = label_and_tooltip_for_column("UPDPARTGROUPNAME")
-    assert "Part Group name" == g_label
+    assert "Type" == g_label
     assert "Chip-0201" in g_tip or "Chip" in g_tip
 
 

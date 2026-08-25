@@ -22,7 +22,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence
 
 import pandas as pd
 
@@ -257,6 +257,107 @@ def part_det_rows_to_dataframe(rows: Sequence[HanwhaPartDetRow]) -> pd.DataFrame
 
 
 def load_part_det_from_mdb(mdb_path: str | Path) -> list[HanwhaPartDetRow]:
-    """Export PART_Det from .mdb and parse into rows."""
+    """Load PART_Det (Windows: direct ODBC column select, not SELECT * / CSV)."""
+    if sys.platform == "win32":
+        try:
+            from machine_library.access_odbc import (
+                AccessOdbcError,
+                load_part_det_dataframe_odbc,
+            )
+
+            df = load_part_det_dataframe_odbc(mdb_path)
+            return _part_det_dataframe_to_rows(df)
+        except AccessOdbcError as e:
+            raise HanwhaMdbToolsError(str(e)) from e
     csv_text = export_table_csv(mdb_path, "PART_Det")
     return parse_part_det_csv(csv_text)
+
+
+def _csv_table_columns(
+    mdb_path: str | Path, table: str, columns: tuple[str, ...]
+) -> pd.DataFrame:
+    try:
+        raw = export_table_csv(mdb_path, table)
+    except HanwhaMdbToolsError:
+        return pd.DataFrame(columns=list(columns))
+    df = pd.read_csv(io.StringIO(raw))
+    keep = [c for c in columns if c in df.columns]
+    if not keep:
+        return pd.DataFrame(columns=list(columns))
+    return df[keep]
+
+
+def load_hanwha_machine_lib_dataframe(
+    mdb_path: str | Path,
+    *,
+    progress: Callable[[int, str], None] | None = None,
+) -> pd.DataFrame:
+    """PART_Det plus Type (``UPDPARTGROUPNAME``). Extra PART_Det columns stay in memory."""
+    from machine_library.hanwha_preview import attach_part_group_type
+
+    def _progress(pct: int, msg: str) -> None:
+        if progress is not None:
+            progress(pct, msg)
+
+    if sys.platform == "win32":
+        try:
+            from machine_library.access_odbc import (
+                AccessOdbcError,
+                load_machine_lib_join_tables_odbc,
+            )
+
+            parts, profile, gmap = load_machine_lib_join_tables_odbc(
+                mdb_path, progress=progress
+            )
+        except AccessOdbcError as e:
+            raise HanwhaMdbToolsError(str(e)) from e
+        _progress(90, "Joining Type (PARTGROUP)…")
+        out = attach_part_group_type(parts, profile, gmap)
+        _progress(100, "Done")
+        return out
+
+    _progress(15, "Reading PART_Det…")
+    parts = part_det_rows_to_dataframe(load_part_det_from_mdb(mdb_path))
+    _progress(50, "Reading PROFILE_Det…")
+    profile = _csv_table_columns(
+        mdb_path, "PROFILE_Det", ("PROFILENAME", "UPDPARTGROUPID")
+    )
+    _progress(70, "Reading PARTGROUP_Map…")
+    gmap = _csv_table_columns(
+        mdb_path, "PARTGROUP_Map", ("UPDPARTGROUPID", "UPDPARTGROUPNAME")
+    )
+    _progress(90, "Joining Type (PARTGROUP)…")
+    out = attach_part_group_type(parts, profile, gmap)
+    _progress(100, "Done")
+    return out
+
+
+def _part_det_dataframe_to_rows(df: pd.DataFrame) -> list[HanwhaPartDetRow]:
+    has_vendor = "VENDORID" in df.columns
+    out: list[HanwhaPartDetRow] = []
+
+    def _int(raw: object) -> int:
+        if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+            return 0
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return 0
+
+    def _str(raw: object) -> str:
+        if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+            return ""
+        return str(raw).strip()
+
+    for rec in df.to_dict("records"):
+        out.append(
+            HanwhaPartDetRow(
+                partname=_str(rec.get("PARTNAME")),
+                profilename=_str(rec.get("PROFILENAME")),
+                partdesc=_str(rec.get("PARTDESC")),
+                confidence_level=_int(rec.get("CONFIDENCE_LEVEL")),
+                used_machine_set=_int(rec.get("USED_MACHINE_SET")),
+                vendor_id=_int(rec.get("VENDORID")) if has_vendor else 0,
+            )
+        )
+    return out

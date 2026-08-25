@@ -11,7 +11,7 @@ from typing import Iterable
 # PART_Det + enriched profile fields (exact keys).
 _KNOWN: dict[str, tuple[str, str]] = {
     "PARTNAME": (
-        "Part Name",
+        "Part name",
         "T-OLP «Part» list — unique component id (PART_Det.PARTNAME).",
     ),
     "PROFILENAME": (
@@ -19,12 +19,13 @@ _KNOWN: dict[str, tuple[str, str]] = {
         "Handling/vision profile linked to the part (PART_Det.PROFILENAME → PROFILE_Det).",
     ),
     "PARTDESC": (
-        "Part Description",
+        "Description",
         "Description text (PART_Det.PARTDESC); often version tags like [STDVER.xx].",
     ),
     "CONFIDENCE_LEVEL": (
-        "Confidence / ST",
-        "Numeric flag on part (PART_Det.CONFIDENCE_LEVEL); relates to verification in T-OLP.",
+        "Level",
+        "T-OLP ST (PART_Det.CONFIDENCE_LEVEL): 0 / 10 / 20 / 40. "
+        "0 is templates / not placement-ready — not MASTER/STANDART and not LIBRARY_TYPE.",
     ),
     "USED_MACHINE_SET": (
         "Machine support",
@@ -37,11 +38,13 @@ _KNOWN: dict[str, tuple[str, str]] = {
     ),
     "UPDPARTGROUPID": (
         "Part Group id",
-        "Numeric group id (PROFILE_Det.UPDPARTGROUPID). See Part Group name for Chip-* class.",
+        "Numeric group id (PROFILE_Det.UPDPARTGROUPID). See Type for Chip-* class.",
     ),
     "UPDPARTGROUPNAME": (
-        "Part Group name",
-        "Component class from PARTGROUP_Map.UPDPARTGROUPNAME (Chip-0201, Trimmer, …). Read-only.",
+        "Type",
+        "Component class from PARTGROUP_Map.UPDPARTGROUPNAME "
+        "(Chip-Tantal, CHIP-Circle, Chip-R0201, …). Read-only join. "
+        "Not PARENTPROFILE (parent profile template).",
     ),
     "LIBRARY_TYPE": (
         "Library type",

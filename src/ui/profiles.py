@@ -379,6 +379,20 @@ class ProfilesMixin:
                 self.clean_hanwha_partial_match.setChecked(
                     s.value("clean/hanwha_partial_match", False, type=bool)
                 )
+            if hasattr(self, "clean_regex_master"):
+                rm = s.value("clean/regex_master_enabled", False, type=bool)
+                self.clean_regex_master.blockSignals(True)
+                self.clean_regex_master.setChecked(rm)
+                self.clean_regex_master.blockSignals(False)
+                self.clean_regex_master_scores.setEnabled(bool(rm))
+                self.clean_regex_master_scores.blockSignals(True)
+                self.clean_regex_master_scores.setChecked(
+                    bool(rm)
+                    and s.value(
+                        "clean/regex_master_preview_scores", False, type=bool
+                    )
+                )
+                self.clean_regex_master_scores.blockSignals(False)
             self.clean_prefix_use_separator.setChecked(
                 s.value("clean/prefix_use_separator", True, type=bool)
             )

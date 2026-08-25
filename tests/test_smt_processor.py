@@ -180,9 +180,18 @@ def test_find_column_index():
     idx = proc.find_column_index(test_df, "Designator", True)
     assert idx == 0
 
-    # Test partial match
-    idx = proc.find_column_index(test_df, "sign", True)
-    assert idx == 0
+    with pytest.raises(smt_processor.SMTColumnNotFoundError):
+        proc.find_column_index(test_df, "sign", True)
+
+    both = __import__("pandas").DataFrame(
+        {"comment_orig": ["a"], "comment": ["b"]}
+    )
+    assert proc.find_column_index(both, "comment", True) == 1
+
+    numbered = __import__("pandas").DataFrame(
+        {"2": ["ref"], "0": ["a"], "1": ["b"]}
+    )
+    assert proc.find_column_index(numbered, "2", True) == 0
 
     # Test with "_skip_" (should return -1)
     idx = proc.find_column_index(test_df, "_skip_", True)
@@ -283,3 +292,43 @@ def test_cross_check_basic():
 
     assert result is not None
     assert len(result) > 0
+
+
+def test_cross_check_designator_casefold() -> None:
+    pd = __import__("pandas")
+    bom_df = pd.DataFrame({"Designator": ["r1"], "Value": ["100R"]})
+    pnp_df = pd.DataFrame({"Designator": ["R1"], "Comment": ["100R"]})
+    proc = smt_processor.SMTDataProcessor().set_dataframes(
+        bom_df,
+        pnp_df,
+        smt_processor.ColumnConfig(designator="Designator", comment="Value"),
+        smt_processor.ColumnConfig(designator="Designator", comment="Comment"),
+    )
+    df = proc.cross_check()
+    assert df[df["IssueType"] == "missing_in_pnp"].empty
+    assert df[df["IssueType"] == "missing_in_bom"].empty
+
+
+def test_cross_check_pnp_skip_comment_does_not_use_last_column() -> None:
+    pd = __import__("pandas")
+    bom_df = pd.DataFrame({"Designator": ["R1"], "Value": ["100R"]})
+    pnp_df = pd.DataFrame(
+        {"Designator": ["R1"], "X": [1.0], "Trap": ["NOT_A_COMMENT"]}
+    )
+    proc = smt_processor.SMTDataProcessor().set_dataframes(
+        bom_df,
+        pnp_df,
+        smt_processor.ColumnConfig(designator="Designator", comment="Value"),
+        smt_processor.ColumnConfig(
+            designator="Designator",
+            comment="_skip_",
+            coord_x="X",
+            coord_y="_skip_",
+            footprint="_skip_",
+            rotation="_skip_",
+            layer="_skip_",
+        ),
+    )
+    df = proc.cross_check()
+    mismatch = df[df["IssueType"] == "mismatch"]
+    assert mismatch.empty or "NOT_A_COMMENT" not in list(mismatch["PnP_Value"])

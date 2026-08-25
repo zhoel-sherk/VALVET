@@ -331,10 +331,7 @@ class TableActionsMixin:
             return
         self._bom_ui_restoring = True
         try:
-            for i, m in enumerate(mappings):
-                role = str(m)
-                combo = self.bom_col_combos[i]
-                self._set_mapping_combo_role(combo, role)
+            self._apply_bom_role_list([str(m) for m in mappings])
         finally:
             self._bom_ui_restoring = False
     def _restore_pnp_mappings_after_fill(self, path: str) -> None:

@@ -909,27 +909,18 @@ class SMTDataProcessor:
             return col_identifier
 
         if isinstance(col_identifier, str):
-            # Try numeric column index
+            cols = [str(c).strip() if c is not None else "" for c in df.columns]
+            col_upper = str(col_identifier).strip().upper()
+            for i, c in enumerate(cols):
+                if c.upper() == col_upper:
+                    return i
+            # Positional only if no header has this name ("2" must not skip column "2").
             try:
                 idx = int(col_identifier)
                 if 0 <= idx < len(df.columns):
                     return idx
             except ValueError:
                 pass
-
-            # Try header substring match
-            cols = [str(c).strip() if c is not None else "" for c in df.columns]
-            col_upper = str(col_identifier).strip().upper()
-
-            # Exact header match
-            for i, c in enumerate(cols):
-                if c.upper() == col_upper:
-                    return i
-
-            # Partial header match
-            for i, c in enumerate(cols):
-                if col_upper in c.upper():
-                    return i
 
         raise SMTColumnNotFoundError(
             f"Column '{col_identifier}' not found in DataFrame"
@@ -1171,9 +1162,9 @@ class SMTDataProcessor:
             )
 
             for d in designators:
-                d = d.strip()
-                if d:
-                    parts[d] = comment
+                key = designator_key(d)
+                if key:
+                    parts[key] = comment
 
         return parts
 
@@ -1218,7 +1209,11 @@ class SMTDataProcessor:
             designator_col = (
                 cols[designator_idx] if designator_idx < len(cols) else None
             )
-            comment_col = cols[comment_idx] if comment_idx < len(cols) else None
+            comment_col = (
+                cols[comment_idx]
+                if comment_idx >= 0 and comment_idx < len(cols)
+                else None
+            )
 
             if designator_col is None or pd.isna(row[designator_col]):
                 continue
@@ -1247,9 +1242,9 @@ class SMTDataProcessor:
                 layer = str(row[layer_col])
 
             for d in designators:
-                d = d.strip()
-                if d:
-                    parts[d] = (comment, footprint, coord_x, coord_y, layer)
+                key = designator_key(d)
+                if key:
+                    parts[key] = (comment, footprint, coord_x, coord_y, layer)
 
         return parts
 
@@ -1473,6 +1468,18 @@ class SMTDataProcessor:
 # ==============================================================================
 # Helper Functions
 # ==============================================================================
+
+
+def designator_key(value: object) -> str:
+    """Normalize a refdes for BOM/PnP join (same as merge)."""
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(value).strip().upper()
 
 
 def _normalize_comment(comment: str) -> str:

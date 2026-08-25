@@ -5,15 +5,18 @@ Replaces ``MainWindow._configure_processor_from_ui()``.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Callable
 
 import pandas as pd
 
 from smt_processor import (
+    SMTColumnNotFoundError,
     SMTDataProcessor,
     ColumnConfig,
     ProcessorConfig,
 )
+from services.column_mapping import pick_merge_pn_column, pick_ref_column
 
 HIDDEN_TABLE_HAS_HEADER_ROW = False
 
@@ -24,25 +27,30 @@ def build_processor_config(
     bom_mappings: dict[str, str],
     pnp_mappings: dict[str, str],
     *,
+    bom_column_roles: Sequence[str] | None = None,
     pnp_xy_are_mils: bool = False,
     overlap_min_mm: float = 3.0,
     check_overlap: bool = False,
     progress_callback: Callable[[str, str], None] | None = None,
 ) -> SMTDataProcessor:
-    bom_ref = bom_mappings.get("REF")
-    bom_comment = bom_mappings.get("Comment")
+    bom_ref = pick_ref_column(bom_df.columns, bom_mappings.get("REF"))
+    if bom_column_roles is not None:
+        bom_comment = pick_merge_pn_column(list(bom_df.columns), bom_column_roles)
+    else:
+        bom_comment = bom_mappings.get("Comment") or bom_mappings.get("PnJoin")
     if not bom_ref:
-        bom_ref = list(bom_df.columns)[0]
+        raise SMTColumnNotFoundError(
+            "BOM has no REF (designator) column mapped. "
+            "Set REF on the designator column, not on PN / comment."
+        )
     bom_comment_col = bom_comment if bom_comment else "_skip_"
 
-    pnp_ref = pnp_mappings.get("REF")
+    pnp_ref = pick_ref_column(pnp_df.columns, pnp_mappings.get("REF"))
     if not pnp_ref:
-        for col in pnp_df.columns:
-            if "DESIGNATOR" in str(col).upper():
-                pnp_ref = col
-                break
-    if not pnp_ref:
-        pnp_ref = list(pnp_df.columns)[0]
+        raise SMTColumnNotFoundError(
+            "PnP has no REF (designator) column mapped. "
+            "After Replace PnP, REF must be the Ref column, not Value/PN."
+        )
 
     pnp_foot = pnp_mappings.get("Footprint")
     if not pnp_foot:

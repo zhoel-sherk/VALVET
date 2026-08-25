@@ -27,7 +27,6 @@ from app.prefs import _prefs_profile_bool
 from clean_component import CleanConfig, clean_preview
 from clean_debug_dialog import (
     CleanPipelineDebugDialog,
-    load_clean_debug_extras,
     load_pipeline_from_settings,
 )
 from component_library import append_component, default_components_path
@@ -41,6 +40,7 @@ from services.clean_apply import apply_clean_preview_to_bom
 from services.clean_config import build_clean_config
 from services.clean_import import import_bom_comments_for_clean
 
+from ui.chrome import WidePopupComboBox
 from qt_models import CleanPreviewTableModel
 
 import logger
@@ -118,8 +118,6 @@ class CleanTabMixin:
         pn_row.addStretch(1)
         glb_outer.addLayout(pn_row)
 
-        grid.addWidget(group_global, 0, 0, 1, 3)
-
         preset_row = QtWidgets.QHBoxLayout()
         self.lbl_clean_preset = QtWidgets.QLabel()
         self.clean_format_preset = QtWidgets.QComboBox()
@@ -129,9 +127,16 @@ class CleanTabMixin:
         preset_row.addWidget(self.lbl_clean_preset)
         preset_row.addWidget(self.clean_format_preset)
         preset_row.addStretch(1)
-        preset_wrap = QtWidgets.QWidget()
-        preset_wrap.setLayout(preset_row)
-        grid.addWidget(preset_wrap, 1, 0, 1, 3)
+        glb_outer.addLayout(preset_row)
+
+        rcl_host = QtWidgets.QWidget()
+        rcl_v = QtWidgets.QVBoxLayout(rcl_host)
+        rcl_v.setContentsMargins(0, 4, 0, 0)
+        rcl_v.setSpacing(6)
+        self._build_clean_rcl_grid(rcl_v)
+        glb_outer.addWidget(rcl_host)
+
+        grid.addWidget(group_global, 0, 0, 1, 3)
 
         group_advanced = QtWidgets.QGroupBox()
         self.gb_clean_advanced = group_advanced
@@ -144,6 +149,7 @@ class CleanTabMixin:
         adv.addLayout(row_sp_adv)
         row_dbg = QtWidgets.QHBoxLayout()
         self.clean_double_comment_import = QtWidgets.QCheckBox()
+        self.clean_double_comment_import.hide()
         row_dbg.addWidget(self.clean_double_comment_import)
         self.lbl_clean_double_join = QtWidgets.QLabel()
         row_dbg.addWidget(self.lbl_clean_double_join)
@@ -152,6 +158,11 @@ class CleanTabMixin:
         self.clean_double_comment_sep.setMaximumWidth(96)
         self.clean_double_comment_sep.setText(" | ")
         row_dbg.addWidget(self.clean_double_comment_sep)
+        self.btn_clean_pn_join_help = QtWidgets.QToolButton()
+        self.btn_clean_pn_join_help.setText("?")
+        self.btn_clean_pn_join_help.setAutoRaise(True)
+        self.btn_clean_pn_join_help.clicked.connect(self._show_pn_join_help)
+        row_dbg.addWidget(self.btn_clean_pn_join_help)
         row_dbg.addStretch(1)
         self.btn_clean_debug = QtWidgets.QPushButton()
         self.btn_clean_debug.clicked.connect(self._open_clean_pipeline_debug)
@@ -163,151 +174,15 @@ class CleanTabMixin:
         row_fuzzy.addWidget(self.clean_hanwha_partial_match)
         row_fuzzy.addStretch(1)
         adv.addLayout(row_fuzzy)
-        grid.addWidget(group_advanced, 3, 0, 1, 3)
-
-        self.clean_res_frame = QtWidgets.QFrame()
-        self.clean_res_frame.setObjectName("cleanRclRow")
-        self.clean_res_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-        self.clean_res_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
-        self.chk_clean_res = QtWidgets.QCheckBox()
-        self.chk_clean_res.setChecked(True)
-        gl = QtWidgets.QHBoxLayout(self.clean_res_frame)
-        gl.setContentsMargins(6, 4, 6, 4)
-        gl.setSpacing(6)
-        gl.addWidget(self.chk_clean_res)
-        self.clean_res_template_combos: list[QtWidgets.QComboBox] = []
-        self._clean_res_slot_labels: list[QtWidgets.QLabel] = []
-        res_options = [
-            ("nom", "nom"),
-            ("pack", "pack"),
-            ("watt", "watt"),
-            ("%", "%"),
-            ("none", "none"),
-        ]
-        for i, default in enumerate(("nom", "pack", "watt", "%")):
-            slot = QtWidgets.QLabel(str(i + 1))
-            self._clean_res_slot_labels.append(slot)
-            gl.addWidget(slot)
-            combo = QtWidgets.QComboBox()
-            for label, data in res_options:
-                combo.addItem(label, data)
-            combo.setCurrentIndex(combo.findData(default))
-            combo.setMaximumWidth(86)
-            self._style_clean_template_combo(combo)
-            self.clean_res_template_combos.append(combo)
-            gl.addWidget(combo)
-        self.lbl_clean_res_prefix = QtWidgets.QLabel()
-        gl.addWidget(self.lbl_clean_res_prefix)
-        self.clean_res_prefix = QtWidgets.QLineEdit()
-        self.clean_res_prefix.setPlaceholderText("R")
-        self.clean_res_prefix.setMaximumWidth(54)
-        gl.addWidget(self.clean_res_prefix)
-        self.clean_res_ohm_r = QtWidgets.QCheckBox()
-        self.clean_res_ohm_r.setChecked(True)
-        gl.addWidget(self.clean_res_ohm_r)
-        self.clean_res_watt_from_pack = QtWidgets.QCheckBox()
-        self.clean_res_watt_from_pack.setChecked(False)
-        gl.addWidget(self.clean_res_watt_from_pack)
-        self.lbl_clean_res_example = QtWidgets.QLabel()
-        self.lbl_clean_res_example.setStyleSheet("color: #9e9e9e; font-style: italic;")
-        gl.addWidget(self.lbl_clean_res_example)
-        gl.addStretch(1)
-        grid.addWidget(self.clean_res_frame, 2, 0)
-
-        self.clean_cap_frame = QtWidgets.QFrame()
-        self.clean_cap_frame.setObjectName("cleanRclRow")
-        self.clean_cap_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-        self.clean_cap_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
-        self.chk_clean_cap = QtWidgets.QCheckBox()
-        self.chk_clean_cap.setChecked(True)
-        cgrid = QtWidgets.QHBoxLayout(self.clean_cap_frame)
-        cgrid.setContentsMargins(6, 4, 6, 4)
-        cgrid.setSpacing(6)
-        cgrid.addWidget(self.chk_clean_cap)
-        self.clean_cap_template_combos: list[QtWidgets.QComboBox] = []
-        self._clean_cap_slot_labels: list[QtWidgets.QLabel] = []
-        cap_options = [
-            ("nom", "nom"),
-            ("pack", "pack"),
-            ("film", "film"),
-            ("%", "%"),
-            # QComboBox.addItem(text, userData): second arg is stored in cap_template.
-            ("V (volt)", "V"),
-            ("none", "none"),
-        ]
-        for i, default in enumerate(("nom", "pack", "film", "%", "V")):
-            slot = QtWidgets.QLabel(str(i + 1))
-            self._clean_cap_slot_labels.append(slot)
-            cgrid.addWidget(slot)
-            combo = QtWidgets.QComboBox()
-            for label, data in cap_options:
-                combo.addItem(label, data)
-            combo.setCurrentIndex(combo.findData(default))
-            combo.setMaximumWidth(82)
-            self._style_clean_template_combo(combo)
-            self.clean_cap_template_combos.append(combo)
-            cgrid.addWidget(combo)
-        self.clean_cap_nf = QtWidgets.QCheckBox()
-        self.clean_cap_nf.setChecked(False)
-        cgrid.addWidget(self.clean_cap_nf)
-        self.clean_cap_uf_micro = QtWidgets.QCheckBox()
-        self.clean_cap_uf_micro.setChecked(False)
-        cgrid.addWidget(self.clean_cap_uf_micro)
-        self.lbl_clean_cap_prefix = QtWidgets.QLabel()
-        cgrid.addWidget(self.lbl_clean_cap_prefix)
-        self.clean_cap_prefix = QtWidgets.QLineEdit()
-        self.clean_cap_prefix.setPlaceholderText("C")
-        self.clean_cap_prefix.setMaximumWidth(54)
-        cgrid.addWidget(self.clean_cap_prefix)
-        self.lbl_clean_cap_example = QtWidgets.QLabel()
-        self.lbl_clean_cap_example.setStyleSheet("color: #9e9e9e; font-style: italic;")
-        cgrid.addWidget(self.lbl_clean_cap_example)
-        cgrid.addStretch(1)
-        grid.addWidget(self.clean_cap_frame, 2, 1)
-
-        self.clean_ind_frame = QtWidgets.QFrame()
-        self.clean_ind_frame.setObjectName("cleanRclRow")
-        self.clean_ind_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-        self.clean_ind_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
-        self.chk_clean_ind = QtWidgets.QCheckBox()
-        self.chk_clean_ind.setChecked(True)
-        ind_row = QtWidgets.QHBoxLayout(self.clean_ind_frame)
-        ind_row.setContentsMargins(6, 4, 6, 4)
-        ind_row.setSpacing(6)
-        ind_row.addWidget(self.chk_clean_ind)
-        self.clean_ind_template_combos: list[QtWidgets.QComboBox] = []
-        self._clean_ind_slot_labels: list[QtWidgets.QLabel] = []
-        ind_options = [
-            ("pack", "pack"),
-            ("nom", "nom"),
-            ("%", "%"),
-            ("Imax", "Imax"),
-            ("DCR", "DCR"),
-            ("none", "none"),
-        ]
-        for i, default in enumerate(("pack", "nom", "%", "Imax", "DCR")):
-            slot = QtWidgets.QLabel(str(i + 1))
-            self._clean_ind_slot_labels.append(slot)
-            ind_row.addWidget(slot)
-            combo = QtWidgets.QComboBox()
-            for label, data in ind_options:
-                combo.addItem(label, data)
-            combo.setCurrentIndex(combo.findData(default))
-            combo.setMaximumWidth(82)
-            self._style_clean_template_combo(combo)
-            self.clean_ind_template_combos.append(combo)
-            ind_row.addWidget(combo)
-        self.lbl_clean_ind_prefix = QtWidgets.QLabel()
-        ind_row.addWidget(self.lbl_clean_ind_prefix)
-        self.clean_ind_prefix = QtWidgets.QLineEdit()
-        self.clean_ind_prefix.setPlaceholderText("L")
-        self.clean_ind_prefix.setMaximumWidth(54)
-        ind_row.addWidget(self.clean_ind_prefix)
-        self.lbl_clean_ind_example = QtWidgets.QLabel()
-        self.lbl_clean_ind_example.setStyleSheet("color: #9e9e9e; font-style: italic;")
-        ind_row.addWidget(self.lbl_clean_ind_example)
-        ind_row.addStretch(1)
-        grid.addWidget(self.clean_ind_frame, 2, 2)
+        self.clean_regex_master = QtWidgets.QCheckBox()
+        self.clean_regex_master.setChecked(False)
+        self.clean_regex_master_scores = QtWidgets.QCheckBox()
+        self.clean_regex_master_scores.setChecked(False)
+        self.clean_regex_master_scores.setEnabled(False)
+        self.clean_regex_master.toggled.connect(self._on_clean_regex_master_toggled)
+        adv.addWidget(self.clean_regex_master)
+        adv.addWidget(self.clean_regex_master_scores)
+        grid.addWidget(group_advanced, 1, 0, 1, 3)
 
         group_mpn_www = QtWidgets.QGroupBox()
         self.gb_clean_mpn = group_mpn_www
@@ -352,6 +227,7 @@ class CleanTabMixin:
             self.clean_double_comment_import,
         ):
             w.stateChanged.connect(self._save_clean_settings)
+        self.clean_regex_master_scores.stateChanged.connect(self._save_clean_settings)
         self.clean_double_comment_sep.textChanged.connect(self._save_clean_settings)
         self.gb_clean_pn.toggled.connect(self._on_gb_clean_pn_toggled)
         self.chk_clean_res.toggled.connect(self._on_gb_clean_res_toggled)
@@ -497,6 +373,237 @@ class CleanTabMixin:
         self._sync_clean_preset_from_combos()
         self._sync_clean_primary_buttons()
         self._refresh_clean_context_chip()
+        self._sync_clean_parser_grid_sizes()
+
+    def _make_clean_slot_combo(
+        self, options: list[tuple[str, str]], default: str
+    ) -> QtWidgets.QComboBox:
+        combo = WidePopupComboBox()
+        for label, data in options:
+            combo.addItem(label, data)
+        combo.setCurrentIndex(combo.findData(default))
+        self._style_clean_template_combo(combo)
+        return combo
+
+    def _build_clean_rcl_grid(self, stack: QtWidgets.QVBoxLayout) -> None:
+        """Stacked rows that share column minimum widths (type | 1–5 | prefix | extras | example)."""
+        slot_n = 5
+        self._clean_rcl_inner_grids: list[QtWidgets.QGridLayout] = []
+        self._clean_rcl_slot_headers = []
+        self._clean_rcl_slot_spacers = []
+
+        def _new_grid(parent: QtWidgets.QWidget) -> QtWidgets.QGridLayout:
+            g = QtWidgets.QGridLayout(parent)
+            g.setContentsMargins(6, 4, 6, 4)
+            g.setHorizontalSpacing(8)
+            g.setVerticalSpacing(0)
+            self._clean_rcl_inner_grids.append(g)
+            return g
+
+        hdr = QtWidgets.QWidget()
+        self._clean_rcl_header = hdr
+        hg = _new_grid(hdr)
+        hg.addWidget(QtWidgets.QLabel(), 0, 0)
+        for i in range(slot_n):
+            h = QtWidgets.QLabel(str(i + 1))
+            h.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            self._clean_rcl_slot_headers.append(h)
+            hg.addWidget(h, 0, 1 + i)
+        self.lbl_clean_rcl_prefix_hdr = QtWidgets.QLabel()
+        hg.addWidget(self.lbl_clean_rcl_prefix_hdr, 0, 6, 1, 2)
+        hg.setColumnStretch(9, 1)
+        stack.addWidget(hdr)
+
+        res_options = [
+            ("nom", "nom"),
+            ("pack", "pack"),
+            ("watt", "watt"),
+            ("%", "%"),
+            ("none", "none"),
+        ]
+        cap_options = [
+            ("nom", "nom"),
+            ("pack", "pack"),
+            ("film", "film"),
+            ("%", "%"),
+            ("V (volt)", "V"),
+            ("none", "none"),
+        ]
+        ind_options = [
+            ("pack", "pack"),
+            ("nom", "nom"),
+            ("%", "%"),
+            ("Imax", "Imax"),
+            ("DCR", "DCR"),
+            ("none", "none"),
+        ]
+
+        def _family_row(
+            *,
+            frame_attr: str,
+            chk: QtWidgets.QCheckBox,
+            defaults: tuple[str, ...],
+            options: list[tuple[str, str]],
+            combos_attr: str,
+            labels_attr: str,
+            prefix_lbl: QtWidgets.QLabel,
+            prefix_edit: QtWidgets.QLineEdit,
+            extras: list[QtWidgets.QWidget],
+            example: QtWidgets.QLabel,
+        ) -> None:
+            frame = QtWidgets.QFrame()
+            frame.setObjectName("cleanRclRow")
+            frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+            frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
+            setattr(self, frame_attr, frame)
+            inner = _new_grid(frame)
+            inner.addWidget(chk, 0, 0)
+            combos: list[QtWidgets.QComboBox] = []
+            for i in range(slot_n):
+                if i < len(defaults):
+                    combo = self._make_clean_slot_combo(options, defaults[i])
+                    combos.append(combo)
+                    inner.addWidget(combo, 0, 1 + i)
+                else:
+                    spacer = QtWidgets.QWidget()
+                    self._clean_rcl_slot_spacers.append(spacer)
+                    inner.addWidget(spacer, 0, 1 + i)
+            setattr(self, combos_attr, combos)
+            setattr(self, labels_attr, [])
+            inner.addWidget(prefix_lbl, 0, 6)
+            inner.addWidget(prefix_edit, 0, 7)
+            extra_wrap = QtWidgets.QWidget()
+            extra_l = QtWidgets.QHBoxLayout(extra_wrap)
+            extra_l.setContentsMargins(0, 0, 0, 0)
+            extra_l.setSpacing(8)
+            for w in extras:
+                extra_l.addWidget(w)
+            extra_l.addStretch(1)
+            inner.addWidget(extra_wrap, 0, 8)
+            example.setStyleSheet("color: #9e9e9e; font-style: italic;")
+            inner.addWidget(example, 0, 9)
+            inner.setColumnStretch(9, 1)
+            stack.addWidget(frame)
+
+        self.chk_clean_res = QtWidgets.QCheckBox()
+        self.chk_clean_res.setChecked(True)
+        self.lbl_clean_res_prefix = QtWidgets.QLabel()
+        self.clean_res_prefix = QtWidgets.QLineEdit()
+        self.clean_res_prefix.setPlaceholderText("R")
+        self.clean_res_ohm_r = QtWidgets.QCheckBox()
+        self.clean_res_ohm_r.setChecked(True)
+        self.clean_res_watt_from_pack = QtWidgets.QCheckBox()
+        self.clean_res_watt_from_pack.setChecked(False)
+        self.lbl_clean_res_example = QtWidgets.QLabel()
+        _family_row(
+            frame_attr="clean_res_frame",
+            chk=self.chk_clean_res,
+            defaults=("nom", "pack", "watt", "%"),
+            options=res_options,
+            combos_attr="clean_res_template_combos",
+            labels_attr="_clean_res_slot_labels",
+            prefix_lbl=self.lbl_clean_res_prefix,
+            prefix_edit=self.clean_res_prefix,
+            extras=[self.clean_res_ohm_r, self.clean_res_watt_from_pack],
+            example=self.lbl_clean_res_example,
+        )
+
+        self.chk_clean_cap = QtWidgets.QCheckBox()
+        self.chk_clean_cap.setChecked(True)
+        self.lbl_clean_cap_prefix = QtWidgets.QLabel()
+        self.clean_cap_prefix = QtWidgets.QLineEdit()
+        self.clean_cap_prefix.setPlaceholderText("C")
+        self.clean_cap_nf = QtWidgets.QCheckBox()
+        self.clean_cap_nf.setChecked(False)
+        self.clean_cap_uf_micro = QtWidgets.QCheckBox()
+        self.clean_cap_uf_micro.setChecked(False)
+        self.lbl_clean_cap_example = QtWidgets.QLabel()
+        _family_row(
+            frame_attr="clean_cap_frame",
+            chk=self.chk_clean_cap,
+            defaults=("nom", "pack", "film", "%", "V"),
+            options=cap_options,
+            combos_attr="clean_cap_template_combos",
+            labels_attr="_clean_cap_slot_labels",
+            prefix_lbl=self.lbl_clean_cap_prefix,
+            prefix_edit=self.clean_cap_prefix,
+            extras=[self.clean_cap_nf, self.clean_cap_uf_micro],
+            example=self.lbl_clean_cap_example,
+        )
+
+        self.chk_clean_ind = QtWidgets.QCheckBox()
+        self.chk_clean_ind.setChecked(True)
+        self.lbl_clean_ind_prefix = QtWidgets.QLabel()
+        self.clean_ind_prefix = QtWidgets.QLineEdit()
+        self.clean_ind_prefix.setPlaceholderText("L")
+        self.lbl_clean_ind_example = QtWidgets.QLabel()
+        _family_row(
+            frame_attr="clean_ind_frame",
+            chk=self.chk_clean_ind,
+            defaults=("pack", "nom", "%", "Imax", "DCR"),
+            options=ind_options,
+            combos_attr="clean_ind_template_combos",
+            labels_attr="_clean_ind_slot_labels",
+            prefix_lbl=self.lbl_clean_ind_prefix,
+            prefix_edit=self.clean_ind_prefix,
+            extras=[],
+            example=self.lbl_clean_ind_example,
+        )
+
+    def _sync_clean_parser_grid_sizes(self) -> None:
+        if not getattr(self, "_clean_rcl_inner_grids", None):
+            return
+        combos = [
+            *self.clean_res_template_combos,
+            *self.clean_cap_template_combos,
+            *self.clean_ind_template_combos,
+        ]
+        slot_w = 112
+        for c in combos:
+            slot_w = max(slot_w, int(c.sizeHint().width()))
+        type_w = 96
+        for chk in (self.chk_clean_res, self.chk_clean_cap, self.chk_clean_ind):
+            type_w = max(type_w, int(chk.sizeHint().width()))
+        prefix_lbl_w = 56
+        for lbl in (
+            self.lbl_clean_res_prefix,
+            self.lbl_clean_cap_prefix,
+            self.lbl_clean_ind_prefix,
+            getattr(self, "lbl_clean_rcl_prefix_hdr", None),
+        ):
+            if lbl is not None:
+                prefix_lbl_w = max(prefix_lbl_w, int(lbl.sizeHint().width()))
+        prefix_edit_w = 48
+        for ed in (
+            self.clean_res_prefix,
+            self.clean_cap_prefix,
+            self.clean_ind_prefix,
+        ):
+            ed.setMinimumWidth(prefix_edit_w)
+            ed.setMaximumWidth(72)
+        extras_w = 160
+        extras_w = max(
+            extras_w,
+            int(self.clean_res_ohm_r.sizeHint().width())
+            + int(self.clean_res_watt_from_pack.sizeHint().width())
+            + 8,
+            int(self.clean_cap_nf.sizeHint().width())
+            + int(self.clean_cap_uf_micro.sizeHint().width())
+            + 8,
+        )
+        for g in self._clean_rcl_inner_grids:
+            g.setColumnMinimumWidth(0, type_w)
+            for i in range(5):
+                g.setColumnMinimumWidth(1 + i, slot_w)
+            g.setColumnMinimumWidth(6, prefix_lbl_w)
+            g.setColumnMinimumWidth(7, 72)
+            g.setColumnMinimumWidth(8, extras_w)
+        for c in combos:
+            c.setMinimumWidth(slot_w)
+        for chk in (self.chk_clean_res, self.chk_clean_cap, self.chk_clean_ind):
+            chk.setMinimumWidth(type_w)
+        for sp in getattr(self, "_clean_rcl_slot_spacers", []):
+            sp.setMinimumWidth(slot_w)
 
     def _show_clean_help(self) -> None:
         QtWidgets.QMessageBox.information(
@@ -551,13 +658,20 @@ class CleanTabMixin:
         self.btn_clean_apply.setDefault(apply_on)
 
     def _set_clean_custom_slots_visible(self, visible: bool) -> None:
-        for lbls, combos in (
-            (getattr(self, "_clean_res_slot_labels", []), self.clean_res_template_combos),
-            (getattr(self, "_clean_cap_slot_labels", []), self.clean_cap_template_combos),
-            (getattr(self, "_clean_ind_slot_labels", []), self.clean_ind_template_combos),
+        for combos in (
+            self.clean_res_template_combos,
+            self.clean_cap_template_combos,
+            self.clean_ind_template_combos,
         ):
-            for w in (*lbls, *combos):
+            for w in combos:
                 w.setVisible(visible)
+        hdr = getattr(self, "_clean_rcl_header", None)
+        if hdr is not None:
+            hdr.setVisible(visible)
+        for h in getattr(self, "_clean_rcl_slot_headers", []):
+            h.setVisible(visible)
+        for sp in getattr(self, "_clean_rcl_slot_spacers", []):
+            sp.setVisible(visible)
 
     def _clean_template_tuple(self, combos: list) -> tuple[str, ...]:
         return tuple(self._template_from_combos(combos))
@@ -670,10 +784,20 @@ class CleanTabMixin:
         self.clean_double_comment_import.setText(self.ui_tr("clean.double_comment"))
         self.clean_double_comment_import.setToolTip(self.ui_tr("clean.double_comment_tip"))
         self.lbl_clean_double_join.setText(self.ui_tr("clean.double_join"))
+        if hasattr(self, "btn_clean_pn_join_help"):
+            self.btn_clean_pn_join_help.setToolTip(
+                self.ui_tr("mapping.pn_join_help_title")
+            )
         self.btn_clean_debug.setText(self.ui_tr("clean.advanced_debug"))
         self.btn_clean_debug.setToolTip(self.ui_tr("clean.advanced_debug_tip"))
         self.clean_hanwha_partial_match.setText(self.ui_tr("clean.partial_match"))
         self.clean_hanwha_partial_match.setToolTip(self.ui_tr("clean.partial_match_tip"))
+        self.clean_regex_master.setText(self.ui_tr("clean.regex_master"))
+        self.clean_regex_master.setToolTip(self.ui_tr("clean.regex_master_tip"))
+        self.clean_regex_master_scores.setText(self.ui_tr("clean.regex_master_scores"))
+        self.clean_regex_master_scores.setToolTip(
+            self.ui_tr("clean.regex_master_scores_tip")
+        )
         self.chk_clean_res.setText(self.ui_tr("clean.resistor"))
         self.chk_clean_res.setToolTip(self.ui_tr("clean.resistor_tip"))
         self.chk_clean_cap.setText(self.ui_tr("clean.capacitor"))
@@ -683,6 +807,8 @@ class CleanTabMixin:
         self.lbl_clean_res_prefix.setText(self.ui_tr("clean.prefix"))
         self.lbl_clean_cap_prefix.setText(self.ui_tr("clean.prefix"))
         self.lbl_clean_ind_prefix.setText(self.ui_tr("clean.prefix"))
+        if hasattr(self, "lbl_clean_rcl_prefix_hdr"):
+            self.lbl_clean_rcl_prefix_hdr.setText(self.ui_tr("clean.prefix"))
         self.clean_res_ohm_r.setText(self.ui_tr("clean.ohm_r"))
         self.clean_res_ohm_r.setToolTip(self.ui_tr("clean.ohm_r_tip"))
         self.clean_res_watt_from_pack.setText(self.ui_tr("clean.watt_from_pack"))
@@ -709,11 +835,12 @@ class CleanTabMixin:
         if not self._clean_imported_comments and not self._clean_last_preview:
             self.lbl_clean_source.setText(self.ui_tr("clean.source_hint"))
         self._refresh_clean_context_chip()
+        self._sync_clean_parser_grid_sizes()
 
     def _get_bom_comment_column_names(
         self, df: pd.DataFrame | None = None
     ) -> list[Any]:
-        """All BOM columns mapped to «Comment» (column picker order).
+        """BOM columns mapped to PN name or PN join (table order).
 
         Returns **actual** column labels from ``df`` (same types as ``df.columns``), not
         stringified names — otherwise ``col in df.columns`` fails for integer/RangeIndex
@@ -729,7 +856,7 @@ class CleanTabMixin:
             for i, combo in enumerate(self.bom_col_combos):
                 if i >= len(df.columns):
                     break
-                if self._mapping_combo_role(combo) == "Comment":
+                if self._mapping_combo_role(combo) in ("Comment", "PnJoin"):
                     cols.append(df.columns[i])
         if cols:
             return cols
@@ -808,6 +935,12 @@ class CleanTabMixin:
         self.clean_res_frame.style().unpolish(self.clean_res_frame)
         self.clean_res_frame.style().polish(self.clean_res_frame)
         self._update_clean_rcl_examples()
+        self._save_clean_settings()
+
+    def _on_clean_regex_master_toggled(self, on: bool) -> None:
+        self.clean_regex_master_scores.setEnabled(on)
+        if not on:
+            self.clean_regex_master_scores.setChecked(False)
         self._save_clean_settings()
 
     def _on_gb_clean_cap_toggled(self, on: bool) -> None:
@@ -921,8 +1054,9 @@ class CleanTabMixin:
             hs = self._machine_library_tab.machine_partname_set()
             hanwha_names = hs if hs else None
         pipe_order, pipe_disabled = load_pipeline_from_settings(self._settings)
-        regex_master_enabled, regex_master_preview_scores = load_clean_debug_extras(
-            self._settings
+        regex_master_enabled = self.clean_regex_master.isChecked()
+        regex_master_preview_scores = (
+            regex_master_enabled and self.clean_regex_master_scores.isChecked()
         )
         return build_clean_config(
             res_template=res_template,
@@ -1001,6 +1135,15 @@ class CleanTabMixin:
                 "clean/hanwha_partial_match",
                 self.clean_hanwha_partial_match.isChecked(),
             )
+        if hasattr(self, "clean_regex_master"):
+            s.setValue(
+                "clean/regex_master_enabled",
+                self.clean_regex_master.isChecked(),
+            )
+            s.setValue(
+                "clean/regex_master_preview_scores",
+                self.clean_regex_master_scores.isChecked(),
+            )
         if hasattr(self, "clean_apply_replace"):
             s.setValue("clean/apply_replace", self.clean_apply_replace.isChecked())
         if hasattr(self, "clean_double_comment_import"):
@@ -1034,25 +1177,13 @@ class CleanTabMixin:
             return
         comment_cols = self._get_bom_comment_column_names(df)
         if not comment_cols:
-            self._log("Clean BOM: map a column to «Comment» on the BOM tab", "warning")
-            logger.error("Clean BOM: BOM comment column not configured")
-            return
-        double_on = (
-            self.clean_double_comment_import.isChecked()
-            if hasattr(self, "clean_double_comment_import")
-            else False
-        )
-        if double_on and len(comment_cols) < 2:
             self._log(
-                "Clean BOM: Double Comment import needs ≥2 columns mapped to «Comment»",
+                "Clean BOM: map PN name and/or PN join on the BOM tab",
                 "warning",
             )
+            logger.error("Clean BOM: BOM PN column not configured")
             return
-        if double_on:
-            use_cols = comment_cols
-        else:
-            use_cols = [comment_cols[0]]
-        for col in use_cols:
+        for col in comment_cols:
             if col not in df.columns:
                 self._log(f"Clean BOM: column «{col}» missing from BOM", "warning")
                 return
@@ -1067,7 +1198,6 @@ class CleanTabMixin:
             df,
             comment_cols,
             self._clean_source_indices,
-            double_comment_enabled=double_on,
             double_comment_separator=str(
                 self.clean_double_comment_sep.text()
                 if hasattr(self, "clean_double_comment_sep")
@@ -1075,13 +1205,13 @@ class CleanTabMixin:
             ),
         )
         n = len(self._clean_imported_comments)
-        joined = "», «".join(str(c) for c in use_cols)
+        joined = "», «".join(str(c) for c in comment_cols)
         col_desc = (
             "«" + joined + "» (merged)"
-            if double_on and len(use_cols) > 1
+            if len(comment_cols) > 1
             else f"«{primary_col}»"
         )
-        logger.info("Imported %d comments from BOM columns %s", n, use_cols)
+        logger.info("Imported %d comments from BOM columns %s", n, comment_cols)
         self._log(
             f"Clean BOM: imported {n} row(s) from column(s) {col_desc} using active BOM range",
             "info",
@@ -1302,7 +1432,6 @@ class CleanTabMixin:
             replace,
         )
 
-        before_cols = list(self._bom_df.columns)
         preserved_roles = (
             self._mapping_roles_from_combos(self.bom_col_combos)
             if getattr(self, "bom_col_combos", None)
@@ -1317,19 +1446,16 @@ class CleanTabMixin:
         )
         after_cols = list(self._bom_df.columns)
         self.bom_model.update_dataframe(self._bom_df)
-        if not replace and after_cols != before_cols:
-            roles = list(preserved_roles)
-            while len(roles) < len(after_cols):
-                roles.append("-")
-            if "comment" in after_cols:
-                roles[after_cols.index("comment")] = "Comment"
+        from services.column_mapping import roles_after_clean_apply
+
+        comment_target = col if replace else "comment"
+        if comment_target not in after_cols and "comment" in after_cols:
+            comment_target = "comment"
+        if comment_target in after_cols:
+            roles = roles_after_clean_apply(
+                preserved_roles, after_cols, comment_column=comment_target
+            )
             self._fill_bom_combos(preserved_roles=roles)
-        elif not replace and "comment" in after_cols and getattr(
-            self, "bom_col_combos", None
-        ):
-            tidx = after_cols.index("comment")
-            if tidx < len(self.bom_col_combos):
-                self._set_mapping_combo_role(self.bom_col_combos[tidx], "Comment")
         if replace:
             msg = self.ui_tr(
                 "clean.apply_replaced",
@@ -1392,6 +1518,8 @@ class CleanTabMixin:
             "from_db": self.clean_from_db.isChecked(),
             "from_hanwha_mdb": self.clean_from_hanwha_mdb.isChecked(),
             "hanwha_partial_match": self.clean_hanwha_partial_match.isChecked(),
+            "regex_master_enabled": self.clean_regex_master.isChecked(),
+            "regex_master_preview_scores": self.clean_regex_master_scores.isChecked(),
             "prefix_use_separator": self.clean_prefix_use_separator.isChecked(),
             "res_prefix": self.clean_res_prefix.text(),
             "cap_prefix": self.clean_cap_prefix.text(),
@@ -1485,6 +1613,17 @@ class CleanTabMixin:
         self.clean_hanwha_partial_match.setChecked(
             _prefs_profile_bool(c.get("hanwha_partial_match"), False)
         )
+        if hasattr(self, "clean_regex_master"):
+            rm = _prefs_profile_bool(c.get("regex_master_enabled"), False)
+            self.clean_regex_master.blockSignals(True)
+            self.clean_regex_master.setChecked(rm)
+            self.clean_regex_master.blockSignals(False)
+            self.clean_regex_master_scores.setEnabled(rm)
+            self.clean_regex_master_scores.blockSignals(True)
+            self.clean_regex_master_scores.setChecked(
+                rm and _prefs_profile_bool(c.get("regex_master_preview_scores"), False)
+            )
+            self.clean_regex_master_scores.blockSignals(False)
         self.clean_prefix_use_separator.setChecked(
             _prefs_profile_bool(c.get("prefix_use_separator"), True)
         )

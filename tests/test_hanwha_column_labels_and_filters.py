@@ -24,7 +24,7 @@ def test_standard_s_heuristic_stdver_in_desc() -> None:
 
 def test_part_name_core_label() -> None:
     label, tip = label_and_tooltip_for_column("PARTNAME")
-    assert "Part Name" == label
+    assert "Part name" == label
     assert "PARTNAME" in tip
 
 

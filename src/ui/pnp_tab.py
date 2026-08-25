@@ -18,7 +18,133 @@ class PnpTabMixin:
         self._pnp_tab_widget = tab
         self._register_main_tab("pnp", tab)
 
-        layout = QtWidgets.QVBoxLayout(tab)
+        from ui.chrome import (
+            CHROME_MARGIN,
+            CHROME_SPACING,
+            action_button,
+            apply_equal_widths,
+            help_button,
+            left_rail_widget,
+        )
+
+        root = QtWidgets.QHBoxLayout(tab)
+        root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)
+        root.setSpacing(CHROME_SPACING)
+
+        left = left_rail_widget()
+        left_l = QtWidgets.QVBoxLayout(left)
+        left_l.setContentsMargins(0, 0, 8, 0)
+        left_l.setSpacing(CHROME_SPACING)
+
+        self.gb_pnp_file = QtWidgets.QGroupBox(self.ui_tr("pnp.group_file"))
+        file_l = QtWidgets.QVBoxLayout(self.gb_pnp_file)
+        sep_row = QtWidgets.QHBoxLayout()
+        self.lbl_pnp_separator = QtWidgets.QLabel(self.ui_tr("pnp.separator"))
+        sep_row.addWidget(self.lbl_pnp_separator)
+        self.pnp_separator = QtWidgets.QComboBox()
+        self.pnp_separator.addItems(
+            ["auto", ",", ";", "\\t", "space", "spaces", "2+sp", "fixed"]
+        )
+        self.pnp_separator.setCurrentText("auto")
+        self.pnp_separator.setMinimumWidth(70)
+        self.pnp_separator.setToolTip(self.ui_tr("pnp.separator_tip"))
+        sep_row.addWidget(self.pnp_separator, 1)
+        self.btn_pnp_help = help_button(self._show_pnp_help)
+        self.btn_pnp_help.setToolTip(self.ui_tr("pnp.help_title"))
+        sep_row.addWidget(self.btn_pnp_help)
+        file_l.addLayout(sep_row)
+        self.btn_reload_pnp = action_button(self.ui_tr("pnp.reload"))
+        self.btn_reload_pnp.clicked.connect(self._reload_pnp)
+        file_l.addWidget(self.btn_reload_pnp)
+        left_l.addWidget(self.gb_pnp_file)
+
+        self.gb_pnp_coords = QtWidgets.QGroupBox(self.ui_tr("pnp.group_coords"))
+        coord_l = QtWidgets.QVBoxLayout(self.gb_pnp_coords)
+        units_row = QtWidgets.QHBoxLayout()
+        self.lbl_pnp_xy_units = QtWidgets.QLabel(self.ui_tr("pnp.xy_units"))
+        units_row.addWidget(self.lbl_pnp_xy_units)
+        self.pnp_units_mm = QtWidgets.QRadioButton("mm")
+        self.pnp_units_mils = QtWidgets.QRadioButton("mils")
+        self.pnp_units_mm.setChecked(True)
+        self.pnp_units_mm.setToolTip(
+            "PnP X/Y cells are millimetres. Same choice on Merge, Report, and PCB Preview tabs "
+            "(changing any updates all). Overlap compares centre distance in mm."
+        )
+        self.pnp_units_mils.setToolTip(
+            "PnP X/Y cells are mils (0.001 inch). Overlap converts ×0.0254 to mm vs threshold; "
+            "PCB Preview and MERCURY .mmd export convert to mm. Tables keep raw numbers."
+        )
+        self.pnp_units_mm.toggled.connect(
+            lambda on: on and self._on_user_pnp_xy_unit_choice(True)
+        )
+        self.pnp_units_mils.toggled.connect(
+            lambda on: on and self._on_user_pnp_xy_unit_choice(False)
+        )
+        units_row.addWidget(self.pnp_units_mm)
+        units_row.addWidget(self.pnp_units_mils)
+        units_row.addStretch(1)
+        coord_l.addLayout(units_row)
+        self.btn_pnp_clean_xyr = action_button("Clean X/Y/R")
+        self.btn_pnp_clean_xyr.setToolTip(
+            "Strip junk from mapped X, Y, and Rotation columns — keeps digits and decimal separators "
+            "(`.` `,` `-`); does not remove dots inside numbers."
+        )
+        self.btn_pnp_clean_xyr.clicked.connect(self._pnp_clean_xy_rot_columns)
+        coord_l.addWidget(self.btn_pnp_clean_xyr)
+        self.btn_pnp_mm_mil = action_button("MM→MIL")
+        self.btn_pnp_mm_mil.setToolTip(
+            "Convert mapped X and Y from millimeters to mils (explicit edit); four fractional digits."
+        )
+        self.btn_pnp_mm_mil.clicked.connect(self._pnp_convert_xy_mm_to_mil)
+        coord_l.addWidget(self.btn_pnp_mm_mil)
+        self.btn_pnp_mil_mm = action_button("MIL→MM")
+        self.btn_pnp_mil_mm.setToolTip(
+            "Convert mapped X and Y from mils to millimeters (explicit edit); four fractional digits."
+        )
+        self.btn_pnp_mil_mm.clicked.connect(self._pnp_convert_xy_mil_to_mm)
+        coord_l.addWidget(self.btn_pnp_mil_mm)
+        left_l.addWidget(self.gb_pnp_coords)
+
+        self.gb_pnp_edit = QtWidgets.QGroupBox(self.ui_tr("pnp.group_edit"))
+        edit_l = QtWidgets.QVBoxLayout(self.gb_pnp_edit)
+        self.btn_pnp_undo = action_button(self.ui_tr("pnp.undo"))
+        self.btn_pnp_redo = action_button(self.ui_tr("pnp.redo"))
+        self.btn_pnp_undo.setEnabled(False)
+        self.btn_pnp_redo.setEnabled(False)
+        self._pnp_undo_stack.canUndoChanged.connect(self.btn_pnp_undo.setEnabled)
+        self._pnp_undo_stack.canRedoChanged.connect(self.btn_pnp_redo.setEnabled)
+        self.btn_pnp_undo.clicked.connect(self._pnp_undo_stack.undo)
+        self.btn_pnp_redo.clicked.connect(self._pnp_undo_stack.redo)
+        edit_l.addWidget(self.btn_pnp_undo)
+        edit_l.addWidget(self.btn_pnp_redo)
+        self.btn_pnp_find = action_button(self.ui_tr("pnp.find_replace"))
+        self.btn_pnp_find.clicked.connect(lambda: self._find_replace_table("pnp"))
+        edit_l.addWidget(self.btn_pnp_find)
+        left_l.addWidget(self.gb_pnp_edit)
+
+        self.gb_pnp_workspace = QtWidgets.QGroupBox(self.ui_tr("pnp.group_workspace"))
+        ws_l = QtWidgets.QVBoxLayout(self.gb_pnp_workspace)
+        self.btn_clear_pnp = action_button(self.ui_tr("pnp.clear_workspace"))
+        self.btn_clear_pnp.setObjectName("dangerClearBtn")
+        self.btn_clear_pnp.setStyleSheet(_DANGER_CLEAR_BTN_STYLE)
+        self.btn_clear_pnp.setToolTip(self.ui_tr("pnp.clear_workspace_tip"))
+        self.btn_clear_pnp.clicked.connect(self._confirm_clear_pnp_workspace)
+        ws_l.addWidget(self.btn_clear_pnp)
+        left_l.addWidget(self.gb_pnp_workspace)
+        apply_equal_widths(
+            (
+                self.btn_reload_pnp,
+                self.btn_pnp_clean_xyr,
+                self.btn_pnp_mm_mil,
+                self.btn_pnp_mil_mm,
+                self.btn_pnp_undo,
+                self.btn_pnp_redo,
+                self.btn_pnp_find,
+                self.btn_clear_pnp,
+            )
+        )
+        left_l.addStretch(1)
+        root.addWidget(left)
 
         self.pnp_preview_stack = QtWidgets.QWidget()
         pnp_pv = QtWidgets.QVBoxLayout(self.pnp_preview_stack)
@@ -51,96 +177,7 @@ class PnpTabMixin:
             lambda *args: self._mark_working_dirty("pnp")
         )
         pnp_pv.addWidget(self.pnp_table, 1)
-        layout.addWidget(self.pnp_preview_stack, 1)
-
-        coord_row = QtWidgets.QHBoxLayout()
-        btn_clean_xyr = QtWidgets.QPushButton("Clean X/Y/R")
-        btn_clean_xyr.setToolTip(
-            "Strip junk from mapped X, Y, and Rotation columns — keeps digits and decimal separators "
-            "(`.` `,` `-`); does not remove dots inside numbers."
-        )
-        btn_clean_xyr.clicked.connect(self._pnp_clean_xy_rot_columns)
-        coord_row.addWidget(btn_clean_xyr)
-        btn_mm_mil = QtWidgets.QPushButton("MM→MIL")
-        btn_mm_mil.setToolTip(
-            "Convert mapped X and Y from millimeters to mils (explicit edit); four fractional digits."
-        )
-        btn_mm_mil.clicked.connect(self._pnp_convert_xy_mm_to_mil)
-        coord_row.addWidget(btn_mm_mil)
-        btn_mil_mm = QtWidgets.QPushButton("MIL→MM")
-        btn_mil_mm.setToolTip(
-            "Convert mapped X and Y from mils to millimeters (explicit edit); four fractional digits."
-        )
-        btn_mil_mm.clicked.connect(self._pnp_convert_xy_mil_to_mm)
-        coord_row.addWidget(btn_mil_mm)
-        coord_row.addStretch()
-        layout.addLayout(coord_row)
-
-        # Bottom config row
-        config = QtWidgets.QFrame()
-        config_layout = QtWidgets.QHBoxLayout(config)
-
-        self.lbl_pnp_separator = QtWidgets.QLabel(self.ui_tr("pnp.separator"))
-        config_layout.addWidget(self.lbl_pnp_separator)
-        self.pnp_separator = QtWidgets.QComboBox()
-        self.pnp_separator.addItems(
-            ["auto", ",", ";", "\\t", "space", "spaces", "2+sp", "fixed"]
-        )
-        self.pnp_separator.setCurrentText("auto")
-        self.pnp_separator.setMinimumWidth(70)
-        self.pnp_separator.setToolTip(self.ui_tr("pnp.separator_tip"))
-        config_layout.addWidget(self.pnp_separator)
-
-        self.lbl_pnp_xy_units = QtWidgets.QLabel(self.ui_tr("pnp.xy_units"))
-        config_layout.addWidget(self.lbl_pnp_xy_units)
-        self.pnp_units_mm = QtWidgets.QRadioButton("mm")
-        self.pnp_units_mils = QtWidgets.QRadioButton("mils")
-        self.pnp_units_mm.setChecked(True)
-        self.pnp_units_mm.setToolTip(
-            "PnP X/Y cells are millimetres. Same choice on Merge, Report, and PCB Preview tabs "
-            "(changing any updates all). Overlap compares centre distance in mm."
-        )
-        self.pnp_units_mils.setToolTip(
-            "PnP X/Y cells are mils (0.001 inch). Overlap converts ×0.0254 to mm vs threshold; "
-            "PCB Preview and MERCURY .mmd export convert to mm. Tables keep raw numbers."
-        )
-        self.pnp_units_mm.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(True)
-        )
-        self.pnp_units_mils.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(False)
-        )
-        config_layout.addWidget(self.pnp_units_mm)
-        config_layout.addWidget(self.pnp_units_mils)
-
-        btn_reload_pnp = QtWidgets.QPushButton(self.ui_tr("pnp.reload"))
-        btn_reload_pnp.clicked.connect(self._reload_pnp)
-        config_layout.addWidget(btn_reload_pnp)
-
-        self.btn_pnp_undo = QtWidgets.QPushButton(self.ui_tr("pnp.undo"))
-        self.btn_pnp_redo = QtWidgets.QPushButton(self.ui_tr("pnp.redo"))
-        self.btn_pnp_undo.setEnabled(False)
-        self.btn_pnp_redo.setEnabled(False)
-        self._pnp_undo_stack.canUndoChanged.connect(self.btn_pnp_undo.setEnabled)
-        self._pnp_undo_stack.canRedoChanged.connect(self.btn_pnp_redo.setEnabled)
-        self.btn_pnp_undo.clicked.connect(self._pnp_undo_stack.undo)
-        self.btn_pnp_redo.clicked.connect(self._pnp_undo_stack.redo)
-        config_layout.addWidget(self.btn_pnp_undo)
-        config_layout.addWidget(self.btn_pnp_redo)
-
-        config_layout.addStretch()
-        btn_find = QtWidgets.QPushButton(self.ui_tr("pnp.find_replace"))
-        btn_find.clicked.connect(lambda: self._find_replace_table("pnp"))
-        config_layout.addWidget(btn_find)
-
-        self.btn_clear_pnp = QtWidgets.QPushButton(self.ui_tr("pnp.clear_workspace"))
-        self.btn_clear_pnp.setObjectName("dangerClearBtn")
-        self.btn_clear_pnp.setStyleSheet(_DANGER_CLEAR_BTN_STYLE)
-        self.btn_clear_pnp.setToolTip(self.ui_tr("pnp.clear_workspace_tip"))
-        self.btn_clear_pnp.clicked.connect(self._confirm_clear_pnp_workspace)
-        config_layout.addWidget(self.btn_clear_pnp)
-
-        layout.addWidget(config)
+        root.addWidget(self.pnp_preview_stack, 1)
 
         self.pnp_separator.currentTextChanged.connect(
             lambda *_: self._schedule_save_pnp_tab_settings()
@@ -165,6 +202,12 @@ class PnpTabMixin:
         )
         if res == QtWidgets.QMessageBox.StandardButton.Yes:
             self._clear_pnp_workspace()
+    def _show_pnp_help(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            self.ui_tr("pnp.help_title"),
+            self.ui_tr("pnp.help_body"),
+        )
     def _clear_pnp_workspace(self) -> None:
         self._prune_session_links_for_pnp_identity(self._pnp_snapshot_identity_path())
         self._pnp_df = None

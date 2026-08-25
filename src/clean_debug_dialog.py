@@ -17,19 +17,6 @@ __all__ = [
     "load_pipeline_from_settings",
 ]
 
-
-def _read_bool_setting(settings: QSettings, key: str, default: bool = False) -> bool:
-    v = settings.value(key, default)
-    if isinstance(v, bool):
-        return v
-    sl = str(v).strip().lower()
-    if sl in ("true", "1", "yes", "on"):
-        return True
-    if sl in ("false", "0", "no", "off", ""):
-        return False
-    return default
-
-
 STEP_LABELS = {
     "inferit": "INFERIT / BOM regex presets",
     "vendor": "Vendor MPN decoders (pn_original)",
@@ -106,36 +93,6 @@ class CleanPipelineDebugDialog(QtWidgets.QDialog):
             )
             self._list.addItem(item)
 
-        rx_box = QtWidgets.QGroupBox("Regex master (experimental)")
-        rx_lay = QtWidgets.QVBoxLayout(rx_box)
-        self._cb_regex_master = QtWidgets.QCheckBox(
-            "Enable parser arbiter (INFERIT / vendor PN / token-regex compete by slot score)"
-        )
-        self._cb_regex_master.setToolTip(
-            "When on, Clean BOM picks among inferit, pn_original, and family regex using "
-            "filled template slots (cap 90%% for regex-class paths). Library and Hanwha steps "
-            "still win immediately when they match."
-        )
-        self._cb_preview_scores = QtWidgets.QCheckBox(
-            "Show arbiter detail + Win%% in Clean preview; tint Cleaned cells by score"
-        )
-        self._cb_preview_scores.setToolTip(
-            "Requires parser arbiter enabled. Adds Arbiter and Win%% columns and soft row tint."
-        )
-        rm_init = _read_bool_setting(
-            self._settings, "clean/regex_master_enabled", False
-        )
-        pv_init = _read_bool_setting(
-            self._settings, "clean/regex_master_preview_scores", False
-        )
-        self._cb_regex_master.setChecked(rm_init)
-        self._cb_preview_scores.setChecked(pv_init and rm_init)
-        self._cb_regex_master.toggled.connect(self._on_regex_master_toggled)
-        self._on_regex_master_toggled(rm_init)
-        rx_lay.addWidget(self._cb_regex_master)
-        rx_lay.addWidget(self._cb_preview_scores)
-        layout.addWidget(rx_box)
-
         lib_row = QtWidgets.QHBoxLayout()
         lib_row.addWidget(QtWidgets.QLabel("components.txt override:"))
         self._path_edit = QtWidgets.QLineEdit()
@@ -161,11 +118,6 @@ class CleanPipelineDebugDialog(QtWidgets.QDialog):
             QtWidgets.QDialogButtonBox.StandardButton.RestoreDefaults
         ).clicked.connect(self._restore_defaults)
         layout.addWidget(btns)
-
-    def _on_regex_master_toggled(self, on: bool) -> None:
-        self._cb_preview_scores.setEnabled(on)
-        if not on:
-            self._cb_preview_scores.setChecked(False)
 
     def _browse_components_txt(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -214,9 +166,6 @@ class CleanPipelineDebugDialog(QtWidgets.QDialog):
             )
             item.setCheckState(QtCore.Qt.CheckState.Checked)
             self._list.addItem(item)
-        self._cb_regex_master.setChecked(False)
-        self._cb_preview_scores.setChecked(False)
-        self._on_regex_master_toggled(False)
 
     def _on_accept(self) -> None:
         order: list[str] = []
@@ -236,12 +185,4 @@ class CleanPipelineDebugDialog(QtWidgets.QDialog):
             self._settings.setValue("clean/components_txt_path", p)
         else:
             self._settings.remove("clean/components_txt_path")
-        self._settings.setValue(
-            "clean/regex_master_enabled",
-            bool(self._cb_regex_master.isChecked()),
-        )
-        self._settings.setValue(
-            "clean/regex_master_preview_scores",
-            bool(self._cb_preview_scores.isChecked()),
-        )
         self.accept()

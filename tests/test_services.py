@@ -66,11 +66,32 @@ def test_import_bom_comments_double_merge() -> None:
         bom,
         ["A", "B"],
         [0, 1],
-        double_comment_enabled=True,
         double_comment_separator=" | ",
     )
     assert got[0] == "MLCC_2.2uF | 三星(Samsung)"
     assert got[1] == ""
+
+
+def test_import_bom_three_join_matches_name_plus_two_join() -> None:
+    bom = pd.DataFrame(
+        {"A": ["x"], "B": ["y"], "C": ["z"]},
+    )
+    sep = " | "
+    three_join = import_bom_comments_for_clean(
+        bom, ["A", "B", "C"], [0], double_comment_separator=sep
+    )
+    name_plus_two = import_bom_comments_for_clean(
+        bom, ["A", "B", "C"], [0], double_comment_separator=sep
+    )
+    assert three_join == name_plus_two == ["x | y | z"]
+
+
+def test_import_bom_single_column_no_separator() -> None:
+    bom = pd.DataFrame({"PN": ["0402_10K"]})
+    got = import_bom_comments_for_clean(
+        bom, ["PN"], [0], double_comment_separator=" | "
+    )
+    assert got == ["0402_10K"]
 
 
 def test_apply_clean_preview_meta_columns() -> None:
@@ -176,6 +197,45 @@ def test_build_processor_config_fallback_and_skip() -> None:
     assert isinstance(bom_cfg, ColumnConfig)
 
 
+def test_build_processor_config_prefers_pn_name_over_join() -> None:
+    bom = pd.DataFrame(
+        {"Ref": ["R1"], "Name": ["10K"], "Extra": ["vendor"]}
+    )
+    pnp = pd.DataFrame({"DESIGNATOR": ["R1"], "X": [1.0], "Y": [2.0]})
+    proc = build_processor_config(
+        bom,
+        pnp,
+        {"REF": "Ref", "Comment": "Name", "PnJoin": "Extra"},
+        {"REF": "DESIGNATOR"},
+        bom_column_roles=["REF", "Comment", "PnJoin"],
+    )
+    assert proc._bom_config is not None
+    assert proc._bom_config.comment == "Name"
+
+
+def test_build_processor_config_first_join_when_no_pn_name() -> None:
+    bom = pd.DataFrame({"Ref": ["R1"], "J1": ["a"], "J2": ["b"]})
+    pnp = pd.DataFrame({"DESIGNATOR": ["R1"], "X": [1.0], "Y": [2.0]})
+    proc = build_processor_config(
+        bom,
+        pnp,
+        {"REF": "Ref", "PnJoin": "J2"},
+        {"REF": "DESIGNATOR"},
+        bom_column_roles=["REF", "PnJoin", "PnJoin"],
+    )
+    assert proc._bom_config is not None
+    assert proc._bom_config.comment == "J1"
+
+
+def test_build_processor_config_refuses_comment_as_silent_ref() -> None:
+    from smt_processor import SMTColumnNotFoundError
+
+    bom = pd.DataFrame({"comment_orig": ["HDMI-PORT"], "comment": ["HDMI-PORT"]})
+    pnp = pd.DataFrame({"Value": ["HDMI-PORT"], "X": [1.0]})
+    with pytest.raises(SMTColumnNotFoundError, match="REF"):
+        build_processor_config(bom, pnp, {}, {})
+
+
 def test_read_pnp_dataframe_comma_csv() -> None:
     path = str(_ASSETS / "comma.csv")
     df = read_pnp_dataframe(path, ",", first_row=0, last_row=-1)
@@ -208,7 +268,6 @@ def test_import_join_then_clean_one_samsung(corpus_cfg: CleanConfig) -> None:
         bom,
         ["Prose", "Vendor", "MPN"],
         [0],
-        double_comment_enabled=True,
         double_comment_separator=" | ",
     )
     assert comments[0] == join_line

@@ -158,18 +158,28 @@ class DropRowWidget(QtWidgets.QWidget):
 
 def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     """Populate ``layout`` on the Project tab; attributes live on ``win`` (MainWindow)."""
+    from ui.chrome import CHROME_SPACING, action_button, apply_equal_widths
+
+    top = QtWidgets.QGridLayout()
+    top.setSpacing(CHROME_SPACING)
+    top.setColumnStretch(0, 1)
+    top.setColumnStretch(1, 1)
+
+    win.project_load_group = QtWidgets.QGroupBox(win.ui_tr("project.load_files"))
+    load_inner = QtWidgets.QVBoxLayout(win.project_load_group)
+    load_inner.setSpacing(CHROME_SPACING)
+
     win.project_bom_group = DropGroupBox(
         win.ui_tr("project.bom_file"), win, win._load_bom
     )
     bom_layout = QtWidgets.QVBoxLayout(win.project_bom_group)
     win.bom_path_label = PathLabel(win.ui_tr("project.no_file"))
     bom_layout.addWidget(win.bom_path_label)
-    win.btn_browse_bom = QtWidgets.QPushButton(win.ui_tr("project.browse_bom"))
-    win.btn_browse_bom.setMinimumHeight(32)
+    win.btn_browse_bom = action_button(win.ui_tr("project.browse_bom"))
     win.btn_browse_bom.clicked.connect(win._browse_bom)
     bom_layout.addWidget(win.btn_browse_bom)
 
-    layout.addWidget(win.project_bom_group)
+    load_inner.addWidget(win.project_bom_group)
 
     win.project_pnp_group = DropGroupBox(
         win.ui_tr("project.pnp_file"), win, win._load_pnp
@@ -181,8 +191,7 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     row1_layout.setContentsMargins(0, 0, 0, 0)
     win.pnp_path_label = PathLabel(win.ui_tr("project.no_file"))
     row1_layout.addWidget(win.pnp_path_label)
-    win.btn_browse_pnp = QtWidgets.QPushButton(win.ui_tr("project.browse_pnp"))
-    win.btn_browse_pnp.setMinimumHeight(32)
+    win.btn_browse_pnp = action_button(win.ui_tr("project.browse_pnp"))
     win.btn_browse_pnp.clicked.connect(win._browse_pnp)
     row1_layout.addWidget(win.btn_browse_pnp)
     pnp_outer.addWidget(row1)
@@ -199,8 +208,7 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.btn_clear_pnp_optional.setMaximumWidth(88)
     win.btn_clear_pnp_optional.clicked.connect(win._clear_pnp_secondary_only)
     pnp2_btns.addWidget(win.btn_clear_pnp_optional)
-    win.btn_browse_pnp2 = QtWidgets.QPushButton(win.ui_tr("project.browse_pnp2"))
-    win.btn_browse_pnp2.setMinimumHeight(32)
+    win.btn_browse_pnp2 = action_button(win.ui_tr("project.browse_pnp2"))
     win.btn_browse_pnp2.clicked.connect(win._browse_pnp_secondary)
     pnp2_btns.addWidget(win.btn_browse_pnp2, 1)
     row2_layout.addLayout(pnp2_btns)
@@ -230,15 +238,49 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     row3.addStretch(1)
     pnp_outer.addLayout(row3)
 
-    layout.addWidget(win.project_pnp_group)
+    load_inner.addWidget(win.project_pnp_group)
 
     win.lbl_pnp_topbot_help = QtWidgets.QLabel(win.ui_tr("project.pnp_topbot_help"))
     win.lbl_pnp_topbot_help.setWordWrap(True)
-    layout.addWidget(win.lbl_pnp_topbot_help)
+    load_inner.addWidget(win.lbl_pnp_topbot_help)
+
+    top.addWidget(win.project_load_group, 0, 0)
 
     win.project_settings_group = QtWidgets.QGroupBox(win.ui_tr("project.settings"))
     settings_layout = QtWidgets.QVBoxLayout(win.project_settings_group)
+    settings_layout.setSpacing(CHROME_SPACING)
 
+    win.chk_colorful = QtWidgets.QCheckBox(win.ui_tr("project.debug_logs"))
+    win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
+    win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
+    settings_layout.addWidget(win.chk_colorful)
+
+    win.btn_project_debug = action_button(win.ui_tr("project.advanced"))
+    win.btn_project_debug.clicked.connect(win._open_debug_settings)
+    settings_layout.addWidget(win.btn_project_debug)
+    win.btn_project_save_pack = action_button(win.ui_tr("project.save_session"))
+    win.btn_project_save_pack.clicked.connect(win._menu_save_boomerpack)
+    settings_layout.addWidget(win.btn_project_save_pack)
+    win.btn_project_load_pack = action_button(win.ui_tr("project.load_session"))
+    win.btn_project_load_pack.clicked.connect(win._menu_load_boomerpack)
+    settings_layout.addWidget(win.btn_project_load_pack)
+    apply_equal_widths(
+        (
+            win.btn_browse_bom,
+            win.btn_browse_pnp,
+            win.btn_browse_pnp2,
+            win.btn_project_debug,
+            win.btn_project_save_pack,
+            win.btn_project_load_pack,
+        )
+    )
+    settings_layout.addStretch(1)
+    top.addWidget(win.project_settings_group, 0, 1)
+    layout.addLayout(top)
+
+    win._prefs_host = QtWidgets.QWidget(win)
+    prefs_host_l = QtWidgets.QVBoxLayout(win._prefs_host)
+    prefs_host_l.setContentsMargins(0, 0, 0, 0)
     row_prof = QtWidgets.QHBoxLayout()
     win.profile_label = QtWidgets.QLabel(win.ui_tr("project.profile"))
     row_prof.addWidget(win.profile_label)
@@ -250,7 +292,7 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.btn_profile_delete = QtWidgets.QPushButton(win.ui_tr("project.profile_delete"))
     row_prof.addWidget(win.btn_profile_delete)
     row_prof.addStretch(1)
-    settings_layout.addLayout(row_prof)
+    prefs_host_l.addLayout(row_prof)
     win.profile_combo.currentTextChanged.connect(win._on_profile_combo_changed)
     win.btn_profile_clone.clicked.connect(win._on_profile_clone_clicked)
     win.btn_profile_delete.clicked.connect(win._on_profile_delete_clicked)
@@ -266,23 +308,8 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.lang_combo.currentIndexChanged.connect(lambda *_: win._on_ui_language_changed())
     row_ui.addWidget(win.lang_combo)
     row_ui.addStretch(1)
-    settings_layout.addLayout(row_ui)
-
-    settings_row = QtWidgets.QHBoxLayout()
-    settings_row.addWidget(win.project_settings_group, 1)
-    btn_row = QtWidgets.QHBoxLayout()
-    btn_row.setSpacing(8)
-    win.btn_project_debug = QtWidgets.QPushButton(win.ui_tr("menu.debug_settings"))
-    win.btn_project_debug.clicked.connect(win._open_debug_settings)
-    btn_row.addWidget(win.btn_project_debug)
-    win.btn_project_save_pack = QtWidgets.QPushButton(win.ui_tr("menu.save_boomerpack"))
-    win.btn_project_save_pack.clicked.connect(win._menu_save_boomerpack)
-    btn_row.addWidget(win.btn_project_save_pack)
-    win.btn_project_load_pack = QtWidgets.QPushButton(win.ui_tr("menu.load_boomerpack"))
-    win.btn_project_load_pack.clicked.connect(win._menu_load_boomerpack)
-    btn_row.addWidget(win.btn_project_load_pack)
-    settings_row.addLayout(btn_row)
-    layout.addLayout(settings_row)
+    prefs_host_l.addLayout(row_ui)
+    win._prefs_host.hide()
 
     win.project_console_group = QtWidgets.QGroupBox(win.ui_tr("project.console"))
     console_outer = QtWidgets.QVBoxLayout(win.project_console_group)
@@ -292,11 +319,6 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.console.setFont(build_mono_font(win._settings))
     win.console.setReadOnly(True)
     console_outer.addWidget(win.console)
-
-    win.chk_colorful = QtWidgets.QCheckBox(win.ui_tr("project.debug_logs"))
-    win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
-    console_outer.addWidget(win.chk_colorful)
-    win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
 
     layout.addWidget(win.project_console_group, 1)
 

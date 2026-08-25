@@ -15,34 +15,29 @@ def import_bom_comments_for_clean(
     comment_column_names: list[str],
     active_row_indices: list[int],
     *,
-    double_comment_enabled: bool = False,
+    double_comment_enabled: bool = True,
     double_comment_separator: str = " ",
 ) -> list[str]:
+    """Join every PN name / PN join column in table order when there are two or more.
+
+    ``double_comment_enabled`` is ignored (kept for call-site compatibility).
+    """
+    del double_comment_enabled
     if not comment_column_names:
         return []
-    if double_comment_enabled:
-        if len(comment_column_names) < 2:
-            return []
-        comment_cols = comment_column_names
-    else:
-        comment_cols = [comment_column_names[0]]
-
+    comment_cols = list(comment_column_names)
     for col in comment_cols:
         if col not in bom_df.columns:
             return []
 
-    if double_comment_enabled and len(comment_cols) > 1:
-        comments = [
+    if len(comment_cols) >= 2:
+        return [
             merge_clean_comment_cell_parts(
                 [bom_df.iloc[i][c] for c in comment_cols],
                 double_comment_separator,
             )
             for i in active_row_indices
         ]
-    else:
-        primary_col = comment_cols[0]
-        comments = [
-            str(bom_df.iloc[i][primary_col]) for i in active_row_indices
-        ]
 
-    return comments
+    primary_col = comment_cols[0]
+    return [str(bom_df.iloc[i][primary_col]) for i in active_row_indices]
