@@ -38,6 +38,7 @@ def config(use_color_logs: bool):
     global __logger
     __logger = logging.getLogger("__logger")
     __logger.setLevel(logging.DEBUG)
+    __logger.handlers.clear()
 
     # Create a file handler to write logs to a file
     file_formatter = logging.Formatter(
@@ -95,6 +96,50 @@ def config(use_color_logs: bool):
         logging.addLevelName(logging.FATAL, "FATAL")
 
     __logger.debug("----------------- STARTING -----------------")
+    global _debug_mode
+    _debug_mode = True
+
+
+_debug_mode = False
+
+
+def env_debug_enabled() -> bool:
+    return os.environ.get("VALVET_DEBUG", "").strip().lower() in ("1", "true", "yes")
+
+
+def debug_mode_enabled() -> bool:
+    return bool(_debug_mode)
+
+
+def _disable_file_logging() -> None:
+    """Keep a quiet stderr handler; no dated log file."""
+    global __logger, _debug_mode
+    __logger = logging.getLogger("__logger")
+    __logger.handlers.clear()
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.WARNING)
+    __logger.addHandler(handler)
+    __logger.setLevel(logging.WARNING)
+    _debug_mode = False
+
+
+def set_debug_mode(enabled: bool, *, use_color_logs: bool = True) -> None:
+    """Same as ``--debug``: file + verbose stderr when enabled."""
+    global _debug_mode
+    if enabled:
+        if _debug_mode:
+            return
+        config(use_color_logs)
+        return
+    _disable_file_logging()
+
+
+def configure_if_debug(*, argv_debug: bool = False, use_color_logs: bool = True) -> bool:
+    """Enable file + stderr logging when ``--debug`` or ``VALVET_DEBUG`` is set."""
+    if not (argv_debug or env_debug_enabled()):
+        return False
+    set_debug_mode(True, use_color_logs=use_color_logs)
+    return True
 
 
 # -----------------------------------------------------------------------------

@@ -21,13 +21,16 @@ The primary application is the PySide6 desktop UI:
 cd VALVET
 source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
 python src/main.py
+python src/main.py --debug   # same as Project tab “Debug logs”: file + stderr logging
 ```
 
 Alias (deprecated import path): `python src/app_pyside6.py`
 
+**Optional CLI / Textual TUI** (no Qt, no Step 3D, no PCB Preview): install `requirements-cli.txt` and run `PYTHONPATH=src python -m cli --help`. Subcommands load BOM/PnP, map columns, clean comments, merge/export, and read Hanwha `.mdb` tables / `PART_Det`. `python -m cli tui` opens a one-screen Textual app. Session JSON stores paths and mappings only; DataFrames stay in the process. `python -m cli --debug …` or `VALVET_DEBUG=1` enables the same `logger.config` file/stderr logging as the desktop `--debug` flag.
+
 **ALPHA:** Expect rough edges. Hanwha MDB edit, **PCB Preview**, and **Step 3D** (VTK) are especially experimental. `QSettings` uses organization **`VALVET`** / application **`VALVET`**.
 
-**UI profiles:** On the Project tab you can pick a **profile** (`default` or cloned names). Checkboxes, combos, and tab options for BOM/PnP (except which file is open), Clean, Merge, Report, and PCB Preview **mirror/units/nudge** are saved into the active profile when you **close the app**. **Step 3D** converter command (`step_3d/converter_command`) is stored in **global** `QSettings`, not inside profile JSON. **Loaded BOM/PnP file paths are not restored** after restart (hash-keyed options still apply when you open the same path again). Use **Clear** on the BOM or PnP tab to unload a file from the workspace without changing saved profile defaults.
+**UI profiles:** On the Project tab you can pick a **profile** (`default` or cloned names). Checkboxes, combos, and tab options for BOM/PnP (except which file is open), Clean, Merge, Report, and PCB Preview **mirror/units/nudge** are saved into the active profile when you **close the app**. **Step 3D** converter command (`step_3d/converter_command`) and tessellation deflection (`step_3d/lin_deflection`) are stored in **global** `QSettings`, not inside profile JSON. **Loaded BOM/PnP file paths are not restored** after restart (hash-keyed options still apply when you open the same path again). Use **Clear** on the BOM or PnP tab to unload a file from the workspace without changing saved profile defaults.
 
 **UI language:** The Project tab **Language** control loads JSON catalogs from `lang/` — English, Русский, Polski, 中文 (Simplified Chinese), Deutsch, and Português (Brasil). Choice is stored in `QSettings` and in the active profile. Tab-specific controls beyond the shared catalog may still appear in English until those strings are moved into the same i18n system.
 
@@ -37,25 +40,28 @@ Alias (deprecated import path): `python src/app_pyside6.py`
 
 ### PCB Preview (work in progress)
 
-The PySide6 app includes a **PCB Preview** tab: Gerber layers via [gerbonara](https://pypi.org/project/gerbonara/), overlay of the current PnP table, zoom/pan, simple **heuristic** footprint outlines (and any outlines still present in the local footprint cache from older versions), placement labels, mirror X/Y, and a mm **nudge** control. This is **Gerber visualization only** — separate from machine-library work below.
+The PySide6 app includes a **PCB Preview** tab: Gerber layers via [pygerber](https://pypi.org/project/pygerber/) (with [gerbonara](https://pypi.org/project/gerbonara/) fallback for CAM350/Allegro `.art`), overlay of the current PnP table, zoom/pan, simple **heuristic** footprint outlines (and any outlines still present in the local footprint cache from older versions), placement labels, mirror X/Y, and a mm **nudge** control. This is **Gerber visualization only** — separate from machine-library work below.
 
 ### Step 3D tab (optional)
 
-The **Step 3D** tab previews tessellated CAD after you point it at a **`.stp` / `.step` / `.st`** file. The app does **not** embed Open CASCADE: you configure an **external** command (saved in `QSettings`) that converts STEP to a temporary **Wavefront OBJ** path passed as `{out}`, with the STEP path as `{in}`. Example template (your tool and flags will differ):
+The **Step 3D** tab tessellates **`.stp` / `.step` / `.st`** (AP214 assemblies such as Creo PCBA) and shows the mesh in PyVista/VTK. Prefer **in-process** [pythonocc-core](https://github.com/tpaviot/pythonocc-core) (Open CASCADE **LGPL**, not bundled with VALVET):
+
+```bash
+pip install -r requirements-step3d.txt
+# Windows: conda-forge wheels are usually more reliable than PyPI
+#   conda install -c conda-forge pythonocc-core
+pip install -r requirements-step3d-occ.txt
+```
+
+If pythonocc is not installed, configure an **external** STEP→mesh CLI (global `QSettings` key `step_3d/converter_command`) with `{in}` (STEP) and `{out}` (temporary Wavefront OBJ):
 
 ```text
 your_step_to_obj "{in}" "{out}"
 ```
 
-Install viewer dependencies when you need this tab:
+Mouse: **drag** to rotate, **wheel** to zoom, **middle button** or **Shift+drag** to pan. Click a part or the assembly tree to highlight. **Mesh mm** is linear tessellation deflection (coarser = faster on large files). Pick any extra converter whose **license** fits your distribution; VALVET’s Python UI stack for this tab is [PyVista](https://github.com/pyvista/pyvista), [pyvistaqt](https://github.com/pyvista/pyvistaqt), and VTK.
 
-```bash
-pip install -r requirements-step3d.txt
-```
-
-Mouse: **drag** to rotate, **wheel** to zoom, **middle button** or **Shift+drag** to pan (VTK defaults). Pick a converter whose **license** fits your distribution; VALVET only ships MIT/BSD Python pieces ([PyVista](https://github.com/pyvista/pyvista), [pyvistaqt](https://github.com/pyvista/pyvistaqt), VTK).
-
-**Linux / X11:** The VTK widget is created only when the Step 3D tab is first shown (avoids `BadWindow` / `vtkXOpenGLRenderWindow` errors while the tab is still hidden). If you still see X11 errors under Wayland, try launching with **`QT_QPA_PLATFORM=xcb`** (forces the X11 Qt plugin so VTK’s GLX path matches).
+**Linux / X11:** The VTK widget is created only when the Step 3D tab is first shown (avoids `BadWindow` / `vtkXOpenGLRenderWindow` errors while the tab is still hidden). If you still see X11 errors under Wayland, try launching with **`QT_QPA_PLATFORM=xcb`**.
 
 ### Machine libraries (planned)
 
@@ -154,7 +160,7 @@ Cross-check BOM and PnP data for:
 
 ### Step 3D (optional)
 
-- Preview **`.stp` / `.step` / `.st`** after tessellation: configure an **external** CLI in **Debug/global `QSettings`** (key `step_3d/converter_command`) with `{in}` and `{out}`; install **`requirements-step3d.txt`** for PyVista/VTK. No Open CASCADE bundled in the app process.
+- Preview **`.stp` / `.step` / `.st`**: optional **pythonocc-core** tessellation (see `requirements-step3d-occ.txt`) into PyVista; otherwise an external CLI `{in}`/`{out}` to OBJ. Viewer packages: **`requirements-step3d.txt`**. OCC is not in the default app process or core `requirements.txt`.
 
 ## Installation
 
@@ -286,7 +292,7 @@ Known gaps are listed in [TODO.md](doc/TODO.md) if new failures appear after dep
 
 ## Repository Notes
 
-- `requirements.txt` contains the current runtime and test dependencies; **`requirements-dev.txt`** adds PyInstaller, **Ruff**, and **Vulture** for frozen builds and optional lint/dead-code passes (see [TESTING.md](doc/info/TESTING.md)). Optional **Step 3D** viewer deps: **`requirements-step3d.txt`** (`pyvista`, `pyvistaqt`, `vtk`).
+- `requirements.txt` contains the current runtime and test dependencies; **`requirements-dev.txt`** adds PyInstaller, **Ruff**, and **Vulture** for frozen builds and optional lint/dead-code passes (see [TESTING.md](doc/info/TESTING.md)). Optional **Step 3D** viewer: **`requirements-step3d.txt`** (`pyvista`, `pyvistaqt`, `vtk`); optional tessellation: **`requirements-step3d-occ.txt`** (`pythonocc-core`, LGPL / conda-forge on Windows).
 - `.gitignore` excludes Python caches, pytest/coverage output, autosave/recovery snapshots, generated exports, and optional local **`doc/info/LLM.md`** (AI context — not part of the distributed tree).
 - `components.txt` is intentionally tracked.
 - Web prototypes were removed; future web UI should be service-backed.

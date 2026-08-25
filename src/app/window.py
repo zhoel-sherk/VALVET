@@ -73,10 +73,11 @@ class MainWindow(
 
     log_message = QtCore.Signal(str, str)  # message, level
 
-    def __init__(self, *, settings: QSettings | None = None):
+    def __init__(self, *, settings: QSettings | None = None, debug: bool = False):
         super().__init__()
         self.setMinimumSize(900, 600)
         self.resize(1400, 900)
+        self._cli_debug = bool(debug)
 
         # Data processor
         self.processor = SMTDataProcessor(ProcessorConfig())
@@ -146,6 +147,9 @@ class MainWindow(
 
         self._setup_ui()
         self._load_settings()
+        if self._cli_debug or logger.env_debug_enabled():
+            self.chk_colorful.setChecked(True)
+        self._sync_file_debug_logger()
         self._session_geometry_restored = False
         self._log(self.ui_tr("msg.app_ready"), "info")
 
@@ -217,10 +221,6 @@ class MainWindow(
             if cols:
                 comment = ", ".join(str(c) for c in cols)
         rows = self.ui_tr("status.rows_all")
-        if hasattr(self, "bom_first_row") and hasattr(self, "bom_last_row"):
-            first = str(self.bom_first_row.text() or "1")
-            last = str(self.bom_last_row.text() or "").strip()
-            rows = f"{first}–{last}" if last else f"{first}–…"
         stale = (
             self.ui_tr("status.clean_stale")
             if getattr(self, "_clean_preview_stale", False)
@@ -286,6 +286,7 @@ class MainWindow(
         self.btn_profile_clone.setText(self.ui_tr("project.profile_clone"))
         self.btn_profile_delete.setText(self.ui_tr("project.profile_delete"))
         self.chk_colorful.setText(self.ui_tr("project.debug_logs"))
+        self.chk_colorful.setToolTip(self.ui_tr("project.debug_logs_hint"))
         self.lang_label.setText(self.ui_tr("project.language"))
         if self._bom_source_path:
             configure_path_label(
@@ -530,6 +531,13 @@ class MainWindow(
         if self._restoring_settings or not hasattr(self, "_settings"):
             return
         self._settings.setValue("ui/colorful_logs", self.chk_colorful.isChecked())
+        self._sync_file_debug_logger()
+
+    def _sync_file_debug_logger(self) -> None:
+        """Project 'Debug logs' checkbox is the same switch as ``--debug``."""
+        if not hasattr(self, "chk_colorful"):
+            return
+        logger.set_debug_mode(self.chk_colorful.isChecked())
 
     def _load_settings(self) -> None:
         self._restoring_settings = True

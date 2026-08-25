@@ -536,12 +536,7 @@ class CleanTabMixin:
             cols = []
         if cols:
             comment = ", ".join(str(c) for c in cols)
-        first = "1"
-        last = ""
-        if hasattr(self, "bom_first_row"):
-            first = str(self.bom_first_row.text() or "1")
-            last = str(self.bom_last_row.text() or "").strip()
-        rows = f"{first}–{last}" if last else f"{first}–…"
+        rows = self.ui_tr("status.rows_all")
         self.lbl_clean_context.setText(
             self.ui_tr("clean.context_chip", file=bom, cols=comment, rows=rows)
         )
@@ -1063,11 +1058,9 @@ class CleanTabMixin:
                 return
         primary_col = comment_cols[0]
         self._clean_source_column = primary_col
-        self._clean_source_indices = self._active_row_indices(
-            len(df), self.bom_first_row, self.bom_last_row
-        )
+        self._clean_source_indices = list(range(len(df)))
         if not self._clean_source_indices:
-            self._log("Clean BOM: selected BOM row range is empty", "warning")
+            self._log("Clean BOM: BOM table is empty", "warning")
             return
 
         self._clean_imported_comments = import_bom_comments_for_clean(
@@ -1324,7 +1317,6 @@ class CleanTabMixin:
         )
         after_cols = list(self._bom_df.columns)
         self.bom_model.update_dataframe(self._bom_df)
-        self._refresh_active_row_highlight("bom")
         if not replace and after_cols != before_cols:
             roles = list(preserved_roles)
             while len(roles) < len(after_cols):
@@ -1608,19 +1600,7 @@ class CleanTabMixin:
         )
 
     def _clean_source_range_label(self, n_rows: int) -> str:
-        first, last = self._active_row_numbers(
-            self.bom_model.rowCount() if hasattr(self, "bom_model") else 0,
-            self.bom_first_row,
-            self.bom_last_row,
-        )
-        if first is None or last is None:
-            return ""
-        return self.ui_tr(
-            "clean.source_range",
-            first=first,
-            last=last,
-            count=n_rows,
-        )
+        return self.ui_tr("clean.source_range", count=n_rows)
 
     def _show_clean_apply_banner(self, message: str) -> None:
         if not hasattr(self, "clean_apply_ok_banner"):

@@ -103,10 +103,8 @@ class FilesMixin:
         self,
         path: str,
         sep: str,
-        first: int,
-        last: int,
     ) -> pd.DataFrame:
-        return _service_read_pnp(path, sep, first, last)
+        return _service_read_pnp(path, sep, 0, -1)
     def _pnp_mapped_layer_column_index(self) -> int | None:
         if self._pnp_df is None or not getattr(self, "pnp_col_combos", None):
             return None
@@ -155,9 +153,6 @@ class FilesMixin:
             if not isinstance(recovered, pd.DataFrame):
                 self._restore_bom_tab_load_params(path)
             sep = self.bom_separator.currentText()
-            first = int(self.bom_first_row.text() or 1) - 1  # 0-based
-            last_text = self.bom_last_row.text()
-            last = int(last_text) - 1 if last_text else -1
 
             if isinstance(recovered, pd.DataFrame):
                 self._bom_df = recovered
@@ -166,8 +161,8 @@ class FilesMixin:
             else:
                 self._bom_df = read_file(
                     path,
-                    first_row=first,
-                    last_row=last,
+                    first_row=0,
+                    last_row=-1,
                     separator=sep,
                     column_headers_from_file=False,
                 )
@@ -182,7 +177,6 @@ class FilesMixin:
             self._loading_working_copy = True
             self.bom_model.update_dataframe(self._bom_df)
             self._loading_working_copy = False
-            self._refresh_active_row_highlight("bom")
             self._fill_bom_combos()
             self._restore_bom_mappings_after_fill(path)
             QtCore.QTimer.singleShot(0, self._autoresize_bom_columns)
@@ -234,9 +228,6 @@ class FilesMixin:
             if not isinstance(recovered, pd.DataFrame):
                 self._restore_pnp_tab_load_params(pnp_settings_key)
             sep = self.pnp_separator.currentText()
-            first = int(self.pnp_first_row.text() or 1) - 1
-            last_text = self.pnp_last_row.text()
-            last = int(last_text) - 1 if last_text else -1
 
             if isinstance(recovered, pd.DataFrame):
                 self._pnp_df = recovered
@@ -244,12 +235,10 @@ class FilesMixin:
                 recovered_note = "recovered working copy"
                 self._pnp_primary_row_count = len(self._pnp_df)
             else:
-                df1 = self._read_pnp_dataframe_from_disk(path, sep, first, last)
+                df1 = self._read_pnp_dataframe_from_disk(path, sep)
                 self._pnp_primary_row_count = len(df1)
                 if dual:
-                    df2 = self._read_pnp_dataframe_from_disk(
-                        p_secondary, sep, first, last
-                    )
+                    df2 = self._read_pnp_dataframe_from_disk(p_secondary, sep)
                     self._pnp_df = pd.concat([df1, df2], axis=0, ignore_index=True)
                     recovered_note = "merged (2 files)"
                 else:
@@ -276,7 +265,6 @@ class FilesMixin:
             self._loading_working_copy = True
             self.pnp_model.update_dataframe(self._pnp_df)
             self._loading_working_copy = False
-            self._refresh_active_row_highlight("pnp")
             self._fill_pnp_combos()
             self._restore_pnp_mappings_after_fill(pnp_settings_key)
             if self.chk_pnp_layer_override.isChecked():

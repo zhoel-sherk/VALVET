@@ -1,0 +1,13 @@
+# Optional in-process STEP tessellation (Open CASCADE, LGPL) via pythonocc-core.
+# Not required for core BOM/PnP. Viewer mesh display still needs requirements-step3d.txt.
+#
+# Preferred Windows install: conda-forge
+#   conda install -c conda-forge pythonocc-core
+#
+# This machine: built from source (OCCT 7.9.0 + pythonocc-core 7.9.0) into the
+# project venv. DLLs live next to the OCCT prefix; VALVET adds them via
+# os.add_dll_directory (override with VALVET_OCCT_BIN):
+#   C:\Users\Roriman\occ-src\occt-install\win64\vc14\bin
+#
+# Rebuild notes: C:\Users\Roriman\occ-src\  (OCCT, pythonocc-core, pythonocc-build)
+pythonocc-core

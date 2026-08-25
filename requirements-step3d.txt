@@ -1,5 +1,7 @@
 # Optional: Step 3D tab (PyVista + VTK in Qt). Not required for core BOM/PnP.
-# From the boomer project root (e.g. ~/cursor/boomer): activate .venv or venv, then:
+# Tessellation: install pythonocc-core from requirements-step3d-occ.txt (or conda-forge),
+# or configure an external STEP→OBJ CLI in the tab.
+# From the project root: activate .venv, then:
 #   pip install -r requirements-step3d.txt
 pyvista>=0.43,<0.50
 pyvistaqt>=0.11

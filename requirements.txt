@@ -11,6 +11,7 @@ openpyxl
 odfpy
 natsort
 gerbonara
+pygerber[svg]
 regex
 rapidfuzz>=3.0.0
 pint>=0.24

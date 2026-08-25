@@ -9,9 +9,6 @@ from PySide6 import QtWidgets
 import pandas as pd
 
 from valvetpack import (
-    OPEN_FILTER,
-    SAVE_FILTER,
-    VALVETPACK_EXT,
     ValvetpackError,
     load_valvetpack,
     save_valvetpack,
@@ -135,7 +132,6 @@ class SessionMixin:
                 self.bom_model.update_dataframe(self._bom_df)
                 self._loading_working_copy = False
                 self._bom_dirty = True
-                self._refresh_active_row_highlight("bom")
                 self._log(self.ui_tr("debug.recovered_bom"), "info")
             elif kind == "pnp" and (self._pnp_snapshot_identity_path() == ident):
                 self._pnp_df = snap.dataframe.copy()
@@ -143,7 +139,6 @@ class SessionMixin:
                 self.pnp_model.update_dataframe(self._pnp_df)
                 self._loading_working_copy = False
                 self._pnp_dirty = True
-                self._refresh_active_row_highlight("pnp")
                 self._log(self.ui_tr("debug.recovered_pnp"), "info")
         self._refresh_pcb_preview_from_ui()
         self._hide_merge_cross_check_ok_banner()
@@ -216,7 +211,6 @@ class SessionMixin:
                 self._profile_restore_bom_mappings = [str(x) for x in bm]
             self._fill_bom_combos()
             self._apply_pending_profile_bom_mappings()
-            self._refresh_active_row_highlight("bom")
         if pnp_df is not None and isinstance(pnp_df, pd.DataFrame):
             self._pnp_df = pnp_df
             self._loading_working_copy = True
@@ -228,7 +222,6 @@ class SessionMixin:
                 self._profile_restore_pnp_mappings = [str(x) for x in pm]
             self._fill_pnp_combos()
             self._apply_pending_profile_pnp_mappings()
-            self._refresh_active_row_highlight("pnp")
         if (
             merge_df is not None
             and isinstance(merge_df, pd.DataFrame)

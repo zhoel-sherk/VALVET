@@ -132,6 +132,44 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         win.close()
 
 
+def test_debug_logs_checkbox_calls_set_debug_mode(
+    import_parsers, qapp, tmp_path, monkeypatch
+) -> None:
+    from app.window import MainWindow
+
+    states: list[bool] = []
+    monkeypatch.setattr(
+        "logger.set_debug_mode", lambda on, **_k: states.append(bool(on))
+    )
+    settings = _ini_settings(tmp_path)
+    _set_experimental(settings, enabled=False)
+    win = MainWindow(settings=settings)
+    try:
+        assert win.chk_colorful.isChecked() is False
+        assert states[-1] is False
+        win.chk_colorful.setChecked(True)
+        assert states[-1] is True
+        win.chk_colorful.setChecked(False)
+        assert states[-1] is False
+    finally:
+        win.close()
+
+
+def test_cli_debug_checks_project_debug_logs(
+    import_parsers, qapp, tmp_path, monkeypatch
+) -> None:
+    from app.window import MainWindow
+
+    monkeypatch.setattr("logger.set_debug_mode", lambda on, **_k: None)
+    settings = _ini_settings(tmp_path)
+    _set_experimental(settings, enabled=False)
+    win = MainWindow(settings=settings, debug=True)
+    try:
+        assert win.chk_colorful.isChecked() is True
+    finally:
+        win.close()
+
+
 def test_clean_options_expanded_from_qsettings(import_parsers, qapp, tmp_path) -> None:
     from app.window import MainWindow
 

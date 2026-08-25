@@ -64,22 +64,6 @@ class BomTabMixin:
         self.bom_separator.setMinimumWidth(70)
         config_layout.addWidget(self.bom_separator)
 
-        self.lbl_bom_first = QtWidgets.QLabel(self.ui_tr("bom.row_range_first"))
-        self.lbl_bom_first.setToolTip(self.ui_tr("bom.row_range_tip"))
-        config_layout.addWidget(self.lbl_bom_first)
-        self.bom_first_row = QtWidgets.QLineEdit("1")
-        self.bom_first_row.setMaximumWidth(52)
-        self.bom_first_row.setToolTip(self.ui_tr("bom.row_range_tip"))
-        config_layout.addWidget(self.bom_first_row)
-
-        self.lbl_bom_last = QtWidgets.QLabel(self.ui_tr("bom.row_range_last"))
-        self.lbl_bom_last.setToolTip(self.ui_tr("bom.row_range_tip"))
-        config_layout.addWidget(self.lbl_bom_last)
-        self.bom_last_row = QtWidgets.QLineEdit("")
-        self.bom_last_row.setMaximumWidth(52)
-        self.bom_last_row.setToolTip(self.ui_tr("bom.row_range_tip"))
-        config_layout.addWidget(self.bom_last_row)
-
         btn_reload_bom = QtWidgets.QPushButton(self.ui_tr("bom.reload"))
         btn_reload_bom.clicked.connect(self._reload_bom)
         config_layout.addWidget(btn_reload_bom)
@@ -112,8 +96,6 @@ class BomTabMixin:
         self.bom_separator.currentTextChanged.connect(
             lambda *_: self._schedule_save_bom_tab_settings()
         )
-        self.bom_first_row.textChanged.connect(self._on_bom_first_last_row_changed)
-        self.bom_last_row.textChanged.connect(self._on_bom_first_last_row_changed)
     def _sync_bom_df_from_model(self) -> None:
         if not hasattr(self, "bom_model"):
             return
@@ -149,7 +131,6 @@ class BomTabMixin:
         configure_path_label(
             self.bom_path_label, "", empty_text=self.ui_tr("project.no_file")
         )
-        self._refresh_active_row_highlight("bom")
         self._hide_merge_cross_check_ok_banner()
         self._profile_restore_bom_mappings = None
         self._log(self.ui_tr("msg.bom_cleared"), "info")

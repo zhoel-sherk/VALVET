@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Callable, Iterable, Protocol, Union
+from typing import Iterable, Protocol, Union
 
 from clean_types import DEFAULT_CLEAN_PIPELINE, canonical_pipeline_order
 

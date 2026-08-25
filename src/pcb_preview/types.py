@@ -42,12 +42,13 @@ class BBoxMM:
 
 @dataclass(frozen=True)
 class GerberSvgPayload:
-    """Gerber layer converted to SVG (gerbonara); bounds in mm."""
+    """Gerber layer converted to SVG; bounds in millimetres (scene units)."""
 
     source_path: str
     svg: str
     bbox_mm: BBoxMM
     errors: tuple[str, ...] = ()
+    backend_name: str = ""
 
 
 @dataclass(frozen=True)

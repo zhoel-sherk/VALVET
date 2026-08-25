@@ -106,11 +106,9 @@ class TableActionsMixin:
         if kind == "bom":
             self._bom_df = new_df
             self._mark_working_dirty("bom")
-            self._refresh_active_row_highlight("bom")
         else:
             self._pnp_df = new_df
             self._mark_working_dirty("pnp")
-            self._refresh_active_row_highlight("pnp")
             self._refresh_pcb_preview_from_ui()
     def _delete_table_columns(self, kind: str) -> None:
         table = self.bom_table if kind == "bom" else self.pnp_table
@@ -247,68 +245,6 @@ class TableActionsMixin:
         buttons.rejected.connect(dlg.reject)
         dlg.resize(420, 180)
         dlg.exec()
-    def _active_row_indices(
-        self,
-        total_rows: int,
-        first_widget: QtWidgets.QLineEdit,
-        last_widget: QtWidgets.QLineEdit,
-    ) -> list[int]:
-        if total_rows <= 0:
-            return []
-        try:
-            first = max(0, int(first_widget.text() or "1") - 1)
-        except ValueError:
-            first = 0
-        try:
-            last_text = last_widget.text().strip()
-            last = int(last_text) - 1 if last_text else total_rows - 1
-        except ValueError:
-            last = total_rows - 1
-        last = min(max(last, first), total_rows - 1)
-        if first >= total_rows:
-            return []
-        return list(range(first, last + 1))
-    def _active_row_numbers(
-        self,
-        total_rows: int,
-        first_widget: QtWidgets.QLineEdit,
-        last_widget: QtWidgets.QLineEdit,
-    ) -> tuple[int | None, int | None]:
-        if total_rows <= 0:
-            return None, None
-        try:
-            first = max(1, int(first_widget.text() or "1"))
-        except ValueError:
-            first = 1
-        try:
-            last_text = last_widget.text().strip()
-            last = int(last_text) if last_text else total_rows
-        except ValueError:
-            last = total_rows
-        if first > total_rows:
-            return None, None
-        return first, min(max(last, first), total_rows)
-    def _refresh_active_row_highlight(self, kind: str) -> None:
-        if kind == "bom" and hasattr(self, "bom_model"):
-            first, last = self._active_row_numbers(
-                self.bom_model.rowCount(), self.bom_first_row, self.bom_last_row
-            )
-            self.bom_model.set_active_row_range(first, last)
-            self.bom_table.verticalHeader().viewport().update()
-        elif kind == "pnp" and hasattr(self, "pnp_model"):
-            first, last = self._active_row_numbers(
-                self.pnp_model.rowCount(), self.pnp_first_row, self.pnp_last_row
-            )
-            self.pnp_model.set_active_row_range(first, last)
-            self.pnp_table.verticalHeader().viewport().update()
-    def _on_bom_first_last_row_changed(self, *_args) -> None:
-        self._refresh_active_row_highlight("bom")
-        self._schedule_save_bom_tab_settings()
-        if hasattr(self, "_mark_clean_preview_stale"):
-            self._mark_clean_preview_stale()
-    def _on_pnp_first_last_row_changed(self, *_args) -> None:
-        self._refresh_active_row_highlight("pnp")
-        self._schedule_save_pnp_tab_settings()
     def _schedule_save_bom_tab_settings(self) -> None:
         if self._bom_ui_restoring or self._restoring_settings:
             return
@@ -326,8 +262,6 @@ class TableActionsMixin:
         h = path_settings_hash(path)
         self._settings.beginGroup(f"bom/ui/{h}")
         self._settings.setValue("separator", self.bom_separator.currentText())
-        self._settings.setValue("first_row", self.bom_first_row.text())
-        self._settings.setValue("last_row", self.bom_last_row.text())
         if hasattr(self, "bom_col_combos") and self.bom_col_combos:
             self._settings.setValue(
                 "mappings",
@@ -343,8 +277,6 @@ class TableActionsMixin:
         h = path_settings_hash(path)
         self._settings.beginGroup(f"pnp/ui/{h}")
         self._settings.setValue("separator", self.pnp_separator.currentText())
-        self._settings.setValue("first_row", self.pnp_first_row.text())
-        self._settings.setValue("last_row", self.pnp_last_row.text())
         if hasattr(self, "pnp_col_combos") and self.pnp_col_combos:
             self._settings.setValue(
                 "mappings",
@@ -367,8 +299,6 @@ class TableActionsMixin:
                 idx = self.bom_separator.findText(sep)
                 if idx >= 0:
                     self.bom_separator.setCurrentIndex(idx)
-            self.bom_first_row.setText(str(self._settings.value("first_row", "1")))
-            self.bom_last_row.setText(str(self._settings.value("last_row", "")))
         finally:
             self._bom_ui_restoring = False
             self._settings.endGroup()
@@ -387,8 +317,6 @@ class TableActionsMixin:
             sep = self._settings.value("separator", "auto")
             if isinstance(sep, str) and self.pnp_separator.findText(sep) >= 0:
                 self.pnp_separator.setCurrentText(sep)
-            self.pnp_first_row.setText(str(self._settings.value("first_row", "1")))
-            self.pnp_last_row.setText(str(self._settings.value("last_row", "")))
         finally:
             self._pnp_ui_restoring = False
             self._settings.endGroup()

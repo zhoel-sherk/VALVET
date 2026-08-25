@@ -12,6 +12,7 @@ from PySide6 import QtCore
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PySide6 import QtGui
 from PySide6.QtGui import QUndoCommand, QUndoStack
+import logger
 
 
 def _coerce_edit_value_for_dataframe(value: Any, col_dtype: Any) -> Any:
@@ -148,7 +149,6 @@ class PandasTableModel(QAbstractTableModel):
         super().__init__(parent)
         self._df = dataframe if dataframe is not None else pd.DataFrame()
         self._editable = editable
-        self._active_row_range: tuple[int, int] | None = None
         self._column_display_names: dict[str, str] = {}
         self._column_tooltips: dict[str, str] = {}
         self._undo_stack: Optional[QUndoStack] = None
@@ -221,29 +221,6 @@ class PandasTableModel(QAbstractTableModel):
         elif orientation == Qt.Orientation.Vertical:
             if role == Qt.ItemDataRole.DisplayRole:
                 return str(section + 1)
-            if (
-                role == Qt.ItemDataRole.BackgroundRole
-                and self._active_row_range is not None
-            ):
-                first, last = self._active_row_range
-                row_number = section + 1
-                if first <= row_number <= last:
-                    return QtGui.QBrush(QtGui.QColor(66, 133, 244))
-            if (
-                role == Qt.ItemDataRole.ForegroundRole
-                and self._active_row_range is not None
-            ):
-                first, last = self._active_row_range
-                row_number = section + 1
-                if first <= row_number <= last:
-                    return QtGui.QBrush(QtGui.QColor(255, 255, 255))
-            if role == Qt.ItemDataRole.FontRole and self._active_row_range is not None:
-                first, last = self._active_row_range
-                row_number = section + 1
-                if first <= row_number <= last:
-                    font = QtGui.QFont()
-                    font.setBold(True)
-                    return font
 
         return None
 
@@ -423,14 +400,6 @@ class PandasTableModel(QAbstractTableModel):
         )
         return True
 
-    def set_active_row_range(self, first: int | None, last: int | None) -> None:
-        if first is None or last is None or first < 1 or last < first:
-            self._active_row_range = None
-        else:
-            self._active_row_range = (first, last)
-        if self.rowCount() > 0:
-            self.headerDataChanged.emit(Qt.Orientation.Vertical, 0, self.rowCount() - 1)
-
     def get_column_value(self, column_name: str) -> pd.Series:
         if column_name in self._df.columns:
             return self._df[column_name]
@@ -510,8 +479,8 @@ class SortableTableModel(PandasTableModel):
         self.clear_undo_stack()
         try:
             self._df = self._df.sort_values(by=col_name, ascending=ascending)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Table sort failed on %s: %s", col_name, e)
 
         self.endResetModel()
 

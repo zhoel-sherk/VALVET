@@ -669,7 +669,6 @@ def _collect_vendor_arbiter_candidate(
     if not pnr:
         return None
     pnv, eff = pnr[0], pnr[1]
-    from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
     pnv = enrich_vendor_cleaned_from_bom(s, pnv, eff, cfg)
     pnv = reformat_cleaned_pn(pnv, eff, cfg)

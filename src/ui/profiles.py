@@ -78,19 +78,15 @@ class ProfilesMixin:
                 "language": lang if lang in SUPPORTED_UI_LOCALES else "en",
                 "colorful_logs": self.chk_colorful.isChecked()
                 if hasattr(self, "chk_colorful")
-                else True,
+                else False,
                 "colours": dict(self._ui_colours),
             },
             "bom": {
                 "separator": self.bom_separator.currentText(),
-                "first_row": self.bom_first_row.text(),
-                "last_row": self.bom_last_row.text(),
                 "mappings": bom_maps,
             },
             "pnp": {
                 "separator": self.pnp_separator.currentText(),
-                "first_row": self.pnp_first_row.text(),
-                "last_row": self.pnp_last_row.text(),
                 "units": "mm" if self._pnp_xy_stored_in_mm() else "mils",
                 "mappings": pnp_maps,
                 "secondary_path": (self._pnp_secondary_path or ""),
@@ -121,7 +117,7 @@ class ProfilesMixin:
         if lang not in SUPPORTED_UI_LOCALES:
             lang = "en"
         if hasattr(self, "chk_colorful"):
-            self.chk_colorful.setChecked(bool(ui.get("colorful_logs", True)))
+            self.chk_colorful.setChecked(bool(ui.get("colorful_logs", False)))
         csub = ui.get("colours")
         self._ui_colours = merge_ui_colours(csub if isinstance(csub, dict) else None)
         tc = data.get("table_colours")
@@ -130,8 +126,6 @@ class ProfilesMixin:
         bsep = str(bom.get("separator", "auto"))
         if self.bom_separator.findText(bsep) >= 0:
             self.bom_separator.setCurrentText(bsep)
-        self.bom_first_row.setText(str(bom.get("first_row", "1")))
-        self.bom_last_row.setText(str(bom.get("last_row", "")))
         bm = bom.get("mappings")
         self._profile_restore_bom_mappings = (
             [str(x) for x in bm] if isinstance(bm, list) else None
@@ -140,8 +134,6 @@ class ProfilesMixin:
         psep = str(pnp.get("separator", "auto"))
         if self.pnp_separator.findText(psep) >= 0:
             self.pnp_separator.setCurrentText(psep)
-        self.pnp_first_row.setText(str(pnp.get("first_row", "1")))
-        self.pnp_last_row.setText(str(pnp.get("last_row", "")))
         self._apply_pnp_xy_units_everywhere(
             str(pnp.get("units", "mm")).lower() != "mils",
             save_settings=False,
@@ -203,8 +195,6 @@ class ProfilesMixin:
                 self.lang_combo.setCurrentIndex(li)
             self.lang_combo.blockSignals(False)
         self._apply_ui_language(lang, save=False)
-        self._refresh_active_row_highlight("bom")
-        self._refresh_active_row_highlight("pnp")
 
     def _save_full_profile_snapshot(self) -> None:
         if not hasattr(self, "_settings"):
@@ -311,7 +301,7 @@ class ProfilesMixin:
 
     def _load_legacy_settings_flat(self, s: QSettings) -> None:
         if hasattr(self, "chk_colorful"):
-            self.chk_colorful.setChecked(s.value("ui/colorful_logs", True, type=bool))
+            self.chk_colorful.setChecked(s.value("ui/colorful_logs", False, type=bool))
         if hasattr(self, "merge_delete_dnp") and s.contains("merge/delete_dnp"):
             self.merge_delete_dnp.setChecked(
                 s.value("merge/delete_dnp", False, type=bool)

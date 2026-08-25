@@ -3,7 +3,10 @@ target-version = "py311"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-# Default Ruff rule set; relax only where the codebase intentionally diverges.
+# Default Ruff is too noisy on this tree (UP/SIM/BLE). CI gates syntax/undefined
+# names and unused imports; line length and deferred imports are ignored.
+select = ["E", "F"]
+ignore = ["E501", "E402", "E741"]
 
 [tool.ruff.lint.per-file-ignores]
 # Deferred imports after sys.path / Qt class bodies (see src/app_pyside6.py).
@@ -15,3 +18,15 @@ src = ["src", "tests"]
 paths = ["src"]
 min_confidence = 80
 exclude = ["**/yedytor/**"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "src/app/*",
+    "src/ui/*",
+    "src/hanwha_mdb_edit/gui/*",
+]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true

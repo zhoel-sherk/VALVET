@@ -1,5 +1,5 @@
 """
-PCB preview core: Gerber SVG (gerbonara), PnP alignment math, footprint cache (heuristic + legacy DB).
+PCB preview core: Gerber via pygerber then gerbonara, PnP alignment math, footprint cache (heuristic + legacy DB).
 
 No PySide6 or pandas in this package; GUI lives in `pcb_preview_tab.py`.
 """
@@ -14,6 +14,7 @@ from pcb_preview.gerber_io import (
     load_gerber_svg,
     peek_rs274x_linear_unit,
     scale_bbox_mm,
+    gerber_to_scene_mm_scale,
 )
 from pcb_preview.types import (
     BBoxMM,
@@ -34,6 +35,7 @@ __all__ = [
     "load_gerber_svg",
     "peek_rs274x_linear_unit",
     "scale_bbox_mm",
+    "gerber_to_scene_mm_scale",
     "BBoxMM",
     "FootprintOutlineMM",
     "GerberSvgPayload",

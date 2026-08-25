@@ -7,12 +7,18 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtSvg import QSvgRenderer
 
 from pcb_preview.alignment import Similarity2D
 from pcb_preview.footprint_db import FootprintStore
+from pcb_preview.engine.identify import (
+    guess_layer_kind,
+    layer_default_opacity,
+    layer_default_rgb,
+    layer_default_z,
+)
 from pcb_preview.gerber_io import (
-    load_gerber_svg,
+    GerberUnitMode,
+    gerber_to_scene_mm_scale,
     peek_rs274x_linear_unit,
     scale_bbox_mm,
 )
@@ -24,6 +30,7 @@ from pcb_preview.types import (
 )
 
 import pcb_preview_bridge
+from pcb_preview_load_thread import GerberLoadThread
 
 
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
@@ -167,9 +174,9 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
         lf.setPointSizeF(10.0)
         self._label.setFont(lf)
         self._label.setPos(r + 0.2, -r - 0.2)
-        self._label.setScale(_LABEL_SCENE_SCALE)
         self._label.setZValue(2)
         self.addToGroup(self._label)
+        self.set_label_scale(_LABEL_SCENE_SCALE)
 
         rr = _CENTROID_RADIUS_MM * _SEL_RING_SCALE
         self._sel_ring = QtWidgets.QGraphicsEllipseItem(-rr, -rr, 2 * rr, 2 * rr)
@@ -275,7 +282,12 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
             self._label.setBrush(QtGui.QBrush(QtGui.QColor(255, 235, 160)))
 
     def set_label_scale(self, scale: float) -> None:
-        self._label.setScale(max(0.04, float(scale)))
+        # QGraphicsItemGroup.addToGroup bakes scale into transform(); setScale() then
+        # multiplies and cannot be reverted. Replace the transform instead.
+        s = max(0.04, min(1.0, float(scale)))
+        self.prepareGeometryChange()
+        self._label.setScale(1.0)
+        self._label.setTransform(QtGui.QTransform.fromScale(s, s))
 
     def set_labels_visible(self, on: bool) -> None:
         self._label.setVisible(on)
@@ -355,12 +367,16 @@ class PnpArrowNudgeBar(QtWidgets.QWidget):
 
 @dataclass
 class _GerberLayerRow:
-    """One loaded Gerber bitmap in the scene."""
+    """One loaded Gerber bitmap in the scene (native bbox is backend millimetres)."""
 
     path: str
     display_name: str
     pixmap_item: QtWidgets.QGraphicsPixmapItem
     bbox_mm: BBoxMM
+    native_bbox_mm: BBoxMM
+    s_raster: float
+    rgb: tuple[int, int, int] = (120, 160, 200)
+    opacity: float = 0.8
 
 
 class PcbPreviewTab(QtWidgets.QWidget):
@@ -391,6 +407,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._show_footprints = True
         self._placements_fp: tuple[Any, ...] | None = None
         self._did_initial_fit = False
+        self._gerber_thread: Any = None
 
         root = QtWidgets.QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -439,12 +456,23 @@ class PcbPreviewTab(QtWidgets.QWidget):
         lu = QtWidgets.QVBoxLayout(grp_u)
         self._rb_g_auto = QtWidgets.QRadioButton("Auto")
         self._rb_g_mm = QtWidgets.QRadioButton("mm")
+        self._rb_g_mils = QtWidgets.QRadioButton("mils → mm")
         self._rb_g_in = QtWidgets.QRadioButton("inch → mm")
         self._rb_g_auto.setChecked(True)
         self._bg_gunit = QtWidgets.QButtonGroup(self)
-        for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_in):
+        for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_mils, self._rb_g_in):
             self._bg_gunit.addButton(rb)
             lu.addWidget(rb)
+        self._rb_g_auto.setToolTip(
+            "Backends already convert Gerber to millimetres; scene grid is mm (same as PnP)."
+        )
+        self._rb_g_mm.setToolTip("Treat loaded Gerber as millimetres (×1).")
+        self._rb_g_mils.setToolTip(
+            "Scale Gerber by 0.0254 (mils → mm), same factor as PnP."
+        )
+        self._rb_g_in.setToolTip(
+            "Scale Gerber by 25.4 (inch → mm). Use only if the backend left inches."
+        )
 
         grp_pnp_xy = QtWidgets.QGroupBox("PnP coordinates")
         self._grp_pnp_xy = grp_pnp_xy
@@ -476,7 +504,24 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._layer_list = QtWidgets.QListWidget()
         self._layer_list.setMaximumHeight(120)
         self._layer_list.itemChanged.connect(self._on_layer_item_changed)
+        self._layer_list.currentRowChanged.connect(self._on_layer_row_changed)
         gl.addWidget(self._layer_list)
+        style_row = QtWidgets.QHBoxLayout()
+        self._lbl_layer_color = QtWidgets.QLabel("Color")
+        self._btn_layer_color = QtWidgets.QPushButton()
+        self._btn_layer_color.setFixedSize(28, 22)
+        self._btn_layer_color.clicked.connect(self._on_pick_layer_color)
+        self._lbl_layer_opacity = QtWidgets.QLabel("Opacity")
+        self._spin_layer_opacity = QtWidgets.QDoubleSpinBox()
+        self._spin_layer_opacity.setRange(0.05, 1.0)
+        self._spin_layer_opacity.setSingleStep(0.05)
+        self._spin_layer_opacity.setValue(0.8)
+        self._spin_layer_opacity.valueChanged.connect(self._on_layer_opacity_changed)
+        style_row.addWidget(self._lbl_layer_color)
+        style_row.addWidget(self._btn_layer_color)
+        style_row.addWidget(self._lbl_layer_opacity)
+        style_row.addWidget(self._spin_layer_opacity)
+        gl.addLayout(style_row)
         self._btn_clear_layers = QtWidgets.QPushButton("Clear layers")
         self._btn_clear_layers.clicked.connect(self._clear_gerber_layers)
         gl.addWidget(self._btn_clear_layers)
@@ -596,12 +641,16 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._grp_gunit.setTitle(self._tr("pcb.gerber_units"))
         self._rb_g_auto.setText(self._tr("pcb.gerber_auto"))
         self._rb_g_mm.setText(self._tr("pcb.gerber_mm"))
+        self._rb_g_mils.setText(self._tr("pcb.gerber_mils"))
         self._rb_g_in.setText(self._tr("pcb.gerber_in"))
         self._grp_pnp_xy.setTitle(self._tr("pcb.pnp_xy"))
         self._grp_nudge.setTitle(self._tr("pcb.nudge"))
         self._grp_layers.setTitle(self._tr("pcb.layers"))
         self._btn_clear_layers.setText(self._tr("pcb.clear_layers"))
         self._btn_rm_layer.setText(self._tr("pcb.remove_layer"))
+        self._lbl_layer_color.setText(self._tr("pcb.layer_color"))
+        self._lbl_layer_opacity.setText(self._tr("pcb.layer_opacity"))
+        self._btn_layer_color.setToolTip(self._tr("pcb.layer_color_tooltip"))
         self._lbl_refs.setText(self._tr("pcb.refs"))
         self._lbl_label_scale.setText(self._tr("pcb.label_scale"))
         self._chk_show_labels.setText(self._tr("pcb.show_labels"))
@@ -619,6 +668,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._label_scale = float(value)
         for it in self._items.values():
             it.set_label_scale(self._label_scale)
+        self._update_scene_rect_from_content()
 
     def _on_show_labels_toggled(self, on: bool) -> None:
         self._show_labels = bool(on)
@@ -652,10 +702,8 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
     def export_ui_prefs(self) -> dict[str, Any]:
         """Serializable PCB Preview UI prefs (checkboxes / radios / nudge step only — not layer paths)."""
-        gunit = "auto"
-        if self._rb_g_mm.isChecked():
-            gunit = "mm"
-        elif self._rb_g_in.isChecked():
+        gunit = self._gerber_unit_mode()
+        if gunit == "inch":
             gunit = "in"
         return {
             "mirror_x": self._chk_mirror_x.isChecked(),
@@ -684,15 +732,19 @@ class PcbPreviewTab(QtWidgets.QWidget):
         gu = str(prefs.get("gerber_unit", "auto")).lower()
         self._rb_g_auto.blockSignals(True)
         self._rb_g_mm.blockSignals(True)
+        self._rb_g_mils.blockSignals(True)
         self._rb_g_in.blockSignals(True)
         if gu == "mm":
             self._rb_g_mm.setChecked(True)
-        elif gu == "in":
+        elif gu in ("mils", "mil"):
+            self._rb_g_mils.setChecked(True)
+        elif gu in ("in", "inch"):
             self._rb_g_in.setChecked(True)
         else:
             self._rb_g_auto.setChecked(True)
         self._rb_g_auto.blockSignals(False)
         self._rb_g_mm.blockSignals(False)
+        self._rb_g_mils.blockSignals(False)
         self._rb_g_in.blockSignals(False)
 
         step = str(prefs.get("nudge_step", "0.5")).strip()
@@ -721,6 +773,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
             it.set_labels_visible(self._show_labels)
             it.set_footprint_visible(self._show_footprints)
         self._set_placements_root_transform()
+        self._rescale_all_gerber_layers(log=False)
 
     def _zoom_view_in(self) -> None:
         self._view.scale(1.2, 1.2)
@@ -757,15 +810,44 @@ class PcbPreviewTab(QtWidgets.QWidget):
                 it.setPos(it.pos() + delta)
         self._update_scene_rect_from_content()
 
-    def _gerber_user_mm_scale(self, path: str) -> tuple[float, str]:
+    def _gerber_unit_mode(self) -> GerberUnitMode:
+        if self._rb_g_mils.isChecked():
+            return "mils"
         if self._rb_g_in.isChecked():
-            return 25.4, "UI inch→mm ×25.4"
+            return "inch"
         if self._rb_g_mm.isChecked():
-            return 1.0, "UI mm ×1"
-        u = peek_rs274x_linear_unit(path)
-        return 1.0, f"Auto header={u!r}; gerbonara→scene ×1"
+            return "mm"
+        return "auto"
+
+    def _on_gerber_unit_toggled(self, _btn: object, checked: bool) -> None:
+        if not checked:
+            return
+        self._rescale_all_gerber_layers(log=True)
+
+    def _gerber_user_mm_scale(self, path: str) -> tuple[float, str]:
+        header = peek_rs274x_linear_unit(path)
+        return gerber_to_scene_mm_scale(self._gerber_unit_mode(), header)
+
+    def _apply_layer_user_scale(
+        self, row: _GerberLayerRow, user_mm_scale: float
+    ) -> None:
+        row.pixmap_item.setScale(row.s_raster * user_mm_scale)
+        nb = row.native_bbox_mm
+        row.pixmap_item.setPos(nb.min_x * user_mm_scale, nb.min_y * user_mm_scale)
+        row.bbox_mm = scale_bbox_mm(nb, user_mm_scale)
+
+    def _rescale_all_gerber_layers(self, *, log: bool) -> None:
+        note = ""
+        for row in self._layers:
+            u_scale, note = self._gerber_user_mm_scale(row.path)
+            self._apply_layer_user_scale(row, u_scale)
+        self._update_scene_rect_from_content()
+        if log and self._layers and note:
+            self._append_log(f"Gerber on shared mm grid: {note}")
 
     def _browse_gerber(self) -> None:
+        if self._gerber_thread is not None and self._gerber_thread.isRunning():
+            return
         start = ""
         if self._settings is not None:
             start = str(self._settings.value("pcb_preview/last_gerber_dir", "") or "")
@@ -781,50 +863,74 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._settings.setValue(
                 "pcb_preview/last_gerber_dir", os.path.dirname(path)
             )
-        payload = load_gerber_svg(path)
+        self._btn_gerber.setEnabled(False)
+        self._append_log(self._tr("pcb.gerber_loading"))
+        thread = GerberLoadThread(path, self._px_per_mm, self)
+        thread.result_ready.connect(self._on_gerber_loaded)
+        thread.finished.connect(self._on_gerber_thread_finished)
+        self._gerber_thread = thread
+        thread.start()
+
+    def _on_gerber_thread_finished(self) -> None:
+        self._btn_gerber.setEnabled(True)
+        t = self._gerber_thread
+        self._gerber_thread = None
+        if t is not None:
+            t.deleteLater()
+
+    def _on_gerber_loaded(self, packed: object) -> None:
+        if not isinstance(packed, tuple) or len(packed) != 3:
+            return
+        payload, image, vb = packed
+        if not isinstance(payload, GerberSvgPayload):
+            return
         if payload.errors:
             self._append_log("Gerber: " + "; ".join(payload.errors))
-        if not payload.svg:
+        if image is None or not payload.svg:
+            if not payload.errors:
+                self._append_log("Invalid SVG from Gerber backend")
             return
-        u_scale, unit_note = self._gerber_user_mm_scale(path)
-        self._append_gerber_layer(payload, u_scale, unit_note)
+        u_scale, unit_note = self._gerber_user_mm_scale(payload.source_path)
+        self._install_gerber_image(payload, image, vb, u_scale, unit_note)
 
-    def _append_gerber_layer(
-        self, payload: GerberSvgPayload, user_mm_scale: float = 1.0, unit_note: str = ""
+    def _install_gerber_image(
+        self,
+        payload: GerberSvgPayload,
+        image: QtGui.QImage,
+        vb: QtCore.QRectF,
+        user_mm_scale: float,
+        unit_note: str,
     ) -> None:
-        renderer = QSvgRenderer(QtCore.QByteArray(payload.svg.encode("utf-8")))
-        if not renderer.isValid():
-            self._append_log("Invalid SVG from gerbonara")
-            return
-        vb = renderer.viewBoxF()
-        w_px = max(2, int(vb.width() * self._px_per_mm + 2))
-        h_px = max(2, int(vb.height() * self._px_per_mm + 2))
-        img = QtGui.QImage(w_px, h_px, QtGui.QImage.Format.Format_ARGB32_Premultiplied)
-        img.fill(QtCore.Qt.GlobalColor.transparent)
-        p = QtGui.QPainter(img)
-        renderer.render(p, QtCore.QRectF(0, 0, w_px, h_px))
-        p.end()
-        pm = QtGui.QPixmap.fromImage(img)
+        pm = QtGui.QPixmap.fromImage(image)
         item = self._scene.addPixmap(pm)
         item.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
-        # Raster is w_px×h_px; SVG viewBox is in gerbonara mm. Scale item so one scene unit matches mm.
+        w_px = max(1, image.width())
+        h_px = max(1, image.height())
         s_rx = (vb.width() / float(w_px)) if w_px else 1.0
         s_ry = (vb.height() / float(h_px)) if h_px else 1.0
         s_raster = 0.5 * (s_rx + s_ry)
-        item.setScale(s_raster * user_mm_scale)
-        item.setPos(vb.x() * user_mm_scale, vb.y() * user_mm_scale)
-        base_z = -50.0
-        item.setZValue(base_z + float(len(self._layers)) * 0.5)
-
+        native = payload.bbox_mm
+        if native.width > 0 and native.height > 0:
+            s_raster = 0.5 * (
+                (native.width / float(w_px)) + (native.height / float(h_px))
+            )
         name = os.path.basename(payload.source_path)
-        bbox_scene = scale_bbox_mm(payload.bbox_mm, user_mm_scale)
+        kind = guess_layer_kind(payload.source_path)
+        rgb = layer_default_rgb(kind)
+        opacity = layer_default_opacity(kind)
         row = _GerberLayerRow(
             path=payload.source_path,
             display_name=name,
             pixmap_item=item,
-            bbox_mm=bbox_scene,
+            bbox_mm=native,
+            native_bbox_mm=native,
+            s_raster=s_raster,
+            rgb=rgb,
+            opacity=opacity,
         )
         self._layers.append(row)
+        self._apply_layer_style(row)
+        self._apply_layer_user_scale(row, user_mm_scale)
 
         lw_item = QtWidgets.QListWidgetItem(name)
         lw_item.setFlags(
@@ -835,23 +941,81 @@ class PcbPreviewTab(QtWidgets.QWidget):
         lw_item.setCheckState(QtCore.Qt.CheckState.Checked)
         self._layer_list.blockSignals(True)
         self._layer_list.addItem(lw_item)
+        self._layer_list.setCurrentItem(lw_item)
         self._layer_list.blockSignals(False)
 
         self._apply_layer_z_order()
+        self._sync_layer_style_controls()
         self._update_scene_rect_from_content()
         self._fit_all_content()
-        bb = bbox_scene
         extra = f"  [{unit_note}]" if unit_note else ""
+        backend = payload.backend_name or "?"
+        bb = row.bbox_mm
         self._append_log(
-            f"Gerber layer added: {name}  size {bb.width:.2f}×{bb.height:.2f} mm  "
+            f"Gerber layer added ({backend}): {name}  "
+            f"size {bb.width:.2f}×{bb.height:.2f} mm  "
             f"origin ({bb.min_x:.2f}, {bb.min_y:.2f}) mm{extra}"
         )
 
+    def _apply_layer_style(self, row: _GerberLayerRow) -> None:
+        item = row.pixmap_item
+        item.setOpacity(row.opacity)
+        effect = QtWidgets.QGraphicsColorizeEffect()
+        effect.setColor(QtGui.QColor(*row.rgb))
+        effect.setStrength(1.0)
+        item.setGraphicsEffect(effect)
+
+    def _current_layer_row(self) -> _GerberLayerRow | None:
+        i = self._layer_list.currentRow()
+        if i < 0 or i >= len(self._layers):
+            return None
+        return self._layers[i]
+
+    def _sync_layer_style_controls(self) -> None:
+        row = self._current_layer_row()
+        self._spin_layer_opacity.blockSignals(True)
+        if row is None:
+            self._spin_layer_opacity.setValue(0.8)
+            self._btn_layer_color.setStyleSheet("")
+        else:
+            self._spin_layer_opacity.setValue(row.opacity)
+            c = QtGui.QColor(*row.rgb)
+            self._btn_layer_color.setStyleSheet(
+                f"QPushButton {{ background-color: {c.name()}; border: 1px solid #666; }}"
+            )
+        self._spin_layer_opacity.blockSignals(False)
+
+    def _on_layer_row_changed(self, _row: int) -> None:
+        self._sync_layer_style_controls()
+
+    def _on_pick_layer_color(self) -> None:
+        row = self._current_layer_row()
+        if row is None:
+            return
+        start = QtGui.QColor(*row.rgb)
+        chosen = QtWidgets.QColorDialog.getColor(
+            start, self, self._tr("pcb.layer_color")
+        )
+        if not chosen.isValid():
+            return
+        row.rgb = (chosen.red(), chosen.green(), chosen.blue())
+        self._apply_layer_style(row)
+        self._sync_layer_style_controls()
+
+    def _on_layer_opacity_changed(self, value: float) -> None:
+        row = self._current_layer_row()
+        if row is None:
+            return
+        row.opacity = float(value)
+        self._apply_layer_style(row)
+
     def _apply_layer_z_order(self) -> None:
-        """List top → drawn on top (higher z). Bottom row = back."""
+        """Filename kind sets base z; list index breaks ties. PnP stays at 10."""
         n = min(self._layer_list.count(), len(self._layers))
         for i in range(n):
-            self._layers[i].pixmap_item.setZValue(-50.0 + float(i) * 0.5)
+            kind = guess_layer_kind(self._layers[i].path)
+            z = layer_default_z(kind) + float(i) * 0.05
+            self._layers[i].pixmap_item.setZValue(z)
 
     def _on_layer_item_changed(self, item: QtWidgets.QListWidgetItem) -> None:
         row = self._layer_list.row(item)
@@ -868,6 +1032,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._scene.removeItem(entry.pixmap_item)
         self._layer_list.takeItem(row)
         self._apply_layer_z_order()
+        self._sync_layer_style_controls()
         self._update_scene_rect_from_content()
         self._fit_all_content()
 
@@ -876,6 +1041,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._scene.removeItem(entry.pixmap_item)
         self._layers.clear()
         self._layer_list.clear()
+        self._sync_layer_style_controls()
         self._update_scene_rect_from_content()
         self._fit_all_content()
         self._append_log("All Gerber layers cleared.")

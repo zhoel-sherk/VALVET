@@ -33,6 +33,7 @@ from hanwha_mdb_edit.gui.part_filter_proxy import HanwhaPartLibraryFilterProxy
 from machine_library.hanwha_mdbtools import HanwhaMdbToolsError
 from qt_models import PandasTableModel
 from working_copy import save_snapshot
+import logger
 from working_copy_ui import prompt_recover_snapshot
 
 
@@ -178,8 +179,8 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
                 self._hanwha_autosave_dir,
                 dirty=True,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Hanwha autosave failed: %s", e)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         if self._column_settings_win is not None:
@@ -335,8 +336,8 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
                 self._hanwha_autosave_dir,
                 dirty=False,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Hanwha post-save snapshot failed: %s", e)
 
     def _notify_saved(self, result: SaveResult) -> None:
         backup = result.backup_path

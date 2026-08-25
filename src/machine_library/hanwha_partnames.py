@@ -10,7 +10,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import AbstractSet, Any, Mapping, Sequence
+from typing import AbstractSet, Any, Mapping
 
 import pandas as pd
 
@@ -21,7 +21,7 @@ from machine_library.hanwha_mdbtools import (
     part_det_rows_to_dataframe,
 )
 from parsers.constants import PACKAGE_PATTERN
-from parsers.regex_api import I, fullmatch, search
+from parsers.regex_api import I, search
 
 HANWHA_CONFIDENCE_KNOWN_LEVELS: frozenset[int] = frozenset((0, 10, 20, 40))
 

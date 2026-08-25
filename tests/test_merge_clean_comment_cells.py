@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 
 from parsers.bom_text_utils import (
     DEFAULT_DOUBLE_COMMENT_JOIN,

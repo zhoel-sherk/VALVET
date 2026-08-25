@@ -294,6 +294,7 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     console_outer.addWidget(win.console)
 
     win.chk_colorful = QtWidgets.QCheckBox(win.ui_tr("project.debug_logs"))
+    win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
     console_outer.addWidget(win.chk_colorful)
     win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
 

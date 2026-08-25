@@ -26,6 +26,8 @@ from typing import Sequence
 
 import pandas as pd
 
+import logger
+
 
 class HanwhaMdbToolsError(RuntimeError):
     """Could not read .mdb (ODBC or mdbtools)."""
@@ -109,7 +111,13 @@ def list_mdb_tables(mdb_path: str | Path) -> list[str]:
 
         if _mdb_tools_fallback_allowed():
             try:
-                return _list_mdb_tables_cli(p)
+                names = _list_mdb_tables_cli(p)
+                logger.warning(
+                    "ODBC failed (%s); using mdbtools for tables in %s",
+                    odbc_msg,
+                    p,
+                )
+                return names
             except HanwhaMdbToolsError as e2:
                 raise HanwhaMdbToolsError(
                     f"{odbc_msg}\n\nFallback (mdbtools) also failed:\n{e2}"
@@ -145,7 +153,14 @@ def export_table_csv(mdb_path: str | Path, table: str) -> str:
 
         if _mdb_tools_fallback_allowed():
             try:
-                return _export_table_csv_cli(p, table)
+                csv_text = _export_table_csv_cli(p, table)
+                logger.warning(
+                    "ODBC failed (%s); using mdbtools export for %s.%s",
+                    odbc_msg,
+                    p,
+                    table,
+                )
+                return csv_text
             except HanwhaMdbToolsError as e2:
                 raise HanwhaMdbToolsError(
                     f"{odbc_msg}\n\nFallback (mdbtools) also failed:\n{e2}"

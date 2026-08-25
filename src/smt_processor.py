@@ -14,6 +14,7 @@ import re
 import datetime
 
 from pnp_coord import strip_trailing_coord_units
+import logger
 
 
 # ==============================================================================
@@ -298,9 +299,11 @@ def _read_excel(
         # Some vendor exports are plain text/CSV with a misleading Excel extension.
         # Try the robust text reader before giving up, so users can still import data.
         try:
-            return _read_csv(
+            df = _read_csv(
                 path, separator=None, column_headers_from_file=column_headers_from_file
             )
+            logger.info("Excel read failed (%s); loaded as CSV: %s", e, path)
+            return df
         except Exception:
             raise SMTProcessorError(
                 f"Cannot read Excel file: {e}. "
@@ -451,7 +454,7 @@ def _read_csv(
             header=hdr,
             on_bad_lines="skip",
         )
-    except (UnicodeDecodeError, pd.errors.ParserError):
+    except (UnicodeDecodeError, pd.errors.ParserError) as e1:
         try:
             df = pd.read_csv(
                 path,
@@ -461,7 +464,9 @@ def _read_csv(
                 header=hdr,
                 on_bad_lines="skip",
             )
-        except Exception:
+            logger.debug("CSV utf-8 failed (%s); using latin-1: %s", e1, path)
+        except Exception as e2:
+            logger.debug("CSV latin-1 failed (%s); using tab utf-8: %s", e2, path)
             df = pd.read_csv(
                 path,
                 sep="\t",
@@ -617,8 +622,10 @@ def _read_fixed_width(path: str, start_row: int) -> pd.DataFrame:
 
         return df
 
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(
+            "fixed-width parse failed (%s); falling back to tab CSV: %s", e, path
+        )
 
     return pd.read_csv(path, sep="\t", skiprows=start_row, header=None)
 

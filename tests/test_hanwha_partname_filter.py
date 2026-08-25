@@ -26,7 +26,6 @@ _FIXTURE = _boomer_root / "tests" / "fixtures" / "hanwha_PART_Det_sample.csv"
 
 
 def _sample_df():
-    import pandas as pd
 
     from machine_library.hanwha_mdbtools import parse_part_det_csv
 

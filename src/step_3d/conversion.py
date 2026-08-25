@@ -1,4 +1,4 @@
-"""Run an external STEP → mesh converter via subprocess (no OCC in-process)."""
+"""Run an optional external STEP → mesh converter via subprocess."""
 
 from __future__ import annotations
 

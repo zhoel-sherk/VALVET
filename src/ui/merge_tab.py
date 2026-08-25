@@ -414,7 +414,6 @@ class MergeTabMixin:
         self.pnp_model.update_dataframe(self._pnp_df)
         self._loading_working_copy = False
         self._fill_pnp_combos()
-        self._refresh_active_row_highlight("pnp")
         self._autoresize_pnp_columns()
         self._mark_working_dirty("pnp")
         self._log(

@@ -17,6 +17,7 @@ from app.constants import APP_EXPANSION, APP_NAME, APP_VERSION, SETTINGS_ORG  # 
 from app.icons import application_icon_path  # noqa: E402
 from app.window import MainWindow  # noqa: E402
 from themes.fonts_loader import register_bundled_fonts  # noqa: E402
+import logger  # noqa: E402
 
 
 def _parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
@@ -26,11 +27,18 @@ def _parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list
         action="store_true",
         help="Show the main window, then quit (for CI / headless smoke).",
     )
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help="Same as Project 'Debug logs': write logs/YYYY-MM-DD.log and verbose stderr. "
+        "Does not open the Debug / advanced dialog.",
+    )
     return p.parse_known_args(argv)
 
 
 def main(argv: list[str] | None = None) -> None:
     args, rest = _parse_args(argv)
+    logger.configure_if_debug(argv_debug=args.debug)
     import parsers  # noqa: F401
 
     qt_argv = [sys.argv[0], *rest] if argv is None else rest
@@ -43,7 +51,7 @@ def main(argv: list[str] | None = None) -> None:
         icon = QtGui.QIcon(str(icon_path))
         app.setWindowIcon(icon)
     register_bundled_fonts()
-    win = MainWindow()
+    win = MainWindow(debug=bool(args.debug or logger.env_debug_enabled()))
     if icon_path is not None:
         win.setWindowIcon(QtGui.QIcon(str(icon_path)))
     win.show()

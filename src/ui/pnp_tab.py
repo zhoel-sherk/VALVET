@@ -91,22 +91,6 @@ class PnpTabMixin:
         self.pnp_separator.setToolTip(self.ui_tr("pnp.separator_tip"))
         config_layout.addWidget(self.pnp_separator)
 
-        self.lbl_pnp_first = QtWidgets.QLabel(self.ui_tr("pnp.row_range_first"))
-        self.lbl_pnp_first.setToolTip(self.ui_tr("pnp.row_range_tip"))
-        config_layout.addWidget(self.lbl_pnp_first)
-        self.pnp_first_row = QtWidgets.QLineEdit("1")
-        self.pnp_first_row.setMaximumWidth(52)
-        self.pnp_first_row.setToolTip(self.ui_tr("pnp.row_range_tip"))
-        config_layout.addWidget(self.pnp_first_row)
-
-        self.lbl_pnp_last = QtWidgets.QLabel(self.ui_tr("pnp.row_range_last"))
-        self.lbl_pnp_last.setToolTip(self.ui_tr("pnp.row_range_tip"))
-        config_layout.addWidget(self.lbl_pnp_last)
-        self.pnp_last_row = QtWidgets.QLineEdit("")
-        self.pnp_last_row.setMaximumWidth(52)
-        self.pnp_last_row.setToolTip(self.ui_tr("pnp.row_range_tip"))
-        config_layout.addWidget(self.pnp_last_row)
-
         self.lbl_pnp_xy_units = QtWidgets.QLabel(self.ui_tr("pnp.xy_units"))
         config_layout.addWidget(self.lbl_pnp_xy_units)
         self.pnp_units_mm = QtWidgets.QRadioButton("mm")
@@ -161,8 +145,6 @@ class PnpTabMixin:
         self.pnp_separator.currentTextChanged.connect(
             lambda *_: self._schedule_save_pnp_tab_settings()
         )
-        self.pnp_first_row.textChanged.connect(self._on_pnp_first_last_row_changed)
-        self.pnp_last_row.textChanged.connect(self._on_pnp_first_last_row_changed)
     def _sync_pnp_df_from_model(self) -> None:
         if not hasattr(self, "pnp_model"):
             return
@@ -204,7 +186,6 @@ class PnpTabMixin:
             configure_path_label(
                 self.pnp_path2_label, "", empty_text=self.ui_tr("project.no_file")
             )
-        self._refresh_active_row_highlight("pnp")
         self._hide_merge_cross_check_ok_banner()
         self._profile_restore_pnp_mappings = None
         self._refresh_pcb_preview_from_ui()
@@ -341,7 +322,6 @@ class PnpTabMixin:
         self._pnp_df = df
         self.pnp_model.update_dataframe(df)
         self._loading_working_copy = False
-        self._refresh_active_row_highlight("pnp")
         self._autoresize_pnp_columns()
         self._mark_working_dirty("pnp")
         self._refresh_pcb_preview_from_ui()

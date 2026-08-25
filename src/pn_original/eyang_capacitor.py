@@ -9,7 +9,7 @@ Examples:
 
 from __future__ import annotations
 
-from parsers.regex_api import I, compile, match
+from parsers.regex_api import I, compile
 
 from ._cap_decode import pf_eia_3_to_str
 from ._mlcc_china_vol import china_mlcc_vol_token

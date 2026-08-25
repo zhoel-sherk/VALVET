@@ -23,8 +23,6 @@ def test_bom_ui_settings_roundtrip() -> None:
     s.beginGroup(g)
     s.setValue("separator", ";")
     s.setValue("has_headers", False)
-    s.setValue("first_row", "2")
-    s.setValue("last_row", "99")
     s.setValue("mappings", ["REF", "Comment", "-"])
     s.endGroup()
     s.sync()
@@ -33,8 +31,6 @@ def test_bom_ui_settings_roundtrip() -> None:
     s2.beginGroup(g)
     assert str(s2.value("separator")) == ";"
     assert s2.value("has_headers") in (False, "false", 0, "0")
-    assert str(s2.value("first_row")) == "2"
-    assert str(s2.value("last_row")) == "99"
     m = s2.value("mappings")
     assert isinstance(m, list)
     assert list(m) == ["REF", "Comment", "-"]
