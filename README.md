@@ -1,4 +1,4 @@
-# VALVET — **ALPHA v0.1.3**
+# VALVET — **ALPHA v0.2.0**
 
 <p align="center">
   <img src="img/icon-512.png" alt="VALVET logo" width="160"/>
@@ -11,7 +11,7 @@
 
 Home: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). This is **not** a GitHub fork of [marmidr/boomer](https://github.com/marmidr/boomer); the codebase has diverged enough to live as its own project.
 
-**ALPHA v0.1.3** is developed on GitHub branch **`main`**.
+**ALPHA v0.2.0** is developed on GitHub branch **`main`**.
 
 ## Current Status
 

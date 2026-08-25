@@ -4,7 +4,7 @@ Desktop-first SMT prep: BOM/PnP on disk, mapping, Clean, cross-check, merge/expo
 
 **Core vs GUI:** parsers, cleaning, merge, machine-library I/O stay Qt-free (`src/smt_processor.py`, `src/pcb_preview/`, `src/machine_library/`, `src/step_3d/occ_load.py`, `src/services/`). PySide6 orchestrates threads, `QSettings`, and dialogs (`src/app/window.py`, `src/ui/`).
 
-ALPHA **v0.1.3** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
+ALPHA **v0.2.0** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
 
 **Shipped (one line):** profiles + per-path mapping; Clean/Merge including `.mmd`; PCB Preview Gerber+PnP overlay (nudge, not 2-point auto-align); Step 3D phase A (optional pythonocc + PyVista, CLI fallback, OCC not in core deps / not frozen by default); Machine lib Hanwha WIP; PyInstaller `valvet.spec`.
 
