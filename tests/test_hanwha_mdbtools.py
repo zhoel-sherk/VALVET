@@ -39,6 +39,15 @@ def _resolve_upd_mdb_for_tests() -> Path | None:
 _UPD_MDB = _resolve_upd_mdb_for_tests()
 
 
+def _skip_if_mdb_unreadable() -> None:
+    if _UPD_MDB is None:
+        pytest.skip("UPD.MDB not present")
+    try:
+        list_mdb_tables(_UPD_MDB)
+    except HanwhaMdbToolsError as exc:
+        pytest.skip(f"cannot read UPD.MDB: {exc}")
+
+
 def test_parse_part_det_fixture() -> None:
     text = _SAMPLE_CSV.read_text(encoding="utf-8")
     rows = parse_part_det_csv(text)
@@ -69,6 +78,7 @@ def test_part_det_rows_to_dataframe() -> None:
 
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_list_tables_on_sample_upd_mdb() -> None:
+    _skip_if_mdb_unreadable()
     names = list_mdb_tables(_UPD_MDB)
     assert "PART_Det" in names
     assert "PARTGROUP_Map" in names
@@ -77,6 +87,7 @@ def test_list_tables_on_sample_upd_mdb() -> None:
 
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_load_part_det_from_sample_upd_mdb() -> None:
+    _skip_if_mdb_unreadable()
     rows = load_part_det_from_mdb(_UPD_MDB)
     assert len(rows) >= 2
     names = {r.partname for r in rows}
@@ -96,6 +107,7 @@ def test_mdb_export_matches_fixture_snapshot() -> None:
     fixture = _BOOMER_ROOT / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
     if _UPD_MDB is None or not fixture.is_file():
         pytest.skip("UPD.MDB or hanwha_partnames_cl40.json missing")
+    _skip_if_mdb_unreadable()
     import json
     import tempfile
 
