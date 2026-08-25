@@ -4,70 +4,29 @@ Desktop-first SMT prep: BOM/PnP on disk, mapping, Clean, cross-check, merge/expo
 
 **Core vs GUI:** parsers, cleaning, merge, machine-library I/O stay Qt-free (`src/smt_processor.py`, `src/pcb_preview/`, `src/machine_library/`, `src/step_3d/occ_load.py`, `src/services/`). PySide6 orchestrates threads, `QSettings`, and dialogs (`src/app/window.py`, `src/ui/`).
 
-ALPHA **v0.1.3** — [CHANGELOG.md](../CHANGELOG.md), [TESTING.md](info/TESTING.md). This file is the live backlog only.
+ALPHA **v0.1.3** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
 
 **Shipped (one line):** profiles + per-path mapping; Clean/Merge including `.mmd`; PCB Preview Gerber+PnP overlay (nudge, not 2-point auto-align); Step 3D phase A (optional pythonocc + PyVista, CLI fallback, OCC not in core deps / not frozen by default); Machine lib Hanwha WIP; PyInstaller `valvet.spec`.
 
 ## Now (product vector)
 
-1. **Machine library matching** — Hanwha `PART_Det`/`PARTNAME` is the current shop path (Machine lib tab + Qt-free readers). Next: sanitized fixtures (never commit full `.mdb`), auto-match from Clean+footprint, row status, MRU, optional strict export. **Yamaha** `.Tou` / `DevLibEd*.Lib` second ([yedytor](https://github.com/marmidr/yedytor) for formats/UX ideas, not a UI port).
-2. **Real boards** — BOM → PnP → map → Clean → apply → cross-check → merge → Top/Bot (and MMD) on production files; collect OTHER/regex fallbacks; note UX pain (errors, missing project/MRU).
-3. **Packaging smoke** — frozen `valvet.spec` on a clean Windows box ([PACKAGING_WINDOWS.md](info/PACKAGING_WINDOWS.md)); app icon / About if still missing in the bundle.
-4. **README screenshots** — Project/profiles, BOM/PnP mapping, Clean, Merge, Report.
+1. **Machine library matching** — Hanwha `PART_Det`/`PARTNAME` plus Part Group name (`UPDPARTGROUPNAME`, Chip-*). Parent profile (`PARENTPROFILE`) is not the component class. See [hanwha_UPD_mdb_schema.md](info/hanwha_UPD_mdb_schema.md) and [hanwha_mdb_editor.md](info/hanwha_mdb_editor.md). Yamaha `.Tou` / `DevLibEd*.Lib` uses the same matcher ([yedytor notes](info/machine_lib_yedytor_notes.md)).
+2. **Real boards** — QA on production files; not a code deliverable.
+3. **Packaging smoke** — frozen `valvet.spec` ([PACKAGING_WINDOWS.md](info/PACKAGING_WINDOWS.md)).
+4. **README screenshots** — tracked `img/`.
 
-## Backlog (keep; does not fight the vector)
+## Parked (not this vector)
 
-### Session and project
-
-- [ ] Persisted **BOM/PnP pair** (MRU or `.valvet-project.json`). Paths are intentionally not restored today.
-- [ ] Clearer import/mapping error messages.
-
-### Clean BOM / parts DB
-
-- [ ] First-class **ferrite bead** (`FERRITE_BEAD` / `FB`; no fall-through to RES/IND from OHM prose).
-- [ ] Unresolved-row export (original, cleaned, type, source, bare MPN).
-- [ ] Preview filters (source, type, regex-only, OTHER-only).
-- [ ] Parser coverage from real BOMs (Murata, Walsin, Yageo, Taiyo, Samsung) + tests per promotion.
-- [ ] User Parts DB: bulk import, learn-all OTHER, search/edit/delete, SQLite if `components.txt` outgrows; keep txt as interchange.
-
-### PCB Preview
-
-- [ ] Revisit 2-point Gerber↔PnP align (manual nudge is the shipped path).
-- [ ] Focused tests + small Gerber/PnP fixtures for the Qt-free preview core.
-
-### Step 3D (viewer is done)
-
-In-process **pythonocc-core** tessellation + PyVista tree/pick; CLI→OBJ fallback. Optional extras: `requirements-step3d.txt`, `requirements-step3d-occ.txt`.
-
-- [ ] **B:** B-rep measure, sections, solid export (CadQuery/OCC modeling).
-- [ ] **C:** refdes highlight vs BOM/PnP; align with PCB Preview.
-- [ ] Document or ship a default STEP→OBJ CLI when OCC is unavailable (license is the operator’s).
-
-### Merge / machine export
-
-- [ ] Confirm machine CSV column names; presets per vendor if layouts differ.
-- [ ] Bottom-side mirror notes (UI vs filename vs sidecar).
-- [ ] Coordinate transforms only when a real machine format needs them.
-- [ ] Export profiles after Yamaha/Hanwha matching is stable.
-
-### Architecture (when it unblocks the above)
-
-- [ ] Remaining services: cross-check, merge orchestration, component-library management (not only widgets).
-- [ ] Optional CI grep: no `PySide6` in agreed core paths.
-- [ ] Finish splitting leftovers out of `window.py` if files keep growing.
-- [ ] Compact Clean advanced settings; jump from Clean preview row to BOM row; copy/export selected table rows.
-- [ ] Profiling-driven speed (large XLSX/merge/cross-check): `itertuples`/column loops, optional calamine/XlsxWriter/Parquet — **measure first**.
-- [ ] CLI on the same services (`valvet clean|check|merge|machine-match`).
-- [ ] Web only after services are stable (no prototype in-tree).
-- [ ] Remaining hardcoded UI strings → `lang/*.json`.
-- [ ] Figma/QML tables stay out of scope; leftover notes: [DESIGN_TODO.md](legacy_artifacts/DESIGN_TODO.md).
+- **Step 3D B/C** and a default STEP→OBJ CLI: later. Viewer phase A stays as shipped.
+- **User Parts DB / SQLite / learn-all bulk:** far corner; txt + Learn selected is enough.
+- **First/Last row in GUI:** removed; do not restore. `read_file(..., first_row, last_row)` remains for tests/API only.
+- **CSV column presets / vendor export profiles:** not needed for current machine CSV/XLSX/MMD.
+- **2-point Gerber align:** nudge is the shipped path.
 
 ## Tests
 
-Do not pin stale pass counts here. Daily/PR: [TESTING.md](info/TESTING.md) (compileall + pytest; Gerber as extra job). After big `pcb_preview` / `step_3d` / `machine_library` changes, compare Windows vs Linux skips.
-
-- [ ] Drop tests that only cover archived UI; add recovery / Replace PNP / layer-dropdown tests where logic is extracted.
+Do not pin stale pass counts here. Daily/PR: [TESTING.md](info/TESTING.md).
 
 ## Vocabulary
 
-Component Library, User Parts DB, canonical name, Internal Part Number, Footprint/Package, Feeder Library, Machine Component Library / matching / name, Yamaha `.Tou` / `DevLibEd.Lib`, Hanwha `.mdb`, Pick-and-Place, Top/Bottom, mirror side.
+Component Library, User Parts DB, canonical name, Internal Part Number, Footprint/Package, Feeder Library, Machine Component Library / matching / name, Yamaha `.Tou` / `DevLibEd.Lib`, Hanwha `.mdb`, Part Group (`UPDPARTGROUPNAME`), parent profile (`PARENTPROFILE`), Pick-and-Place, Top/Bottom, mirror side.

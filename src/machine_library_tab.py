@@ -119,7 +119,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         row_cb = QtWidgets.QHBoxLayout()
         self._cb_conf_0 = QtWidgets.QCheckBox("0 — not placement-ready (copy only)")
         self._cb_conf_0.setToolTip(
-            "T-OLP: similar to standard library rows; not intended for direct use on the machine."
+            "Templates / not placement-ready (often _New* rows). Not MASTER/STANDART and not S-library."
         )
         self._cb_conf_10 = QtWidgets.QCheckBox("10 — newly created")
         self._cb_conf_10.setToolTip("Just created in user/working library.")

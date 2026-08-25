@@ -38,7 +38,7 @@ from working_copy_ui import prompt_recover_snapshot
 
 
 class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
-    """Editor: PART_Det plus BASE profile (PARENTPROFILE), feeding / overall speed levels."""
+    """Editor: PART_Det plus parent profile (PARENTPROFILE), feeding / overall speed levels."""
 
     def __init__(
         self,
@@ -134,18 +134,18 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
 
         bulk = QtWidgets.QGroupBox("Bulk edit")
         brow = QtWidgets.QHBoxLayout(bulk)
-        b1 = QtWidgets.QPushButton("Bulk BASE profile…")
+        b1 = QtWidgets.QPushButton("Bulk parent profile…")
         b1.setToolTip(
-            "Set PARENTPROFILE where it matches a value (parent/base template)"
+            "Set PARENTPROFILE where it matches a value (parent profile template, not Chip-* class)"
         )
         b1.clicked.connect(self._bulk_base)
         brow.addWidget(b1)
         b2 = QtWidgets.QPushButton("Bulk feeding speed…")
-        b2.setToolTip("FEEDINGSPEEDLEVEL for one profile or all rows with same BASE")
+        b2.setToolTip("FEEDINGSPEEDLEVEL for one profile or all rows with same parent profile")
         b2.clicked.connect(self._bulk_feed_speed)
         brow.addWidget(b2)
         b3 = QtWidgets.QPushButton("Bulk Q speed…")
-        b3.setToolTip("OVERALL_SPEED_LEVEL for one profile or all rows with same BASE")
+        b3.setToolTip("OVERALL_SPEED_LEVEL for one profile or all rows with same parent profile")
         b3.clicked.connect(self._bulk_q_speed)
         brow.addWidget(b3)
         layout.addWidget(bulk)
@@ -373,12 +373,12 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         df = self._df()
         if df.empty or "PARENTPROFILE" not in df.columns:
             QtWidgets.QMessageBox.information(
-                self, "Bulk BASE", "No PARENTPROFILE column."
+                self, "Bulk parent profile", "No PARENTPROFILE column."
             )
             return
         uniq = sorted({str(x) for x in df["PARENTPROFILE"].dropna().unique()})
         dlg = QtWidgets.QDialog(self)
-        dlg.setWindowTitle("Bulk — BASE profile (PARENTPROFILE)")
+        dlg.setWindowTitle("Bulk — parent profile (PARENTPROFILE)")
         form = QtWidgets.QFormLayout(dlg)
         cb = QtWidgets.QComboBox()
         cb.setEditable(True)
@@ -398,10 +398,12 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         old_v = cb.currentText().strip()
         new_v = ne.text().strip()
         if not new_v:
-            QtWidgets.QMessageBox.warning(self, "Bulk BASE", "Enter new PARENTPROFILE.")
+            QtWidgets.QMessageBox.warning(
+                self, "Bulk parent profile", "Enter new PARENTPROFILE."
+            )
             return
         self._set_df(bulk_update_paren_profile(df, old_v, new_v))
-        self.statusBar().showMessage("Bulk BASE applied (not saved yet)")
+        self.statusBar().showMessage("Bulk parent profile applied (not saved yet)")
 
     def _bulk_feed_speed(self) -> None:
         df = self._df()
@@ -411,7 +413,9 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         dlg.setWindowTitle("Bulk — FEEDINGSPEEDLEVEL")
         v = QtWidgets.QVBoxLayout(dlg)
         mode = QtWidgets.QComboBox()
-        mode.addItems(["By PROFILENAME", "All rows with same PARENTPROFILE (BASE)"])
+        mode.addItems(
+            ["By PROFILENAME", "All rows with same PARENTPROFILE (parent template)"]
+        )
         v.addWidget(mode)
         prof = QtWidgets.QComboBox()
         prof.setEditable(True)
@@ -460,7 +464,9 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         dlg.setWindowTitle("Bulk — OVERALL_SPEED_LEVEL (Q_HANDDATA)")
         v = QtWidgets.QVBoxLayout(dlg)
         mode = QtWidgets.QComboBox()
-        mode.addItems(["By PROFILENAME", "All rows with same PARENTPROFILE (BASE)"])
+        mode.addItems(
+            ["By PROFILENAME", "All rows with same PARENTPROFILE (parent template)"]
+        )
         v.addWidget(mode)
         prof = QtWidgets.QComboBox()
         prof.setEditable(True)

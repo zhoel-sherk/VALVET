@@ -55,6 +55,8 @@ def _hanwha_primary_match(
     partnames: AbstractSet[str],
     *,
     partial_match: bool,
+    footprint: str = "",
+    part_groups: Optional[dict[str, str]] = None,
 ) -> Optional[Tuple[str, str]]:
     """
     Longest PARTNAME whose norm is a substring of norm(comment).
@@ -70,7 +72,9 @@ def _hanwha_primary_match(
     nc = _norm_hanwha(s)
     if len(nc) < 2:
         return None
-    best: Optional[Tuple[int, int, str]] = None
+    groups = part_groups or {}
+    fp = _norm_hanwha(footprint) if footprint else ""
+    scored: list[tuple[int, int, int, str]] = []
     for pn in sorted(partnames, key=lambda x: str(x).casefold()):
         p = str(pn).strip()
         if len(p) < 2:
@@ -78,14 +82,19 @@ def _hanwha_primary_match(
         np = _norm_hanwha(p)
         if len(np) < 2 or np not in nc:
             continue
-        cand = (len(np), len(p), p)
-        if best is None or cand > best:
-            best = cand
-    best_pn = best[2] if best else ""
-    if not best_pn:
+        gnorm = _norm_hanwha(str(groups.get(p, "") or ""))
+        bonus = 1 if fp and (fp in np or fp in gnorm) else 0
+        scored.append((bonus, len(np), len(p), p))
+    if not scored:
         return None
+    scored.sort(reverse=True)
+    top = scored[0]
+    ties = [x for x in scored if x[0] == top[0] and x[1] == top[1]]
+    best_pn = top[3]
     nbest = _norm_hanwha(best_pn)
     literal_in = best_pn.strip().casefold() in s.casefold()
+    if len(ties) > 1:
+        return (best_pn, "AMBIGUOUS hanwha_mdb")
     if nbest == nc:
         if partial_match and best_pn.strip() != s.strip():
             return (best_pn, "PARTIAL hanwha_mdb")
@@ -149,6 +158,8 @@ def match_hanwha_mdb_partname(
     partial_match: bool = False,
     fuzzy_cutoff: Optional[float] = None,
     fuzzy_min_query: Optional[int] = None,
+    footprint: str = "",
+    part_groups: Optional[dict[str, str]] = None,
 ) -> Optional[Tuple[str, str]]:
     """
     Match BOM comment to a Hanwha MDB PARTNAME.
@@ -164,7 +175,13 @@ def match_hanwha_mdb_partname(
     normalized keys (``rapidfuzz`` ``partial_ratio``, cutoff from ``CleanConfig`` when
     passed from the pipeline).
     """
-    primary = _hanwha_primary_match(comment, partnames, partial_match=partial_match)
+    primary = _hanwha_primary_match(
+        comment,
+        partnames,
+        partial_match=partial_match,
+        footprint=footprint,
+        part_groups=part_groups,
+    )
     if primary:
         return primary
     if partial_match:

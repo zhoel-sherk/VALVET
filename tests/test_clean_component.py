@@ -578,6 +578,32 @@ def test_match_hanwha_normalized_full_and_partial():
     assert partial == ("JW7115S-2SOTA#TRPBF", "PARTIAL hanwha_mdb")
 
 
+def test_match_hanwha_footprint_and_part_group_bonus():
+    names = {"IC_QFN_STM", "IC_SOP_STM"}
+    hit = clean_component.match_hanwha_mdb_partname(
+        "line IC_QFN_STM and IC_SOP_STM",
+        names,
+        footprint="QFN",
+    )
+    assert hit is not None
+    assert hit[0] == "IC_QFN_STM"
+    grouped = clean_component.match_hanwha_mdb_partname(
+        "JST_HEADER and JST_SOCKET",
+        {"JST_HEADER", "JST_SOCKET"},
+        footprint="HEADER",
+        part_groups={"JST_HEADER": "Connector", "JST_SOCKET": "Connector"},
+    )
+    assert grouped is not None
+    assert grouped[0] == "JST_HEADER"
+
+
+def test_match_hanwha_equal_length_is_ambiguous():
+    names = {"PART-A", "PART_A"}
+    hit = clean_component.match_hanwha_mdb_partname("xxPARTAxx", names)
+    assert hit is not None
+    assert hit[1] == "AMBIGUOUS hanwha_mdb"
+
+
 def test_hanwha_norm_keeps_dot_between_digits():
     assert clean_component._norm_hanwha("4.7K") != clean_component._norm_hanwha("47K")
 

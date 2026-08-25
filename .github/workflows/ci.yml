@@ -65,6 +65,11 @@ jobs:
       - name: Ruff (E/F)
         run: python -m ruff check src tests
 
+      - name: Core has no PySide6 (pytest)
+        env:
+          PYTHONPATH: src
+        run: python -m pytest tests/test_no_pyside6_core.py tests/test_cli_no_qt.py -q
+
       - name: Pytest (suite minus Gerber file)
         if: matrix.os != 'ubuntu-latest'
         env:

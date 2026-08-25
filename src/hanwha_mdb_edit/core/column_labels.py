@@ -32,12 +32,20 @@ _KNOWN: dict[str, tuple[str, str]] = {
     ),
     "VENDORID": ("Vendor ID", "Manufacturer / vendor code (PART_Det.VENDORID)."),
     "PARENTPROFILE": (
-        "BASE profile (parent)",
-        "Parent/base profile template (PROFILE_Det.PARENTPROFILE) — «Bulk BASE» in editor.",
+        "Parent profile",
+        "Parent profile template (PROFILE_Det.PARENTPROFILE). Not the Chip-* / Trimmer class.",
     ),
     "UPDPARTGROUPID": (
-        "Part Group",
-        "Component group id (PROFILE_Det.UPDPARTGROUPID) — matches «Part Group» in Unified Part Editor.",
+        "Part Group id",
+        "Numeric group id (PROFILE_Det.UPDPARTGROUPID). See Part Group name for Chip-* class.",
+    ),
+    "UPDPARTGROUPNAME": (
+        "Part Group name",
+        "Component class from PARTGROUP_Map.UPDPARTGROUPNAME (Chip-0201, Trimmer, …). Read-only.",
+    ),
+    "LIBRARY_TYPE": (
+        "Library type",
+        "PROFILE_Det.LIBRARY_TYPE: 0 working library, 1 small master-like set. Not confidence 0.",
     ),
     "FEEDINGSPEEDLEVEL": (
         "Feeding speed level",

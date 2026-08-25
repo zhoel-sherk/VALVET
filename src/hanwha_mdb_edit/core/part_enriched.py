@@ -3,7 +3,8 @@ Join PART_Det with PROFILE_Det / PROFILECOMDATA_Det / Q_HANDDATA_Det.
 
 Semantics (Hanwha UPD):
 
-- ``PARENTPROFILE`` — parent/base profile template (PROFILE_Det).
+- ``PARENTPROFILE`` — parent profile template (PROFILE_Det), not Chip-* class.
+- ``UPDPARTGROUPNAME`` — Part Group class name from PARTGROUP_Map (read-only).
 - ``FEEDINGSPEEDLEVEL`` — feeding speed level (PROFILECOMDATA_Det).
 - ``OVERALL_SPEED_LEVEL`` — overall motion speed level Q-hand sheet (Q_HANDDATA_Det).
 """
@@ -15,6 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from hanwha_mdb_edit.core.part_group import join_part_group_names
 from machine_library.hanwha_mdbtools import export_table_csv, list_mdb_tables
 
 # Safety limits while scanning every joinable table (temporary wide mode).
@@ -34,7 +36,8 @@ PART_DET_COLUMNS = (
     "VENDORID",
 )
 
-PROFILE_JOIN_COLS = ("PARENTPROFILE", "UPDPARTGROUPID")
+PROFILE_JOIN_COLS = ("PARENTPROFILE", "UPDPARTGROUPID", "LIBRARY_TYPE")
+PROFILE_SAVE_COLS = ("PARENTPROFILE", "UPDPARTGROUPID")
 SPEED_COM_COL = "FEEDINGSPEEDLEVEL"
 SPEED_Q_COL = "OVERALL_SPEED_LEVEL"
 
@@ -70,6 +73,12 @@ def load_enriched_parts_dataframe(mdb_path: str | Path) -> pd.DataFrame:
     out = parts.merge(prof, on="PROFILENAME", how="left")
     out = out.merge(com, on="PROFILENAME", how="left")
     out = out.merge(qh, on="PROFILENAME", how="left")
+    try:
+        gmap = load_table_dataframe(mdb_path, "PARTGROUP_Map")
+        out = join_part_group_names(out, gmap)
+    except Exception:
+        if "UPDPARTGROUPNAME" not in out.columns:
+            out["UPDPARTGROUPNAME"] = pd.NA
     return out
 
 
@@ -92,7 +101,7 @@ def build_patch_tables(enriched: pd.DataFrame) -> dict[str, pd.DataFrame]:
         }
     g = enriched.groupby("PROFILENAME", dropna=False).first().reset_index()
 
-    prof_cols = ["PROFILENAME"] + [c for c in PROFILE_JOIN_COLS if c in g.columns]
+    prof_cols = ["PROFILENAME"] + [c for c in PROFILE_SAVE_COLS if c in g.columns]
     prof_patch = g[prof_cols] if len(prof_cols) > 1 else pd.DataFrame()
 
     com_patch = (
