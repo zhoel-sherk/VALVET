@@ -20,32 +20,13 @@ from machine_library.hanwha_mdbtools import (
     parse_part_det_csv,
     part_det_rows_to_dataframe,
 )
+from mdb_paths import resolve_upd_mdb, skip_if_mdb_unreadable
 
 _FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 _SAMPLE_CSV = _FIXTURE_DIR / "hanwha_PART_Det_sample.csv"
-_BOOMER_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = Path(__file__).resolve().parents[1]
 
-
-def _resolve_upd_mdb_for_tests() -> Path | None:
-    for cand in (
-        _BOOMER_ROOT / "examples" / "UPD.MDB",
-        _BOOMER_ROOT.parent / "UPD.MDB",
-    ):
-        if cand.is_file():
-            return cand
-    return None
-
-
-_UPD_MDB = _resolve_upd_mdb_for_tests()
-
-
-def _skip_if_mdb_unreadable() -> None:
-    if _UPD_MDB is None:
-        pytest.skip("UPD.MDB not present")
-    try:
-        list_mdb_tables(_UPD_MDB)
-    except HanwhaMdbToolsError as exc:
-        pytest.skip(f"cannot read UPD.MDB: {exc}")
+_UPD_MDB = resolve_upd_mdb()
 
 
 def test_parse_part_det_fixture() -> None:
@@ -78,7 +59,7 @@ def test_part_det_rows_to_dataframe() -> None:
 
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_list_tables_on_sample_upd_mdb() -> None:
-    _skip_if_mdb_unreadable()
+    skip_if_mdb_unreadable(_UPD_MDB)
     names = list_mdb_tables(_UPD_MDB)
     assert "PART_Det" in names
     assert "PARTGROUP_Map" in names
@@ -87,7 +68,7 @@ def test_list_tables_on_sample_upd_mdb() -> None:
 
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_load_part_det_from_sample_upd_mdb() -> None:
-    _skip_if_mdb_unreadable()
+    skip_if_mdb_unreadable(_UPD_MDB)
     rows = load_part_det_from_mdb(_UPD_MDB)
     assert len(rows) >= 2
     names = {r.partname for r in rows}
@@ -104,10 +85,10 @@ def test_export_table_rejects_bad_name() -> None:
 def test_mdb_export_matches_fixture_snapshot() -> None:
     from machine_library.hanwha_partnames import export_partnames_snapshot, load_partnames_snapshot
 
-    fixture = _BOOMER_ROOT / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
+    fixture = _REPO_ROOT / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
     if _UPD_MDB is None or not fixture.is_file():
         pytest.skip("UPD.MDB or hanwha_partnames_cl40.json missing")
-    _skip_if_mdb_unreadable()
+    skip_if_mdb_unreadable(_UPD_MDB)
     import json
     import tempfile
 

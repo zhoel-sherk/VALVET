@@ -2,7 +2,7 @@
 
 Structured pytest workflow for this repo. **Primary development OS is Windows 11** (daily runs). **Fedora 43** (or GitHub `ubuntu-latest`) remains the Linux regression check for paths, optional Step 3D / VTK, and Hanwha `.mdb` via **mdbtools** vs Windows ODBC — see [hanwha_mdb_editor.md](hanwha_mdb_editor.md).
 
-Canonical commands below assume repository root `boomer/` (the folder containing `src/`, `tests/`, `requirements.txt`).
+Canonical commands below assume repository root `VALVET/` (the folder containing `src/`, `tests/`, `requirements.txt`).
 
 ---
 
@@ -35,7 +35,7 @@ Hypothesis and mutmut are **not** part of the default stack.
 **Windows (PowerShell 7):**
 
 ```powershell
-cd boomer
+cd VALVET
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 $env:PYTHONPATH = "src"
 ```
@@ -43,7 +43,7 @@ $env:PYTHONPATH = "src"
 **Fedora / Bash:**
 
 ```bash
-cd boomer
+cd VALVET
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 export PYTHONPATH=src
