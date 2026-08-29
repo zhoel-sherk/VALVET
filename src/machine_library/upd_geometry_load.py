@@ -210,9 +210,9 @@ def _odbc_where(
     columns: tuple[str, ...],
     name: str,
 ) -> pd.DataFrame:
-    from machine_library.access_odbc import AccessOdbcError, fetch_named_columns
-
     import re
+
+    from machine_library.access_odbc import AccessOdbcError, fetch_named_columns
 
     if not re.fullmatch(r"[A-Za-z0-9_~]+", table):
         return pd.DataFrame(columns=list(columns))

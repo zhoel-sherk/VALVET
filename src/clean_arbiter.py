@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-
 # Tie-break priority: lower = preferred when scores equal
 _TIER_ORDER = {
     "thermistor": -1,

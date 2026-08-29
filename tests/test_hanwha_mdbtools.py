@@ -83,7 +83,10 @@ def test_export_table_rejects_bad_name() -> None:
 
 
 def test_mdb_export_matches_fixture_snapshot() -> None:
-    from machine_library.hanwha_partnames import export_partnames_snapshot, load_partnames_snapshot
+    from machine_library.hanwha_partnames import (
+        export_partnames_snapshot,
+        load_partnames_snapshot,
+    )
 
     fixture = _REPO_ROOT / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
     if _UPD_MDB is None or not fixture.is_file():

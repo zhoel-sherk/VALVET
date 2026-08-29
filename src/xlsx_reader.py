@@ -2,15 +2,14 @@
 # 2025-11-28
 #
 
-import logger
 import datetime
+from pathlib import Path
 
 # https://linuxhint.com/read-excel-file-python/
 # https://openpyxl.readthedocs.io/en/stable/tutorial.html
 import openpyxl
 
-from pathlib import Path
-
+import logger
 from text_grid import TextGrid
 
 # -----------------------------------------------------------------------------

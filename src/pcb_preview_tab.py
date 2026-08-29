@@ -8,15 +8,15 @@ from typing import Any, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import pcb_preview_bridge
 from pcb_preview.alignment import Similarity2D
-from pcb_preview.footprint_db import FootprintStore
-from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 from pcb_preview.engine.identify import (
     guess_layer_kind,
     layer_default_opacity,
     layer_default_rgb,
     layer_default_z,
 )
+from pcb_preview.footprint_db import FootprintStore
 from pcb_preview.gerber_io import (
     GerberUnitMode,
     gerber_to_scene_mm_scale,
@@ -29,10 +29,8 @@ from pcb_preview.types import (
     GerberSvgPayload,
     PlacementRecord,
 )
-
-import pcb_preview_bridge
 from pcb_preview_load_thread import GerberLoadThread
-
+from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
 _CENTROID_RADIUS_MM = 0.45

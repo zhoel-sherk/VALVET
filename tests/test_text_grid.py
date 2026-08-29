@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # adding src path to search list
 tests_path = os.path.dirname(os.path.realpath(__file__))

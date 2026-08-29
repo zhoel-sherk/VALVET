@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from PySide6 import QtCore, QtWidgets
 import pandas as pd
+from PySide6 import QtCore, QtWidgets
 
-from qt_models import SortableTableModel
-from smt_processor import SMTDataProcessor, SMTProcessorError
-from services.processor_config import build_processor_config
 from mmd_export import merge_dataframe_to_mmd_mercury
+from qt_models import SortableTableModel
 from report_html import result_dataframe_to_html
+from services.processor_config import build_processor_config
+from smt_processor import SMTDataProcessor, SMTProcessorError
 
 try:
     from app.workers import CrossCheckThread
@@ -45,7 +45,13 @@ class MergeTabMixin:
         tab = QtWidgets.QWidget()
         self._register_main_tab("merge", tab)
 
-        from ui.chrome import CHROME_MARGIN, CHROME_SPACING, action_button, apply_equal_widths, left_rail_widget
+        from ui.chrome import (
+            CHROME_MARGIN,
+            CHROME_SPACING,
+            action_button,
+            apply_equal_widths,
+            left_rail_widget,
+        )
 
         root = QtWidgets.QHBoxLayout(tab)
         root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)

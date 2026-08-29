@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
+from tools.clean_corpus_lib import load_corpus_profile
 
 import clean_component
-from tools.clean_corpus_lib import load_corpus_profile
 
 
 @pytest.fixture

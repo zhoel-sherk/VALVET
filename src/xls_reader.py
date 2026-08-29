@@ -2,14 +2,13 @@
 # 2025-11-28
 #
 
-import logger
+from pathlib import Path
 
 # https://linuxhint.com/read-excel-file-python/
 # https://xlrd.readthedocs.io/en/latest/
 import xlrd
 
-from pathlib import Path
-
+import logger
 from text_grid import TextGrid
 
 # -----------------------------------------------------------------------------

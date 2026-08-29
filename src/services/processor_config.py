@@ -10,13 +10,13 @@ from typing import Callable
 
 import pandas as pd
 
+from services.column_mapping import pick_merge_pn_column, pick_ref_column
 from smt_processor import (
-    SMTColumnNotFoundError,
-    SMTDataProcessor,
     ColumnConfig,
     ProcessorConfig,
+    SMTColumnNotFoundError,
+    SMTDataProcessor,
 )
-from services.column_mapping import pick_merge_pn_column, pick_ref_column
 
 HIDDEN_TABLE_HAS_HEADER_ROW = False
 

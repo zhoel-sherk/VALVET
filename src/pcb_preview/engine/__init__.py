@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import logger
 from pcb_preview.engine.gerbonara_backend import load_via_gerbonara
 from pcb_preview.engine.identify import (
     guess_layer_kind,
@@ -9,11 +12,8 @@ from pcb_preview.engine.identify import (
     layer_default_rgb,
     layer_default_z,
 )
-from pathlib import Path
-
 from pcb_preview.engine.pygerber_backend import load_via_pygerber
 from pcb_preview.types import BBoxMM, GerberSvgPayload
-import logger
 
 
 def load_gerber_layer(path: str) -> GerberSvgPayload:

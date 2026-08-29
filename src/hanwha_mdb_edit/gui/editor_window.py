@@ -9,7 +9,12 @@ from typing import Callable, Optional
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import logger
 from app_paths import hanwha_mdb_autosave_root
+from hanwha_mdb_edit.core.column_labels import (
+    build_column_header_metadata,
+    format_column_for_checklist,
+)
 from hanwha_mdb_edit.core.errors import HanwhaSaveError, HanwhaValidationError
 from hanwha_mdb_edit.core.part_bulk import (
     bulk_update_paren_profile,
@@ -17,10 +22,6 @@ from hanwha_mdb_edit.core.part_bulk import (
     bulk_update_speed_feed_all_matching_paren,
     bulk_update_speed_overall,
     bulk_update_speed_overall_all_matching_paren,
-)
-from hanwha_mdb_edit.core.column_labels import (
-    build_column_header_metadata,
-    format_column_for_checklist,
 )
 from hanwha_mdb_edit.core.part_enriched import load_wide_editor_dataframe
 from hanwha_mdb_edit.core.save import SaveResult, save_enriched_library
@@ -33,7 +34,6 @@ from hanwha_mdb_edit.gui.part_filter_proxy import HanwhaPartLibraryFilterProxy
 from machine_library.hanwha_mdbtools import HanwhaMdbToolsError
 from qt_models import PandasTableModel
 from working_copy import save_snapshot
-import logger
 from working_copy_ui import prompt_recover_snapshot
 
 

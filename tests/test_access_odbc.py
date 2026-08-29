@@ -161,7 +161,10 @@ def test_load_part_det_dataframe_odbc_closes_on_query_failure(
 def test_load_machine_lib_join_tables_odbc_closes_on_profile_failure(
     mocker, tmp_path: Path
 ) -> None:
-    from machine_library.access_odbc import AccessOdbcError, load_machine_lib_join_tables_odbc
+    from machine_library.access_odbc import (
+        AccessOdbcError,
+        load_machine_lib_join_tables_odbc,
+    )
 
     mdb = tmp_path / "lib.mdb"
     mdb.write_bytes(b"x")

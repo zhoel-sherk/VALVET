@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PySide6 import QtCore, QtWidgets
 import pandas as pd
+from PySide6 import QtCore, QtWidgets
 
 import pnp_coord
 from app.constants import _DANGER_CLEAR_BTN_STYLE

@@ -22,9 +22,8 @@ Resistance coding:
 3-digit E24 XXY = XX×10^Y Ω; 4-digit E96 XXXY = XXX×10^Y Ω
 """
 
-from parsers.regex_api import match
-
 import logger
+from parsers.regex_api import match
 
 VENDOR_NAME = "Royal Ohm"
 COMPONENT_TYPES = ["RES"]

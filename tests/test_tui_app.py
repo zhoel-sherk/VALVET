@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from cli.tui_app import ValvetTui
 from textual.widgets import Button, Input, Log
+
+from cli.tui_app import ValvetTui
 
 
 def _run_tui(coro):

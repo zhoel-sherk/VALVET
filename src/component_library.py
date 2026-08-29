@@ -7,12 +7,12 @@ Backward compatible:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Iterable
 
 PREFIX = "BOOMER_COMPONENT\t"

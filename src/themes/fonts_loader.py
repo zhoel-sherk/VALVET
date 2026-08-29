@@ -5,8 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PySide6 import QtGui, QtWidgets
-from PySide6.QtCore import QSettings
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from themes import load_tokens
 
@@ -107,7 +106,7 @@ def _clamp_ui_pt(pt: int) -> int:
     return max(7, min(24, int(pt)))
 
 
-def read_ui_family(settings: QSettings | None) -> str:
+def read_ui_family(settings: QtCore.QSettings | None) -> str:
     if settings is None:
         return UI_FAMILY_INTER
     v = settings.value(FONT_UI_FAMILY_KEY)
@@ -116,7 +115,7 @@ def read_ui_family(settings: QSettings | None) -> str:
     return UI_FAMILY_INTER
 
 
-def read_ui_style(settings: QSettings | None) -> str:
+def read_ui_style(settings: QtCore.QSettings | None) -> str:
     if settings is None:
         return STYLE_REGULAR
     v = settings.value(FONT_UI_STYLE_KEY)
@@ -127,7 +126,7 @@ def read_ui_style(settings: QSettings | None) -> str:
     return STYLE_REGULAR
 
 
-def read_table_family(settings: QSettings | None) -> str:
+def read_table_family(settings: QtCore.QSettings | None) -> str:
     if settings is None:
         return TABLE_FAMILY_JETBRAINS
     v = settings.value(FONT_TABLE_FAMILY_KEY)
@@ -136,7 +135,7 @@ def read_table_family(settings: QSettings | None) -> str:
     return TABLE_FAMILY_JETBRAINS
 
 
-def read_table_style(settings: QSettings | None) -> str:
+def read_table_style(settings: QtCore.QSettings | None) -> str:
     if settings is None:
         return STYLE_REGULAR
     v = settings.value(FONT_TABLE_STYLE_KEY)
@@ -159,7 +158,7 @@ def _resolve_table_family_key(kind: str) -> str:
     return resolve_system_sans_family()
 
 
-def font_point_size_for_editor(settings: QSettings) -> int:
+def font_point_size_for_editor(settings: QtCore.QSettings) -> int:
     """Persisted UI pt in 7–24."""
     default_pt = default_font_point_size()
     v = settings.value(FONT_POINT_SETTINGS_KEY)
@@ -171,7 +170,7 @@ def font_point_size_for_editor(settings: QSettings) -> int:
         return _clamp_ui_pt(default_pt)
 
 
-def font_table_point_size_for_editor(settings: QSettings) -> int:
+def font_table_point_size_for_editor(settings: QtCore.QSettings) -> int:
     """Persisted table pt in 7–24; falls back to UI pt if unset."""
     v = settings.value(FONT_TABLE_POINT_KEY)
     if v is None or str(v).strip() == "":
@@ -183,7 +182,7 @@ def font_table_point_size_for_editor(settings: QSettings) -> int:
 
 
 def build_ui_font(
-    settings: QSettings | None,
+    settings: QtCore.QSettings | None,
     *,
     override_point: int | None = None,
     override_family: str | None = None,
@@ -218,7 +217,7 @@ def build_ui_font(
 
 
 def build_table_font(
-    settings: QSettings | None,
+    settings: QtCore.QSettings | None,
     *,
     override_point: int | None = None,
     override_family: str | None = None,
@@ -256,7 +255,7 @@ def build_table_font(
     return f
 
 
-def build_mono_font(settings: QSettings | None) -> QtGui.QFont:
+def build_mono_font(settings: QtCore.QSettings | None) -> QtGui.QFont:
     """Monospace for project console — JetBrains Mono when registered, else common fallbacks."""
     pt = default_font_point_size()
     if settings is not None:
@@ -287,7 +286,7 @@ def _is_project_console(w: QtWidgets.QWidget) -> bool:
     return w.objectName() == "project_console"
 
 
-def apply_app_font(settings: QSettings | None) -> None:
+def apply_app_font(settings: QtCore.QSettings | None) -> None:
     """Set QApplication default UI font; table-like widgets get table font; console skipped here."""
     app = QtWidgets.QApplication.instance()
     if app is None:
@@ -304,6 +303,6 @@ def apply_app_font(settings: QSettings | None) -> None:
             w.setFont(ui_font)
 
 
-def font_bold_for_editor(settings: QSettings) -> bool:
+def font_bold_for_editor(settings: QtCore.QSettings) -> bool:
     """Legacy helper: whether UI style is a bold variant."""
     return read_ui_style(settings) in (STYLE_BOLD, STYLE_BOLDITALIC)

@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from hanwha_mdb_edit.core.errors import HanwhaSaveError, HanwhaValidationError
-from hanwha_mdb_edit.core.part_det_model import EditablePartDetRow, MAX_PARTNAME_LEN
+from hanwha_mdb_edit.core.part_det_model import MAX_PARTNAME_LEN, EditablePartDetRow
 from hanwha_mdb_edit.core.save import (
     SaveResult,
     format_part_det_csv,

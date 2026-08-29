@@ -8,7 +8,6 @@ import re
 from typing import Any
 
 from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import QSettings
 
 from app.constants import (
     PROFILE_LAST_ACTIVE_KEY,
@@ -299,7 +298,7 @@ class ProfilesMixin:
         self._settings.setValue(PROFILE_NAMES_KEY, json.dumps(names))
         self._log(self.ui_tr("msg.profile_deleted", name=pid), "info")
 
-    def _load_legacy_settings_flat(self, s: QSettings) -> None:
+    def _load_legacy_settings_flat(self, s: QtCore.QSettings) -> None:
         if hasattr(self, "chk_colorful"):
             self.chk_colorful.setChecked(s.value("ui/colorful_logs", False, type=bool))
         if hasattr(self, "merge_delete_dnp") and s.contains("merge/delete_dnp"):

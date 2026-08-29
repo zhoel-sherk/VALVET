@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 
 from machine_library.upd_geometry_load import (
+    _load_tables,
     build_outline_from_mdb,
     load_profile_snapshot,
-    _load_tables,
 )
 from mdb_paths import resolve_upd_mdb, skip_if_mdb_unreadable
 

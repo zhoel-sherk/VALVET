@@ -7,21 +7,9 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 import pandas as pd
-from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6 import QtCore, QtGui, QtWidgets
 
-_CLEAN_PRESET_SMT = {
-    "res": ("nom", "pack", "watt", "%"),
-    "cap": ("nom", "pack", "film", "%", "V"),
-    "ind": ("pack", "nom", "%", "Imax", "DCR"),
-}
-_CLEAN_PRESET_COMPACT = {
-    "res": ("nom", "pack", "none", "none"),
-    "cap": ("nom", "pack", "none", "none", "none"),
-    "ind": ("pack", "nom", "none", "none", "none"),
-}
-
+import logger
 from app.constants import _RCL_ROW_DISABLED_STYLE
 from app.prefs import _prefs_profile_bool
 from clean_component import CleanConfig, clean_preview
@@ -36,14 +24,22 @@ from parsers.formatting import (
     format_resistor_fields,
 )
 from pn_original import normalize_mpn_bare
+from qt_models import CleanPreviewTableModel
 from services.clean_apply import apply_clean_preview_to_bom
 from services.clean_config import build_clean_config
 from services.clean_import import import_bom_comments_for_clean
-
 from ui.chrome import WidePopupComboBox
-from qt_models import CleanPreviewTableModel
 
-import logger
+_CLEAN_PRESET_SMT = {
+    "res": ("nom", "pack", "watt", "%"),
+    "cap": ("nom", "pack", "film", "%", "V"),
+    "ind": ("pack", "nom", "%", "Imax", "DCR"),
+}
+_CLEAN_PRESET_COMPACT = {
+    "res": ("nom", "pack", "none", "none"),
+    "cap": ("nom", "pack", "none", "none", "none"),
+    "ind": ("pack", "nom", "none", "none", "none"),
+}
 
 
 class CleanTabMixin:
@@ -1008,7 +1004,7 @@ class CleanTabMixin:
             url = f"https://www.mouser.com/c/?q={q}"
         else:
             url = f"https://octopart.com/search?q={q}"
-        if not QDesktopServices.openUrl(QUrl(url)):
+        if not QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)):
             self._log("Could not open default browser for MPN search", "error")
         else:
             self._log(f"MPN search opened for {mpn!r} ({prov})", "info")

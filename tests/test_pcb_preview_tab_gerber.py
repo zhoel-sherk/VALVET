@@ -9,8 +9,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6 import QtWidgets
-from PySide6.QtCore import QSettings
+from PySide6 import QtCore, QtWidgets
 
 _ART = (
     Path(__file__).resolve().parents[1]
@@ -50,7 +49,7 @@ def test_pcb_preview_tab_loads_gerber_layer(tmp_path: Path) -> None:
     from pcb_preview_tab import PcbPreviewTab
 
     qapp = _qapp()
-    settings = QSettings(str(tmp_path / "t.ini"), QSettings.Format.IniFormat)
+    settings = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
     tab = PcbPreviewTab(settings=settings)
     try:
         thread = GerberLoadThread(str(_ART), tab._px_per_mm, tab)
@@ -70,7 +69,7 @@ def test_pcb_preview_gerber_unit_radio_rescales_layer(tmp_path: Path) -> None:
     from pcb_preview_tab import PcbPreviewTab
 
     qapp = _qapp()
-    settings = QSettings(str(tmp_path / "t.ini"), QSettings.Format.IniFormat)
+    settings = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
     tab = PcbPreviewTab(settings=settings)
     try:
         thread = GerberLoadThread(str(_ART), tab._px_per_mm, tab)
@@ -93,13 +92,13 @@ def test_pcb_preview_gerber_unit_radio_rescales_layer(tmp_path: Path) -> None:
 def test_pcb_preview_missing_gerber_logs_error(
     tmp_path: Path, mocker: pytest.MockFixture
 ) -> None:
+    import logger
     from pcb_preview_load_thread import GerberLoadThread
     from pcb_preview_tab import PcbPreviewTab
-    import logger
 
     spy = mocker.spy(logger, "error")
     qapp = _qapp()
-    settings = QSettings(str(tmp_path / "t.ini"), QSettings.Format.IniFormat)
+    settings = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
     tab = PcbPreviewTab(settings=settings)
     missing = tmp_path / "missing.gbr"
     try:

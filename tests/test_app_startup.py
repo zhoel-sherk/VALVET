@@ -8,8 +8,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6 import QtWidgets
-from PySide6.QtCore import QSettings
+from PySide6 import QtCore, QtWidgets
 
 
 @pytest.fixture(scope="module")
@@ -20,12 +19,12 @@ def qapp():
     return app
 
 
-def _ini_settings(tmp_path: Path) -> QSettings:
+def _ini_settings(tmp_path: Path) -> QtCore.QSettings:
     ini = tmp_path / "valvet.ini"
-    return QSettings(str(ini), QSettings.Format.IniFormat)
+    return QtCore.QSettings(str(ini), QtCore.QSettings.Format.IniFormat)
 
 
-def _set_experimental(settings: QSettings, *, enabled: bool) -> None:
+def _set_experimental(settings: QtCore.QSettings, *, enabled: bool) -> None:
     """Toggle optional Step 3D tab. PCB Preview is always created."""
     settings.setValue("experimental/enable_step_3d", enabled)
 
@@ -183,8 +182,8 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
 def test_debug_logs_checkbox_calls_set_debug_mode(
     import_parsers, qapp, tmp_path, mocker
 ) -> None:
-    from app.window import MainWindow
     import logger
+    from app.window import MainWindow
 
     spy = mocker.spy(logger, "set_debug_mode")
     settings = _ini_settings(tmp_path)

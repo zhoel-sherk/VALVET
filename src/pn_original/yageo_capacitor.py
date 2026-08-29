@@ -23,9 +23,9 @@ Tolerance:
 F=±1%, G=±2%, J=±5%, K=±10%, M=±20% (position after size + fallback scan)
 """
 
+import logger
 from parsers.regex_api import I, match, search, sub
 
-import logger
 from ._cap_decode import pf_eia_3_to_str
 
 VENDOR_NAME = "Yageo_CAP"

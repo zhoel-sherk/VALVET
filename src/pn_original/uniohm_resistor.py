@@ -19,9 +19,8 @@ Note:
 Parsing rules mirror ``royalohm_resistor.py`` for compatible PN patterns.
 """
 
-from parsers.regex_api import match
-
 import logger
+from parsers.regex_api import match
 
 VENDOR_NAME = "Uniohm"
 COMPONENT_TYPES = ["RES"]

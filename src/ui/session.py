@@ -5,15 +5,15 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from PySide6 import QtWidgets
 import pandas as pd
+from PySide6 import QtWidgets
 
+from facades.session_links import apply_session_links_payload, session_links_to_pairs
 from valvetpack import (
     ValvetpackError,
     load_valvetpack,
     save_valvetpack,
 )
-from facades.session_links import apply_session_links_payload, session_links_to_pairs
 from working_copy import find_snapshot
 from working_copy_ui import prompt_recover_snapshot
 

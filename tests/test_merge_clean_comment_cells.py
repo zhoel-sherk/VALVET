@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from parsers.bom_text_utils import (
     DEFAULT_DOUBLE_COMMENT_JOIN,
     merge_clean_comment_cell_parts,

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from tools.clean_corpus_lib import load_corpus_profile
 
 import clean_component
 import pn_original
@@ -20,7 +21,6 @@ from services import (
     read_pnp_dataframe,
 )
 from smt_processor import ColumnConfig
-from tools.clean_corpus_lib import load_corpus_profile
 
 _ASSETS = Path(__file__).resolve().parent / "assets"
 

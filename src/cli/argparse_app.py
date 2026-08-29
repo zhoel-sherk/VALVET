@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+import logger
 from cli.hanwha import HanwhaMdbToolsError, format_part_det, format_tables
 from cli.pipeline import (
     apply_map_json,
@@ -25,7 +26,6 @@ from cli.session import (
     load_session_file,
     save_session_file,
 )
-import logger
 
 
 def _parser() -> argparse.ArgumentParser:

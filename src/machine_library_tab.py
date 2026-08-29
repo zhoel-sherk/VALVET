@@ -7,31 +7,25 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Set
+from typing import Optional, Set
 
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
 import logger
-
+from app.workers import HanwhaFootprintBuildThread, HanwhaSqliteImportThread
 from hanwha_mdb_edit.core.column_labels import build_column_header_metadata
 from hanwha_mdb_edit.gui import open_hanwha_mdb_editor
-
-from app.workers import HanwhaFootprintBuildThread, HanwhaSqliteImportThread
 from machine_library.hanwha_mdbtools import part_det_rows_to_dataframe
 from machine_library.hanwha_preview import machine_lib_preview_frame
 from machine_library.yamaha_devlib import load_devlib_items
 from machine_library.yamaha_tou import load_tou_items
 from qt_models import SortableTableModel
-
-if TYPE_CHECKING:
-    from PySide6.QtCore import QSettings
+from ui.chrome import left_rail_widget
+from ui.machine_lib.footprint_preview import FootprintPreviewWidget
 
 # T-OLP ST column / PART_Det.CONFIDENCE_LEVEL — known tiers (see doc/hanwha_UPD_mdb_schema.md).
 HANWHA_CONFIDENCE_KNOWN_LEVELS: frozenset[int] = frozenset((0, 10, 20, 40))
-
-from ui.chrome import left_rail_widget
-from ui.machine_lib.footprint_preview import FootprintPreviewWidget
 
 _HANWHA_HELP = (
     "Hanwha/Samsung UPD library (.mdb).\n\n"
@@ -83,7 +77,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self,
         parent: Optional[QtWidgets.QWidget] = None,
         *,
-        settings: Optional["QSettings"] = None,
+        settings: Optional[QtCore.QSettings] = None,
     ):
         super().__init__(parent)
         self._settings = settings
@@ -587,8 +581,6 @@ class MachineLibraryTab(QtWidgets.QWidget):
 
     def _show_access_odbc_driver_help(self) -> None:
         """Windows: show ACE/ODBC driver status and optionally open the redistributable page."""
-        from PySide6.QtGui import QDesktopServices
-
         from machine_library.access_odbc import (
             ACCESS_ENGINE_2016_REDIST_URL,
             driver_status_message,
@@ -611,7 +603,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
             QtWidgets.QMessageBox.StandardButton.Yes,
         )
         if r == QtWidgets.QMessageBox.StandardButton.Yes:
-            QDesktopServices.openUrl(QtCore.QUrl(ACCESS_ENGINE_2016_REDIST_URL))
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl(ACCESS_ENGINE_2016_REDIST_URL))
 
     def _on_table_current_changed(
         self, current: QtCore.QModelIndex, _prev: QtCore.QModelIndex
@@ -664,7 +656,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
         if self._vendor_combo.currentData() != 0:
             self._fp_preview.set_yamaha_placeholder()
             return
-        from machine_library.hanwha_sqlite_cache import sqlite_path as vision_sqlite_path
+        from machine_library.hanwha_sqlite_cache import (
+            sqlite_path as vision_sqlite_path,
+        )
 
         if not self._hanwha_cache_dir or not vision_sqlite_path(
             self._hanwha_cache_dir

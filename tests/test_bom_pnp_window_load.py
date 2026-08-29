@@ -8,8 +8,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6 import QtWidgets
-from PySide6.QtCore import QSettings
+from PySide6 import QtCore, QtWidgets
 
 _ROOT = Path(__file__).resolve().parents[1]
 _TABULAR = _ROOT / "tests" / "fixtures" / "clean_corpus" / "tabular_sample.csv"
@@ -29,7 +28,7 @@ def test_main_window_load_bom_and_pnp_by_path(tmp_path: Path) -> None:
         "C1,3.0,4.0,90,Top,0402\n",
         encoding="utf-8",
     )
-    settings = QSettings(str(tmp_path / "t.ini"), QSettings.Format.IniFormat)
+    settings = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
     settings.setValue("experimental/enable_step_3d", False)
     win = MainWindow(settings=settings)
     try:

@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from PySide6 import QtCore, QtWidgets
 import pandas as pd
+from PySide6 import QtCore, QtWidgets
 
 from qt_models import SortableTableModel
 from report_html import html_document_from_fragment, result_dataframe_plain_text
@@ -19,7 +19,13 @@ class ReportTabMixin:
         tab = QtWidgets.QWidget()
         self._register_main_tab("report", tab)
 
-        from ui.chrome import CHROME_MARGIN, CHROME_SPACING, action_button, apply_equal_widths, left_rail_widget
+        from ui.chrome import (
+            CHROME_MARGIN,
+            CHROME_SPACING,
+            action_button,
+            apply_equal_widths,
+            left_rail_widget,
+        )
 
         root = QtWidgets.QHBoxLayout(tab)
         root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)

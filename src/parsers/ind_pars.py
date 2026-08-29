@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import Dict, Optional, Tuple
 
 from clean_types import CleanConfig, default_clean_config
-
 from parsers.bom_text_utils import normalize_for_regex_parsing
 from parsers.chip_tokens import match_package_token
 from parsers.formatting import format_inductor_fields, inductor_pack_guess

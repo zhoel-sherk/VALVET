@@ -57,6 +57,7 @@ def test_cam350_silk_implicit_d01_does_not_fail() -> None:
 def test_label_scale_reverts() -> None:
     pytest.importorskip("PySide6")
     from PySide6 import QtWidgets
+
     from pcb_preview_tab import PlacementGroupItem
 
     app = QtWidgets.QApplication.instance()
@@ -84,6 +85,7 @@ def test_guess_layer_kind_from_filename() -> None:
 def test_rasterize_gerber_svg_worker_image(tmp_path) -> None:
     pytest.importorskip("PySide6")
     from PySide6 import QtWidgets
+
     from pcb_preview_load_thread import rasterize_gerber_svg
 
     app = QtWidgets.QApplication.instance()

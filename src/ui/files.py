@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import os
 
-from PySide6 import QtCore, QtWidgets
 import pandas as pd
+from PySide6 import QtCore, QtWidgets
 
+import logger
 from services.file_loading import read_pnp_dataframe as _service_read_pnp
 from smt_processor import SMTProcessorError, read_file
 from ui.project_tab import configure_path_label
 from working_copy import save_snapshot
-
-import logger
 
 
 class FilesMixin:

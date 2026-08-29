@@ -8,9 +8,8 @@ from typing import Any, Optional
 
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import QSettings
-from PySide6.QtGui import QKeySequence, QShortcut
 
+import logger
 from app.constants import SETTINGS_APP, SETTINGS_ORG
 from app.prefs import _prefs_profile_bool
 from app.workers import CrossCheckThread
@@ -26,7 +25,6 @@ from themes.colour_prefs import (
 )
 from themes.fonts_loader import apply_app_font, build_mono_font
 from themes.stylesheet import apply_composed_stylesheet
-from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 from ui.bom_tab import BomTabMixin
 from ui.clean_tab import CleanTabMixin
 from ui.files import FilesMixin
@@ -39,9 +37,7 @@ from ui.report_tab import ReportTabMixin
 from ui.session import SessionMixin
 from ui.table_actions import TableActionsMixin
 from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n
-
-import logger
-
+from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 
 _TAB_GROUP_KEY = {
     "project": "data",
@@ -73,7 +69,7 @@ class MainWindow(
 
     log_message = QtCore.Signal(str, str)  # message, level
 
-    def __init__(self, *, settings: QSettings | None = None, debug: bool = False):
+    def __init__(self, *, settings: QtCore.QSettings | None = None, debug: bool = False):
         super().__init__()
         self.setMinimumSize(900, 600)
         self.resize(1400, 900)
@@ -93,7 +89,7 @@ class MainWindow(
         self._last_report_html: str = ""
         self._last_merge_df: Optional[pd.DataFrame] = None
         self._restoring_settings: bool = False
-        self._settings = settings or QSettings(SETTINGS_ORG, SETTINGS_APP)
+        self._settings = settings or QtCore.QSettings(SETTINGS_ORG, SETTINGS_APP)
         self._autosave_dir = str(autosave_root())
         self._cc_thread: Optional[CrossCheckThread] = None
         self._bom_source_path: str = ""
@@ -519,10 +515,10 @@ class MainWindow(
         dlg.show()
 
     def _install_edit_shortcuts(self) -> None:
-        u = QShortcut(QKeySequence.StandardKey.Undo, self)
+        u = QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Undo, self)
         u.setContext(QtCore.Qt.ShortcutContext.ApplicationShortcut)
         u.activated.connect(self._shortcut_undo)
-        r = QShortcut(QKeySequence.StandardKey.Redo, self)
+        r = QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Redo, self)
         r.setContext(QtCore.Qt.ShortcutContext.ApplicationShortcut)
         r.activated.connect(self._shortcut_redo)
 

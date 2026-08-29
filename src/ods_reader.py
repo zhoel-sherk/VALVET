@@ -2,18 +2,17 @@
 # 2025-11-28
 #
 
-import logger
-
 from pathlib import Path
 
 from odf import opendocument, table
+
+import logger
 
 # local copy of odf:
 # import os
 # import sys
 # sys.path.append(os.path.join(os.path.dirname(__file__), "odfpy"))
 # from odfpy.odf import opendocument, table
-
 from text_grid import TextGrid
 
 # -----------------------------------------------------------------------------

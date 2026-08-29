@@ -4,11 +4,11 @@ from typing import Optional
 from PySide6 import QtCore
 
 import logger
-from smt_processor import SMTDataProcessor, SMTProcessorError
 from machine_library.hanwha_mdbtools import (
     HanwhaMdbToolsError,
     load_hanwha_machine_lib_dataframe,
 )
+from smt_processor import SMTDataProcessor, SMTProcessorError
 
 
 class CrossCheckThread(QtCore.QThread):

@@ -19,7 +19,6 @@ from typing import Dict, Optional, Tuple
 
 import logger
 from clean_types import CleanConfig, default_clean_config
-
 from parsers.bom_text_utils import (
     capacitor_nominal_pf,
     normalize_for_regex_parsing,
@@ -28,10 +27,17 @@ from parsers.bom_text_utils import (
     snap_cap_tolerance_pf_to_std_pct,
     tokenize_bom_spec,
 )
-from parsers.chip_tokens import canonical_voltage_token, find_package_in_text, match_package_token
+from parsers.chip_tokens import (
+    canonical_voltage_token,
+    find_package_in_text,
+    match_package_token,
+)
 from parsers.constants import MLCC_DIELECTRIC
 from parsers.formatting import format_cap_fields
-from parsers.inferit_pars import parse_inferit_capacitor, try_parse_mlcc_underscore_cap_fields
+from parsers.inferit_pars import (
+    parse_inferit_capacitor,
+    try_parse_mlcc_underscore_cap_fields,
+)
 from parsers.regex_api import I, escape, findall, match, search
 from parsers.registry import ParserModuleInfo, register_parser_module
 

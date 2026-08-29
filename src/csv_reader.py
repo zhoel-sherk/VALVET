@@ -3,8 +3,8 @@
 #
 
 import csv
-import logger
 
+import logger
 from text_grid import TextGrid
 
 # -----------------------------------------------------------------------------

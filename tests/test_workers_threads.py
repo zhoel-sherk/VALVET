@@ -38,8 +38,8 @@ def _wait_thread(thread, qapp, timeout_s: float = 30.0) -> None:
 def test_hanwha_sqlite_import_thread_missing_mdb(
     tmp_path: Path, mocker: pytest.MockFixture
 ) -> None:
-    from app.workers import HanwhaSqliteImportThread
     import logger
+    from app.workers import HanwhaSqliteImportThread
 
     spy = mocker.spy(logger, "error")
     qapp = _qapp()
@@ -67,9 +67,9 @@ def test_hanwha_sqlite_import_thread_missing_mdb(
 def test_gerber_load_thread_missing_file(
     tmp_path: Path, mocker: pytest.MockFixture
 ) -> None:
+    import logger
     from pcb_preview.types import GerberSvgPayload
     from pcb_preview_load_thread import GerberLoadThread
-    import logger
 
     spy = mocker.spy(logger, "error")
     qapp = _qapp()

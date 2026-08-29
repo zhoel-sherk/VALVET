@@ -10,7 +10,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from mdb_paths import resolve_upd_mdb, skip_if_mdb_unreadable
 
@@ -47,8 +47,6 @@ def test_machine_lib_start_mdb_load_and_footprint(
 ) -> None:
     skip_if_mdb_unreadable(_UPD_MDB)
     qapp = _qapp()
-    from PySide6.QtCore import QSettings
-
     from app.window import MainWindow
 
     monkeypatch.setattr(QtWidgets.QMessageBox, "warning", lambda *a, **k: None)
@@ -63,7 +61,7 @@ def test_machine_lib_start_mdb_load_and_footprint(
 
     src = tmp_path / "UPD.MDB"
     shutil.copy2(_UPD_MDB, src)
-    ini = QSettings(str(tmp_path / "t.ini"), QSettings.Format.IniFormat)
+    ini = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
     ini.setValue("experimental/enable_step_3d", False)
     win = MainWindow(settings=ini)
     tab = win._machine_library_tab

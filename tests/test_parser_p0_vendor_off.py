@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
+from tools.clean_corpus_lib import load_corpus_profile
 
 import clean_component
 from parsers.chip_tokens import expand_compact_rkm, match_package_token
@@ -15,7 +16,6 @@ from parsers.si_units import (
     quantity_volts,
     unit_registry,
 )
-from tools.clean_corpus_lib import load_corpus_profile
 
 
 @pytest.fixture

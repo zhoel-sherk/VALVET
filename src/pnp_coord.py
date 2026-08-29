@@ -7,7 +7,7 @@ Core merge/cross-check paths preserve numeric magnitude except stripping trailin
 from __future__ import annotations
 
 import re
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 _TRAILING_UNITS = re.compile(
     r"(?:\s*|\b)(?:mil|mils|thou|ths?|mm|millimeters?|in|inch|inches)\s*$",

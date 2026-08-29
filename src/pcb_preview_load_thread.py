@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from PySide6 import QtCore, QtGui
-from PySide6.QtSvg import QSvgRenderer
+from PySide6 import QtCore, QtGui, QtSvg
 
 import logger
 from pcb_preview.gerber_io import load_gerber_svg
@@ -21,7 +20,7 @@ def rasterize_gerber_svg(
 ) -> tuple[QtGui.QImage | None, QtCore.QRectF]:
     if not svg:
         return None, QtCore.QRectF()
-    renderer = QSvgRenderer(QtCore.QByteArray(svg.encode("utf-8")))
+    renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(svg.encode("utf-8")))
     if not renderer.isValid():
         return None, QtCore.QRectF()
     vb = renderer.viewBoxF()
