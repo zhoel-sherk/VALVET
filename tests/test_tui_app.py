@@ -5,6 +5,10 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("textual")
+
 from textual.widgets import Button, Input, Log
 
 from cli.tui_app import ValvetTui
