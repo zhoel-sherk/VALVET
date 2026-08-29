@@ -6,11 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from machine_library.upd_geometry_load import (
-    _load_tables,
-    build_outline_from_mdb,
-    load_profile_snapshot,
-)
+import machine_library.upd_geometry_load as upd_geom
 from mdb_paths import resolve_upd_mdb, skip_if_mdb_unreadable
 
 _UPD_MDB = resolve_upd_mdb()
@@ -29,11 +25,11 @@ def test_load_tables_logs_odbc_connect_fallback(
         lambda *_a, **_k: (_ for _ in ()).throw(AccessOdbcError("no driver")),
     )
     monkeypatch.setattr(
-        "machine_library.upd_geometry_load.export_table_csv",
+        "machine_library.hanwha_mdbtools.export_table_csv",
         lambda *_a, **_k: "PROFILENAME\nP1\n",
     )
     warn_spy = mocker.spy(__import__("logger"), "warning")
-    tables = _load_tables(mdb, "P1")
+    tables = upd_geom._load_tables(mdb, "P1")
     assert "PARTGROUP_Map" in tables
     assert warn_spy.called
     blob = " ".join(str(c.args[0]) for c in warn_spy.call_args_list).lower()
@@ -48,10 +44,10 @@ def _require_mdb():
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_load_chip_r0402_from_mdb() -> None:
     mdb = _require_mdb()
-    snap = load_profile_snapshot(mdb, "_NewR0402")
+    snap = upd_geom.load_profile_snapshot(mdb, "_NewR0402")
     assert snap.vision_type == 3
     assert snap.chip_whole is not None
-    r = build_outline_from_mdb(mdb, "_NewR0402")
+    r = upd_geom.build_outline_from_mdb(mdb, "_NewR0402")
     assert r.error == ""
     assert len(r.outline.pads) == 2
 
@@ -60,10 +56,10 @@ def test_load_chip_r0402_from_mdb() -> None:
 def test_load_sop_from_mdb() -> None:
     mdb = _require_mdb()
     name = "AT45DB161E-SSHF-T"
-    snap = load_profile_snapshot(mdb, name)
+    snap = upd_geom.load_profile_snapshot(mdb, name)
     if snap.ll_whole is None and snap.vision_type != 1:
         pytest.skip(f"{name} not a leaded profile in this library")
-    r = build_outline_from_mdb(mdb, name)
+    r = upd_geom.build_outline_from_mdb(mdb, name)
     assert r.error == ""
     assert len(r.outline.pads) >= 8
 
@@ -71,7 +67,7 @@ def test_load_sop_from_mdb() -> None:
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_load_user_ic_from_mdb() -> None:
     mdb = _require_mdb()
-    r = build_outline_from_mdb(mdb, "_NewUserIC")
+    r = upd_geom.build_outline_from_mdb(mdb, "_NewUserIC")
     if r.error:
         pytest.skip(r.error)
     assert len(r.outline.pads) == 10
@@ -81,7 +77,7 @@ def test_load_user_ic_from_mdb() -> None:
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_load_bga_from_mdb() -> None:
     mdb = _require_mdb()
-    r = build_outline_from_mdb(mdb, "_NewBGA")
+    r = upd_geom.build_outline_from_mdb(mdb, "_NewBGA")
     if r.error:
         pytest.skip(r.error)
     assert r.outline.lines

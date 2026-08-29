@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from machine_library.hanwha_mdbtools import HanwhaMdbToolsError, list_mdb_tables
+import machine_library.hanwha_mdbtools as mdbtools
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,6 +25,6 @@ def skip_if_mdb_unreadable(mdb: Path | None) -> None:
     if mdb is None:
         pytest.skip("UPD.MDB not present")
     try:
-        list_mdb_tables(mdb)
-    except HanwhaMdbToolsError as exc:
+        mdbtools.list_mdb_tables(mdb)
+    except mdbtools.HanwhaMdbToolsError as exc:
         pytest.skip(f"cannot read UPD.MDB: {exc}")

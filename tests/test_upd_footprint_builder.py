@@ -4,21 +4,16 @@ from __future__ import annotations
 
 import pytest
 
-from pcb_preview.upd_footprint_builder import (
-    UpdProfileSnapshot,
-    build_from_snapshot,
-    chip_heuristic_pads,
-    um_to_mm,
-)
+import pcb_preview.upd_footprint_builder as upd_fp
 
 
 def test_um_to_mm() -> None:
-    assert um_to_mm(1000) == 1.0
-    assert um_to_mm(500) == 0.5
+    assert upd_fp.um_to_mm(1000) == 1.0
+    assert upd_fp.um_to_mm(500) == 0.5
 
 
 def test_chip_0402_body() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="_NewR0402",
         vision_type=3,
         partgroup_name="Chip-R0402",
@@ -27,7 +22,7 @@ def test_chip_0402_body() -> None:
         size_z_um=200,
         chip_whole={"TYPSIZEX": 400, "TYPSIZEY": 200},
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert r.outline.source == "hanwha_upd"
     assert len(r.outline.lines) == 4
@@ -40,22 +35,20 @@ def test_chip_0402_body() -> None:
 
 
 def test_chip_heuristic_pads_scale() -> None:
-    p0805 = chip_heuristic_pads(2.0, 1.25)
+    p0805 = upd_fp.chip_heuristic_pads(2.0, 1.25)
     assert len(p0805) == 2
     assert p0805[0].width_mm == pytest.approx(0.76)
     assert p0805[0].height_mm == pytest.approx(1.25)
-    p0402 = chip_heuristic_pads(0.4, 0.2)
+    p0402 = upd_fp.chip_heuristic_pads(0.4, 0.2)
     assert p0402[0].width_mm == pytest.approx(0.152)
-    p1812 = chip_heuristic_pads(4.171, 3.078)
+    p1812 = upd_fp.chip_heuristic_pads(4.171, 3.078)
     assert p1812[0].width_mm > 1.4
     assert p1812[0].width_mm < 2.0
     assert p1812[0].height_mm == pytest.approx(3.078)
 
 
 def test_sot23_tr2_three_pads() -> None:
-    from pcb_preview.upd_footprint_builder import sot23_heuristic_pads
-
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="AP2318GEN",
         vision_type=3,
         partgroup_name="TR2",
@@ -75,18 +68,18 @@ def test_sot23_tr2_three_pads() -> None:
             "EXPARAM19": 1900,
         },
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 3
     assert all(isinstance(p.cx, float) for p in r.outline.pads)
     assert any("chip lead slots" in w for w in r.warnings)
     assert r.polarity == "yes"
     assert r.pin1_kind == "lead1"
-    assert len(sot23_heuristic_pads(2.4, 2.8)) == 3
+    assert len(upd_fp.sot23_heuristic_pads(2.4, 2.8)) == 3
 
 
 def test_sod923_tr2_two_pads_not_sot23() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="RB521CS_30",
         vision_type=3,
         partgroup_name="TR2",
@@ -104,7 +97,7 @@ def test_sod923_tr2_two_pads_not_sot23() -> None:
             "EXPARAM19": 0,
         },
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert len(r.outline.pads) == 2
     assert any("chip lead slots" in w for w in r.warnings)
     assert not any("SOT-23" in w for w in r.warnings)
@@ -114,7 +107,7 @@ def test_sod923_tr2_two_pads_not_sot23() -> None:
 
 
 def test_tr_sot223_tab_and_three_leads() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="SOT223",
         vision_type=3,
         partgroup_name="TR",
@@ -132,7 +125,7 @@ def test_tr_sot223_tab_and_three_leads() -> None:
             "EXPARAM19": 5100,
         },
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert len(r.outline.pads) == 4
     assert any("chip lead slots" in w for w in r.warnings)
     left = [p for p in r.outline.pads if p.cx < 0]
@@ -144,7 +137,7 @@ def test_tr_sot223_tab_and_three_leads() -> None:
 
 def test_tr_small_sop_span_not_adjacent_pitch() -> None:
     """EXPARAM18=3.85 mm is first-to-last span for 4 leads, not 3.85 mm pitch."""
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="_NewSmallSOP",
         vision_type=3,
         partgroup_name="TR",
@@ -161,7 +154,7 @@ def test_tr_small_sop_span_not_adjacent_pitch() -> None:
             "EXPARAM19": 3850,
         },
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert len(r.outline.pads) == 8
     ys = sorted({round(p.cy, 4) for p in r.outline.pads})
     assert len(ys) == 4
@@ -169,7 +162,7 @@ def test_tr_small_sop_span_not_adjacent_pitch() -> None:
 
 
 def test_sot23_6_six_pads_from_exparam() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="CS0816",
         vision_type=3,
         partgroup_name="TR2",
@@ -187,46 +180,46 @@ def test_sot23_6_six_pads_from_exparam() -> None:
             "EXPARAM19": 1900,
         },
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert len(r.outline.pads) == 6
 
 
 def test_tr2_without_sot23_name_two_pads() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="IRLML6402",
         vision_type=3,
         partgroup_name="TR2",
         partdesc="",
         chip_whole={"TYPSIZEX": 2400, "TYPSIZEY": 2100},
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert len(r.outline.pads) == 2
 
 
 def test_sot23_from_partdesc_not_chip_r() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="foo",
         vision_type=3,
         partgroup_name="Chip-R0402",
         partdesc="resistor",
         chip_whole={"TYPSIZEX": 400, "TYPSIZEY": 200},
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert len(r.outline.pads) == 2
 
-    snap2 = UpdProfileSnapshot(
+    snap2 = upd_fp.UpdProfileSnapshot(
         profilename="x",
         vision_type=3,
         partgroup_name="Chip",
         partdesc="SOT-23-3",
         chip_whole={"TYPSIZEX": 2400, "TYPSIZEY": 2800},
     )
-    r2 = build_from_snapshot(snap2)
+    r2 = upd_fp.build_from_snapshot(snap2)
     assert len(r2.outline.pads) == 3
 
 
 def test_soic_ll_two_sides() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="AT45DB161E-SSHF-T",
         vision_type=1,
         partgroup_name="SOP",
@@ -268,7 +261,7 @@ def test_soic_ll_two_sides() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 8
     xs = [p.cx for p in r.outline.pads]
@@ -291,7 +284,7 @@ def test_qfp48_four_sides() -> None:
                 "LEADPARAMNO": 0,
             }
         )
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="QFP-48",
         vision_type=1,
         partgroup_name="QFP",
@@ -310,14 +303,14 @@ def test_qfp48_four_sides() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 48
     assert r.outline.bbox.width >= 7.0
 
 
 def test_user_ic_asymmetric_leads() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="_NewUserIC",
         vision_type=1,
         partgroup_name="User IC",
@@ -376,7 +369,7 @@ def test_user_ic_asymmetric_leads() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 10
     assert r.size_z_mm == 6.0
@@ -389,7 +382,7 @@ def test_user_ic_asymmetric_leads() -> None:
 
 
 def test_bga_grid() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="_NewBGA",
         vision_type=2,
         partgroup_name="BGA",
@@ -424,14 +417,14 @@ def test_bga_grid() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.circles) == 399
 
 
 def test_ps7101_bga_grid_follows_body_xy() -> None:
     """NUMBALLSR=11 along X (8 mm), NUMBALLST=7 along Y (5 mm) — not swapped."""
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="PS7101-51",
         vision_type=2,
         partgroup_name="BGA",
@@ -456,7 +449,7 @@ def test_ps7101_bga_grid_follows_body_xy() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.circles) == 77
     xs = [c.cx for c in r.outline.circles]
@@ -495,21 +488,21 @@ def test_polygon_contours() -> None:
             "CONTROLBIT": 5,
         },
     )
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="_NewShieldCan",
         vision_type=6,
         partgroup_name="Polygon",
         poly_whole={"VERTEXNUM": 4, "BODYSIZEX": 18000, "BODYSIZEY": 18000},
         poly_verts=verts,
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.lines) >= 3
     assert r.outline.pads == ()
 
 
 def test_flipchip_balls() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="_NewFlipChip",
         vision_type=5,
         partgroup_name="Flip Chip",
@@ -522,14 +515,14 @@ def test_flipchip_balls() -> None:
             {"POSITIONX": 1000, "POSITIONY": 0},
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.circles) == 2
     assert r.outline.circles[0].radius_mm == 0.15
 
 
 def test_ll_gap_skips_leads() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="gap",
         vision_type=1,
         ll_whole={"TYPSIZEX": 4000, "TYPSIZEY": 4000},
@@ -553,13 +546,13 @@ def test_ll_gap_skips_leads() -> None:
         ),
         ll_gaps=({"INDEX": 0, "STARTNO": 2, "MISSLEADNUM": 1},),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert len(r.outline.pads) == 3
 
 
 def test_fpc_connector_row_follows_long_body_axis() -> None:
     """ANGLE=1 would put a 0.5 mm × 40 row on TYPSIZEY; rotate onto TYPSIZEX."""
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="FPC0518-40B2-G1R-C",
         vision_type=1,
         partgroup_name="Connector",
@@ -600,7 +593,7 @@ def test_fpc_connector_row_follows_long_body_axis() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 42
     xs = [p.cx for p in r.outline.pads]
@@ -614,7 +607,7 @@ def test_fpc_connector_row_follows_long_body_axis() -> None:
 
 def test_four_pin_connector_does_not_follow_mount_pitch() -> None:
     """4×0.8 mm fits TYPSIZEY; 2-pad 4.6 mm pitch must not rotate the signal row."""
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="0.8T-W-04-00",
         vision_type=1,
         partgroup_name="Connector",
@@ -654,7 +647,7 @@ def test_four_pin_connector_does_not_follow_mount_pitch() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 6
     assert not any("rotated 90" in w for w in r.warnings)
@@ -665,7 +658,7 @@ def test_four_pin_connector_does_not_follow_mount_pitch() -> None:
 
 
 def test_hdmi_connector_does_not_rotate_lead_row() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="HDMI_CON_24",
         vision_type=1,
         partgroup_name="Connector",
@@ -699,7 +692,7 @@ def test_hdmi_connector_does_not_rotate_lead_row() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 12
     assert not any("rotated 90" in w for w in r.warnings)
@@ -709,7 +702,7 @@ def test_hdmi_connector_does_not_rotate_lead_row() -> None:
 
 
 def test_pcie_x16_key_aligns_on_both_rows() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="PCIEx16_164P_180R",
         vision_type=1,
         partgroup_name="PCI",
@@ -759,7 +752,7 @@ def test_pcie_x16_key_aligns_on_both_rows() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 164
     top = [p.cx for p in r.outline.pads if p.cy > 0]
@@ -772,7 +765,7 @@ def test_pcie_x16_key_aligns_on_both_rows() -> None:
 
 
 def test_ddr4_connector_pads_span_body() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="ADDR0110_P055A_",
         vision_type=1,
         partgroup_name="DDR",
@@ -822,7 +815,7 @@ def test_ddr4_connector_pads_span_body() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.error == ""
     assert len(r.outline.pads) == 180
     xs = [p.cx for p in r.outline.pads]
@@ -835,7 +828,7 @@ def test_ddr4_connector_pads_span_body() -> None:
 
 
 def test_pin1_mdb_coords_override_pads() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="ic",
         vision_type=1,
         partgroup_name="SOP",
@@ -861,7 +854,7 @@ def test_pin1_mdb_coords_override_pads() -> None:
             },
         ),
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.pin1_kind == "mdb"
     assert r.polarity == "yes"
     assert r.pin1_x_mm == pytest.approx(1.2)
@@ -869,13 +862,13 @@ def test_pin1_mdb_coords_override_pads() -> None:
 
 
 def test_pin1_hidden_when_indicator_negative() -> None:
-    snap = UpdProfileSnapshot(
+    snap = upd_fp.UpdProfileSnapshot(
         profilename="R",
         vision_type=3,
         partgroup_name="Chip-R0402",
         pin1_indicator=-1,
         chip_whole={"TYPSIZEX": 400, "TYPSIZEY": 200},
     )
-    r = build_from_snapshot(snap)
+    r = upd_fp.build_from_snapshot(snap)
     assert r.polarity == "none"
     assert r.pin1_kind == "none"

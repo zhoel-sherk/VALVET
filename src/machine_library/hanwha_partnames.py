@@ -14,12 +14,8 @@ from typing import AbstractSet, Any, Mapping
 
 import pandas as pd
 
+import machine_library.hanwha_mdbtools as mdbtools
 from hanwha_mdb_edit.core.part_filters import is_standard_library_s_row
-from machine_library.hanwha_mdbtools import (
-    HanwhaMdbToolsError,
-    load_part_det_from_mdb,
-    part_det_rows_to_dataframe,
-)
 from parsers.constants import PACKAGE_PATTERN
 from parsers.regex_api import I, search
 
@@ -88,19 +84,19 @@ def resolve_upd_mdb_path(
     if explicit is not None:
         p = Path(explicit)
         if not p.is_file():
-            raise HanwhaMdbToolsError(f"Not a file: {p}")
+            raise mdbtools.HanwhaMdbToolsError(f"Not a file: {p}")
         return p
     for cand in default_upd_mdb_paths(boomer_root):
         if cand.is_file():
             return cand
-    raise HanwhaMdbToolsError(
+    raise mdbtools.HanwhaMdbToolsError(
         "UPD.MDB not found; expected examples/UPD.MDB or sibling UPD.MDB"
     )
 
 
 def load_part_det_dataframe(mdb_path: str | Path) -> pd.DataFrame:
-    rows = load_part_det_from_mdb(mdb_path)
-    return part_det_rows_to_dataframe(rows)
+    rows = mdbtools.load_part_det_from_mdb(mdb_path)
+    return mdbtools.part_det_rows_to_dataframe(rows)
 
 
 def _confidence_level(raw: object) -> int:

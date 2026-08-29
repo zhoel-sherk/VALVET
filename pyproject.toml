@@ -21,6 +21,10 @@ combine-as-imports = true
 [tool.ruff.lint.flake8-import-conventions.aliases]
 numpy = "np"
 pandas = "pd"
+"machine_library.hanwha_sqlite_cache" = "hanwha_cache"
+"machine_library.hanwha_mdbtools" = "mdbtools"
+"machine_library.upd_geometry_load" = "upd_geom"
+"pcb_preview.upd_footprint_builder" = "upd_fp"
 
 [tool.ruff.lint.per-file-ignores]
 # Deferred imports after sys.path / Qt class bodies (see src/app_pyside6.py).

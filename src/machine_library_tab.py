@@ -656,11 +656,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
         if self._vendor_combo.currentData() != 0:
             self._fp_preview.set_yamaha_placeholder()
             return
-        from machine_library.hanwha_sqlite_cache import (
-            sqlite_path as vision_sqlite_path,
-        )
+        import machine_library.hanwha_sqlite_cache as hanwha_cache
 
-        if not self._hanwha_cache_dir or not vision_sqlite_path(
+        if not self._hanwha_cache_dir or not hanwha_cache.sqlite_path(
             self._hanwha_cache_dir
         ).is_file():
             self._fp_preview.set_idle("Open a Hanwha .mdb first (builds SQLite cache)")

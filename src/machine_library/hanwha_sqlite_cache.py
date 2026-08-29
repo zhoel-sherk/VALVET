@@ -18,18 +18,11 @@ from typing import Any, Callable
 import pandas as pd
 
 import logger
-from machine_library.hanwha_mdbtools import HanwhaMdbToolsError, export_table_csv
+import machine_library.hanwha_mdbtools as mdbtools
+import machine_library.upd_geometry_load as upd_geom
+import pcb_preview.upd_footprint_builder as upd_fp
 from machine_library.hanwha_preview import attach_part_group_type
-from machine_library.upd_geometry_load import (
-    PART_DET_DUMP_COLS,
-    VISION_DUMP_TABLES,
-    snapshot_from_table_map,
-)
 from pcb_preview.types import FootprintOutlineMM
-from pcb_preview.upd_footprint_builder import (
-    FootprintBuildResult,
-    build_from_snapshot,
-)
 
 ProgressFn = Callable[[int, str], None]
 
@@ -142,8 +135,8 @@ def _read_mdb_table(
         if df is not None:
             return df
     try:
-        raw = export_table_csv(mdb_path, table)
-    except HanwhaMdbToolsError as e:
+        raw = mdbtools.export_table_csv(mdb_path, table)
+    except mdbtools.HanwhaMdbToolsError as e:
         logger.warning(
             "mdbtools export of %s failed (%s); empty frame",
             table,
@@ -188,7 +181,7 @@ def import_mdb_to_cache(
     dest = Path(cache_dir)
     dest.mkdir(parents=True, exist_ok=True)
     if not src.is_file():
-        raise HanwhaMdbToolsError(f"Not a file: {src}")
+        raise mdbtools.HanwhaMdbToolsError(f"Not a file: {src}")
     if not force and cache_is_fresh(src, dest):
         _progress(progress, 100, "SQLite cache unchanged")
         try:
@@ -206,8 +199,10 @@ def import_mdb_to_cache(
     st = src.stat()
     mtime = st.st_mtime
 
-    spec: list[tuple[str, tuple[str, ...]]] = [("PART_Det", PART_DET_DUMP_COLS)]
-    spec.extend(VISION_DUMP_TABLES.items())
+    spec: list[tuple[str, tuple[str, ...]]] = [
+        ("PART_Det", upd_geom.PART_DET_DUMP_COLS)
+    ]
+    spec.extend(upd_geom.VISION_DUMP_TABLES.items())
     n_tables = len(spec)
 
     sql_path = sqlite_path(dest)
@@ -302,20 +297,18 @@ def _sqlite_table(
 def load_profile_snapshot_from_sqlite(
     cache_dir: str | Path, profilename: str
 ) -> Any:
-    from pcb_preview.upd_footprint_builder import UpdProfileSnapshot
-
     dest = Path(cache_dir)
     name = (profilename or "").strip()
     if not name or not sqlite_path(dest).is_file():
-        return UpdProfileSnapshot(profilename="")
+        return upd_fp.UpdProfileSnapshot(profilename="")
     conn = sqlite3.connect(str(sqlite_path(dest)))
     try:
         tables: dict[str, pd.DataFrame] = {}
-        for table in VISION_DUMP_TABLES:
+        for table in upd_geom.VISION_DUMP_TABLES:
             tables[table] = _sqlite_table(
                 conn, table, name, all_rows=(table == "PARTGROUP_Map")
             )
-        snap = snapshot_from_table_map(tables, name)
+        snap = upd_geom.snapshot_from_table_map(tables, name)
         parent = snap.parentprofile
         vt = snap.vision_type
         missing_ll = vt == 1 and snap.ll_whole is None
@@ -329,10 +322,10 @@ def load_profile_snapshot_from_sqlite(
 
 def build_outline_from_sqlite(
     cache_dir: str | Path, profilename: str, *, partdesc: str = ""
-) -> FootprintBuildResult:
+) -> upd_fp.FootprintBuildResult:
     name = (profilename or "").strip()
     if not name:
-        return FootprintBuildResult(
+        return upd_fp.FootprintBuildResult(
             outline=FootprintOutlineMM(source="none"),
             vision_type=0,
             partgroup_name="",
@@ -348,4 +341,4 @@ def build_outline_from_sqlite(
     snap = load_profile_snapshot_from_sqlite(cache_dir, name)
     if partdesc:
         snap.partdesc = partdesc
-    return build_from_snapshot(snap)
+    return upd_fp.build_from_snapshot(snap)

@@ -4,10 +4,7 @@ from typing import Optional
 from PySide6 import QtCore
 
 import logger
-from machine_library.hanwha_mdbtools import (
-    HanwhaMdbToolsError,
-    load_hanwha_machine_lib_dataframe,
-)
+import machine_library.hanwha_mdbtools as mdbtools
 from smt_processor import SMTDataProcessor, SMTProcessorError
 
 
@@ -56,10 +53,10 @@ class HanwhaPartDetLoadThread(QtCore.QThread):
             from machine_library.access_odbc import ensure_com_sta
 
             ensure_com_sta()
-            df = load_hanwha_machine_lib_dataframe(
+            df = mdbtools.load_hanwha_machine_lib_dataframe(
                 self._mdb_path, progress=self.progress.emit
             )
-        except HanwhaMdbToolsError as e:
+        except mdbtools.HanwhaMdbToolsError as e:
             logger.error("Hanwha PART_Det load failed: %s", e)
             self.result_ready.emit(None, str(e))
         except Exception as e:
@@ -96,20 +93,17 @@ class HanwhaSqliteImportThread(QtCore.QThread):
             self.result_ready.emit(None, msg)
             return
         try:
+            import machine_library.hanwha_sqlite_cache as hanwha_cache
             from machine_library.access_odbc import ensure_com_sta
-            from machine_library.hanwha_sqlite_cache import (
-                import_mdb_to_cache,
-                load_preview_dataframe_from_sqlite,
-            )
 
             ensure_com_sta()
-            import_mdb_to_cache(
+            hanwha_cache.import_mdb_to_cache(
                 self._mdb_path,
                 self._cache_dir,
                 progress=self.progress.emit,
                 force=self._force,
             )
-            df = load_preview_dataframe_from_sqlite(self._cache_dir)
+            df = hanwha_cache.load_preview_dataframe_from_sqlite(self._cache_dir)
         except Exception as e:
             logger.error("Hanwha SQLite import failed: %s", e)
             self.result_ready.emit(None, str(e))
@@ -138,9 +132,9 @@ class HanwhaFootprintBuildThread(QtCore.QThread):
 
     def run(self) -> None:
         try:
-            from machine_library.hanwha_sqlite_cache import build_outline_from_sqlite
+            import machine_library.hanwha_sqlite_cache as hanwha_cache
 
-            result = build_outline_from_sqlite(
+            result = hanwha_cache.build_outline_from_sqlite(
                 self._cache_dir, self._profilename, partdesc=self._partdesc
             )
         except Exception as e:

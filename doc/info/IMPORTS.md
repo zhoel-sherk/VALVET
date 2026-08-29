@@ -43,23 +43,48 @@ Import only the Qt packages the file uses (`QtCore` alone is fine in workers).
 
 ---
 
-## 3. Do not alias to save two letters
+## 3. Alias long modules; do not alias to save two letters
 
-An alias is justified only if:
+An alias is justified if:
 
-1. The name is long and the alias is **universal** (`matplotlib.pyplot` → `plt`; `numpy` → `np`).
+1. The **module path is long** (three or more dotted parts, or a last segment of 18+ characters) **and** the alias is in the table below.
 2. Two modules would otherwise clash (two different `utils`).
 3. You swap implementations behind a stable name (`regex` behind `regex_api`, not `import regex as re` in every file).
 
-**Bad:** `import platformdirs as pdirs`. **Good:** `import platformdirs` or `from platformdirs import user_data_dir` (see [`src/app_paths.py`](../../src/app_paths.py)).
+**Do not** alias short, obvious names: `import platformdirs as pdirs`, `import logger as log`, `import pandas as pan`, `QtWidgets as qtw`.
 
-Do not invent `import logger as log` or `import pandas as pan`.
+### Canonical long first-party aliases
+
+Use **exactly** these names. Import the module (or the parent’s submodule), then qualify symbols. Do not invent `hsc`, `ufb`, `pdirs`.
+
+| Module | Alias / import |
+|--------|----------------|
+| `machine_library.hanwha_sqlite_cache` | `import machine_library.hanwha_sqlite_cache as hanwha_cache` |
+| `machine_library.hanwha_mdbtools` | `import machine_library.hanwha_mdbtools as mdbtools` |
+| `machine_library.upd_geometry_load` | `import machine_library.upd_geometry_load as upd_geom` |
+| `pcb_preview.upd_footprint_builder` | `import pcb_preview.upd_footprint_builder as upd_fp` |
+| `hanwha_mdb_edit.core.*` (from **outside** `core`) | `from hanwha_mdb_edit.core import save` then `save.save_enriched_library` (same for `column_labels`, `errors`, `part_bulk`, …) |
+| `hanwha_mdb_edit.gui.*` (from **outside** `gui`) | `from hanwha_mdb_edit.gui import editor_window` then `editor_window.HanwhaMdbEditorWindow` |
+
+**Inside** `hanwha_mdb_edit.core` / `.gui`, keep sibling imports (`from .errors import …` or a single leaf `from hanwha_mdb_edit.core.errors import HanwhaSaveError`). Package `__init__.py` re-exports may still `from … import Name`.
+
+**Package `__init__.py` re-exports** (`from machine_library.hanwha_mdbtools import Name` into `__all__`) stay as name imports.
+
+```python
+# Good — one name
+from machine_library.hanwha_mdbtools import HanwhaMdbToolsError
+
+# Good — many names
+import machine_library.hanwha_sqlite_cache as hanwha_cache
+
+hanwha_cache.import_mdb_to_cache(src, dest)
+```
 
 ---
 
 ## 4. Ruff isort (`I`) and conventions (`ICN`)
 
-`I` groups and sorts imports (stdlib, third-party, first-party). `ICN` requires `numpy` → `np` and `pandas` → `pd` (see `flake8-import-conventions.aliases` in `pyproject.toml`).
+`I` groups and sorts imports (stdlib, third-party, first-party). `ICN` requires `numpy` → `np`, `pandas` → `pd`, and the long-module aliases in `pyproject.toml` (`hanwha_cache`, `mdbtools`, `upd_geom`, `upd_fp`) when those modules are imported as a whole.
 
 After edits:
 
@@ -110,4 +135,5 @@ Relative imports (`from .foo import bar`) only inside a package that already use
 - [ ] Qt: `from PySide6 import QtWidgets` (etc.), not `as qtw`
 - [ ] No cute aliases (`pdirs`, `pan`, `log`)
 - [ ] Parser regex via `parsers.regex_api`, not `import regex as re`
+- [ ] Two or more names from a long first-party module → alias table (§3)
 - [ ] `ruff check src tests` clean for `E`, `F`, `I`, `ICN`

@@ -99,7 +99,7 @@ Production code uses [`src/app_paths.py`](../../src/app_paths.py) (`user_state_d
 
 ### Import aliases (PEP 8 + Ruff `I` / `ICN`)
 
-Full policy: [IMPORTS.md](IMPORTS.md). Short version: `numpy` as `np`, `pandas` as `pd`; never `from PySide6… import *`; Qt modules stay `QtWidgets` / `QtCore` / `QtGui` (no `qtw`); do not alias `platformdirs` to save letters; PyPI `regex` goes through `parsers.regex_api`, not `import regex as re`. Tests must follow the same import blocks so Ruff `I` stays green.
+Full policy: [IMPORTS.md](IMPORTS.md). Short version: `numpy` as `np`, `pandas` as `pd`; never `from PySide6… import *`; Qt modules stay `QtWidgets` / `QtCore` / `QtGui` (no `qtw`); long first-party modules use the table in IMPORTS.md (`hanwha_cache`, `mdbtools`, `upd_fp`, …); do not alias `platformdirs` to save letters; PyPI `regex` goes through `parsers.regex_api`, not `import regex as re`. Tests must follow the same import blocks so Ruff `I` stays green.
 
 ---
 

@@ -1,4 +1,4 @@
-"""Load one Hanwha UPD profile's vision tables into UpdProfileSnapshot."""
+"""Load one Hanwha UPD profile's vision tables into an UpdProfileSnapshot."""
 
 from __future__ import annotations
 
@@ -9,16 +9,9 @@ from typing import Any
 import pandas as pd
 
 import logger
-from machine_library.hanwha_mdbtools import HanwhaMdbToolsError, export_table_csv
+import machine_library.hanwha_mdbtools as mdbtools
+import pcb_preview.upd_footprint_builder as upd_fp
 from pcb_preview.types import FootprintOutlineMM
-from pcb_preview.upd_footprint_builder import (
-    FootprintBuildResult,
-    UpdProfileSnapshot,
-    _int,
-    _polarized,
-    _row_get,
-    build_from_snapshot,
-)
 
 _PROFILE_COLS = (
     "PROFILENAME",
@@ -190,7 +183,7 @@ def _filter_csv(
     key = (str(mdb_path.resolve()), mdb_path.stat().st_mtime, table)
     cached = _CSV_CACHE.get(key)
     if cached is None:
-        raw = export_table_csv(mdb_path, table)
+        raw = mdbtools.export_table_csv(mdb_path, table)
         cached = pd.read_csv(io.StringIO(raw))
         _CSV_CACHE[key] = cached
         if len(_CSV_CACHE) > 24:
@@ -285,13 +278,13 @@ def _load_tables(mdb_path: Path, name: str) -> dict[str, pd.DataFrame]:
     for table, cols in tables.items():
         try:
             if table == "PARTGROUP_Map":
-                raw = export_table_csv(mdb_path, table)
+                raw = mdbtools.export_table_csv(mdb_path, table)
                 df = pd.read_csv(io.StringIO(raw))
                 keep = [c for c in cols if c in df.columns]
                 out[table] = df[keep] if keep else pd.DataFrame(columns=list(cols))
             else:
                 out[table] = _filter_csv(mdb_path, table, cols, name)
-        except HanwhaMdbToolsError as e:
+        except mdbtools.HanwhaMdbToolsError as e:
             logger.warning(
                 "mdbtools export of %s failed (%s); empty frame",
                 table,
@@ -306,39 +299,39 @@ def _vision_type(
 ) -> tuple[int, str]:
     if not profile:
         return 0, ""
-    gid = _int(_row_get(profile, "UPDPARTGROUPID"))
+    gid = upd_fp._int(upd_fp._row_get(profile, "UPDPARTGROUPID"))
     if gmap is None or gmap.empty or "UPDPARTGROUPID" not in gmap.columns:
         return 0, ""
-    hit = gmap[gmap["UPDPARTGROUPID"].apply(lambda x: _int(x) == gid)]
+    hit = gmap[gmap["UPDPARTGROUPID"].apply(lambda x: upd_fp._int(x) == gid)]
     if hit.empty:
         return 0, ""
     row = hit.iloc[0].to_dict()
-    return _int(_row_get(row, "VISIONTYPE")), str(
-        _row_get(row, "UPDPARTGROUPNAME", default="") or ""
+    return upd_fp._int(upd_fp._row_get(row, "VISIONTYPE")), str(
+        upd_fp._row_get(row, "UPDPARTGROUPNAME", default="") or ""
     )
 
 
 def snapshot_from_table_map(
     tables: dict[str, pd.DataFrame], name: str
-) -> UpdProfileSnapshot:
+) -> upd_fp.UpdProfileSnapshot:
     """Build a snapshot from already-filtered (or full) table frames."""
     profile = _first_row(tables.get("PROFILE_Det", pd.DataFrame()))
-    parent = str(_row_get(profile or {}, "PARENTPROFILE", default="") or "").strip()
+    parent = str(upd_fp._row_get(profile or {}, "PARENTPROFILE", default="") or "").strip()
     vt, gname = _vision_type(profile, tables.get("PARTGROUP_Map", pd.DataFrame()))
     com = _first_row(tables.get("PROFILECOMDATA_Det", pd.DataFrame())) or {}
-    return UpdProfileSnapshot(
+    return upd_fp.UpdProfileSnapshot(
         profilename=name,
         parentprofile=parent,
         vision_type=vt,
         partgroup_name=gname,
-        size_x_um=_int(_row_get(com, "SIZEX")),
-        size_y_um=_int(_row_get(com, "SIZEY")),
-        size_z_um=_int(_row_get(com, "SIZEZ")),
-        pin1_x_um=_int(_row_get(com, "PIN1XPOS")),
-        pin1_y_um=_int(_row_get(com, "PIN1YPOS")),
-        polarized=_polarized(_row_get(com, "POLARIZED", default=None)),
-        pin1_indicator=_int(
-            _row_get(
+        size_x_um=upd_fp._int(upd_fp._row_get(com, "SIZEX")),
+        size_y_um=upd_fp._int(upd_fp._row_get(com, "SIZEY")),
+        size_z_um=upd_fp._int(upd_fp._row_get(com, "SIZEZ")),
+        pin1_x_um=upd_fp._int(upd_fp._row_get(com, "PIN1XPOS")),
+        pin1_y_um=upd_fp._int(upd_fp._row_get(com, "PIN1YPOS")),
+        polarized=upd_fp._polarized(upd_fp._row_get(com, "POLARIZED", default=None)),
+        pin1_indicator=upd_fp._int(
+            upd_fp._row_get(
                 _first_row(tables.get("VISION_COMMONDATA_Det", pd.DataFrame())) or {},
                 "PIN1INDICATOR",
                 default=0,
@@ -363,11 +356,11 @@ def snapshot_from_table_map(
 
 def load_profile_snapshot(
     mdb_path: str | Path, profilename: str
-) -> UpdProfileSnapshot:
+) -> upd_fp.UpdProfileSnapshot:
     p = Path(mdb_path)
     name = (profilename or "").strip()
     if not name:
-        return UpdProfileSnapshot(profilename="")
+        return upd_fp.UpdProfileSnapshot(profilename="")
     tables = _load_tables(p, name)
     snap = snapshot_from_table_map(tables, name)
     parent = snap.parentprofile
@@ -381,10 +374,10 @@ def load_profile_snapshot(
 
 def build_outline_from_mdb(
     mdb_path: str | Path, profilename: str, *, partdesc: str = ""
-) -> FootprintBuildResult:
+) -> upd_fp.FootprintBuildResult:
     name = (profilename or "").strip()
     if not name:
-        return FootprintBuildResult(
+        return upd_fp.FootprintBuildResult(
             outline=FootprintOutlineMM(source="none"),
             vision_type=0,
             partgroup_name="",
@@ -400,4 +393,4 @@ def build_outline_from_mdb(
     snap = load_profile_snapshot(mdb_path, name)
     if partdesc:
         snap.partdesc = partdesc
-    return build_from_snapshot(snap)
+    return upd_fp.build_from_snapshot(snap)

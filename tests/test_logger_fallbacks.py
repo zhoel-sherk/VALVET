@@ -100,13 +100,13 @@ def test_gerber_corrupt_file_logs_error(mocker, tmp_path: Path) -> None:
 
 
 def test_hanwha_odbc_fallback_logs_warning(monkeypatch, mocker, tmp_path: Path) -> None:
-    import machine_library.hanwha_mdbtools as mdb
+    import machine_library.hanwha_mdbtools as mdbtools
     from machine_library.access_odbc import AccessOdbcError
 
     fake = tmp_path / "lib.mdb"
     fake.write_bytes(b"mdb")
-    monkeypatch.setattr(mdb.sys, "platform", "win32")
-    monkeypatch.setattr(mdb, "_mdb_tools_fallback_allowed", lambda: True)
+    monkeypatch.setattr(mdbtools.sys, "platform", "win32")
+    monkeypatch.setattr(mdbtools, "_mdb_tools_fallback_allowed", lambda: True)
 
     def _odbc_fail(_path):
         raise AccessOdbcError("no ACE")
@@ -114,9 +114,9 @@ def test_hanwha_odbc_fallback_logs_warning(monkeypatch, mocker, tmp_path: Path) 
     monkeypatch.setattr(
         "machine_library.access_odbc.list_mdb_tables_odbc", _odbc_fail
     )
-    monkeypatch.setattr(mdb, "_list_mdb_tables_cli", lambda _p: ["PART_Det"])
+    monkeypatch.setattr(mdbtools, "_list_mdb_tables_cli", lambda _p: ["PART_Det"])
     warn_spy = mocker.spy(logger, "warning")
-    names = mdb.list_mdb_tables(fake)
+    names = mdbtools.list_mdb_tables(fake)
     assert names == ["PART_Det"]
     assert warn_spy.called
     blob = str(warn_spy.call_args.args[0])
