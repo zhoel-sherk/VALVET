@@ -11,7 +11,7 @@ Canonical commands below assume repository root `VALVET/` (the folder containing
 1. Create a venv at repo root: **Windows** `python -m venv .venv` (or `py -3 -m venv .venv`); **Fedora** `python3 -m venv .venv`.
 2. Upgrade pip: `python -m pip install -U pip` (use the venv’s `python`).
 3. Install deps: `python -m pip install -r requirements.txt`
-   Dev lint/coverage: `python -m pip install -r requirements-dev.txt`.
+   Dev lint/coverage: `python -m pip install -r requirements-dev.txt` (`pytest-cov`, `pytest-mock`, `ruff`, `vulture`).
   Optional Step 3D viewer tests: `python -m pip install -r requirements-step3d.txt`.
 4. `**PYTHONPATH=src`** is required so tests resolve `smt_processor`, `pcb_preview`, etc.
 
@@ -53,6 +53,52 @@ export PYTHONPATH=src
 
 ---
 
+## Invariant rules (code + tests)
+
+These apply to new production code **and** to pytest. A silent pass that hides a fallback, a leaked ODBC handle, or a `QThread` poking widgets is a failed review even if CI is green.
+
+### Silent fallback → `logger`
+
+A fallback (pygerber→gerbonara, ACE→mdbtools, path→legacy dir, regex after vendor PN) **must** log at `warning` (or `info` if the path is expected and frequent). Tests must spy `logger.warning` / `logger.info` and assert the message names the backend that failed **and** the one that ran. Bare `except: pass` or swallowing `AccessOdbcError` without a log is a defect.
+
+Existing: [`tests/test_logger_fallbacks.py`](../../tests/test_logger_fallbacks.py) (`test_gerber_gerbonara_fallback_logs_warning`, `test_hanwha_odbc_fallback_logs_warning`).
+
+### QThread → UI only via Qt signals
+
+Worker `run()` must not touch widgets, models, or `QMessageBox`. Results, errors, and progress go out as `Signal` (`result_ready`, `progress`). The GUI slot runs on the GUI thread (`QueuedConnection`). Tests start the thread, pump events / `wait()`, and assert state **after** the slot — not by calling widget methods from the worker.
+
+Existing pattern: [`src/app/workers.py`](../../src/app/workers.py), [`tests/test_machine_lib_open_reload.py`](../../tests/test_machine_lib_open_reload.py). Do not add `pytest-qt` only to violate this (no `qtbot` clicks inside `QThread.run`).
+
+### Do not mix bare numbers and objects
+
+A `Signal` payload, a preview tuple, or a return value is one contract: either a typed object (`DataFrame`, `FootprintBuildResult`) **or** a documented sentinel (`None` + `str` error), not `0` vs `{}` vs `""` for the same slot. Tests should `isinstance` the success object and treat error as a string. Packed tuples (`payload, image, viewbox`) must keep a fixed length and types — see `GerberLoadThread.result_ready`.
+
+### Pint: `Quantity` vs `float`
+
+[`src/parsers/si_units.py`](../../src/parsers/si_units.py) returns pint `Quantity` (`quantity_farads`, `quantity_ohms`, `quantity_volts`). Callers that do arithmetic must not add a raw `float` to a `Quantity` (and must not pass a `Quantity` into millimetre geometry). Geometry (`um_to_mm`) stays **floats**. Tests: invalid tokens return `None`; successful parses compare `.to("nanofarad").magnitude` (etc.), not `== 22` on the Quantity itself. Existing: `test_pint_*` in [`tests/test_parser_p0_vendor_off.py`](../../tests/test_parser_p0_vendor_off.py).
+
+### natsort on dirty data
+
+Natural sort of designators / filenames must not raise on empty strings, mixed types, NaN, or junk (`R1`, `R10`, `""`, `None`, `12`). If `natsort` (or a local natsort helper) is used, tests feed a dirty list and expect a stable list out — never an uncaught `TypeError`. Until a dedicated module exists, any new natsort call needs that fixture in the same PR.
+
+### File import validation
+
+Loaders (`read_file`, `_load_bom` / `_load_pnp`, Gerber, `.mdb`) must reject empty paths, missing files, and unreadable/unsupported content with a logged error or `SMTProcessorError` / equivalent — not a half-filled table. Tests: `tmp_path` missing file; optional tiny corrupt bytes. Happy path: [`tests/test_bom_pnp_window_load.py`](../../tests/test_bom_pnp_window_load.py) (`force_original=True`). Live `.mdb`: [`tests/mdb_paths.py`](../../tests/mdb_paths.py) `skip_if_mdb_unreadable`.
+
+### pyodbc connections must close
+
+Every `connect_mdb` needs `close()` in `finally` (see [`import_mdb_to_cache`](../../src/machine_library/hanwha_sqlite_cache.py)). Tests that mock `pyodbc.connect` should assert `close` was called on the connection mock after the function returns (success **and** mid-loop failure). Do not leave pooling on (`pooling = False` in [`access_odbc.py`](../../src/machine_library/access_odbc.py)).
+
+### PySide6: no leftover widgets / cursors / threads
+
+Headless tests: `try`/`finally` `win.close()`; if a tab set a wait cursor, `restoreOverrideCursor()`. `QThread`: `wait()` then `deleteLater()` (or equivalent) so the worker is not destroyed while `run()` is live. Do not create a second `QApplication` if one exists (`QApplication.instance()`). Module-scoped `qapp` in [`tests/test_app_startup.py`](../../tests/test_app_startup.py) is the model.
+
+### No hardcoded machine paths
+
+Production code uses [`src/app_paths.py`](../../src/app_paths.py) (`user_state_dir`, `hanwha_lib_cache_dir`, platformdirs). Tests use `tmp_path` / `tmp_path_factory` and repo-relative helpers ([`tests/mdb_paths.py`](../../tests/mdb_paths.py) — `examples/UPD.MDB` or `../UPD.MDB`), never `C:\Users\...` or `/home/runner/...`. Monkeypatch `hanwha_lib_cache_dir` when a test would otherwise write under the real profile dir ([`tests/test_machine_lib_open_reload.py`](../../tests/test_machine_lib_open_reload.py)).
+
+---
+
 ## Level 1 — fast smoke (every commit / PR)
 
 Expect **0 failed**. Record `passed` / `skipped` / OS / Python version when updating [TODO.md](../TODO.md) or [CHANGELOG.md](../../CHANGELOG.md).
@@ -70,7 +116,7 @@ python -m pytest tests -q --ignore=tests/test_pcb_preview_gerber.py --cov=src --
 
 **`--debug` vs the Debug dialog:** `python src/main.py --debug`, `VALVET_DEBUG=1`, and the Project tab **Debug logs** checkbox all call `logger.set_debug_mode` (dated file under `logs/` plus stderr). Unchecking the box turns file logging off. **Debug / advanced…** is a separate dialog (snapshots, fonts, experimental tabs). CLI: `python -m cli --debug …`.
 
-Last recorded baseline (re-run after changes): **258 passed, 9 skipped** for Level 1 (`pytest tests -q --ignore=tests/test_pcb_preview_gerber.py`). **259 passed, 9 skipped** for `pytest tests -q` (adds the Gerber file test). Counts depend on optional fixtures (`.mdb`, example6) — see Level 3.
+Last recorded baseline (re-run after changes): **~450+ passed** on GitHub Actions Ubuntu Level 1 (`pytest tests -q --ignore=tests/test_pcb_preview_gerber.py`), with skips for missing optional fixtures. Counts depend on live `UPD.MDB` / example6 — see Level 3. Re-record `passed` / `skipped` after a local Level 1 run when updating this file.
 
 ### Level 1b — app startup (headless PySide6)
 
@@ -117,7 +163,7 @@ Run **on Windows 11 and on Linux** (Fedora 43 locally or `ubuntu-latest` in CI) 
 
 | Mechanism                                     | Location / reason                                                                                                                                          | CI expectation                                                                                                                       |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `@pytest.mark.skipif` — `UPD.MDB` missing     | `tests/test_hanwha_mdbtools.py`, `tests/test_hanwha_mdb_edit_core.py`                                                                                      | **Skip** unless a sample `.mdb` is placed where tests expect it; do not treat as failure.                                            |
+| `@pytest.mark.skipif` — `UPD.MDB` missing     | `tests/test_hanwha_mdbtools.py`, `tests/test_hanwha_mdb_edit_core.py`, `tests/test_hanwha_import_mdb_to_cache.py`, `tests/test_hanwha_upd_geometry_load.py`, `tests/test_machine_lib_open_reload.py` | **Skip** unless a sample `.mdb` is placed where tests expect it; do not treat as failure. Live import is `@pytest.mark.slow`. |
 | `@pytest.mark.skipif` — example6 xlsx missing | `tests/test_pn_example6.py`                                                                                                                                | **Skip** if `examples/example6/original_gen3_bom.xlsx` absent.                                                                       |
 | `pytest.skip(...)` — example6 / cmp missing   | `tests/test_clean_component.py`, `tests/test_smt_processor_formats.py`                                                                                     | **Skip** at runtime if paths missing.                                                                                                |
 | `pytest.importorskip("PySide6")`              | `tests/test_qsettings_bom_pnp_persist.py`, `tests/test_working_copy_ui.py`, `tests/test_hanwha_column_labels_and_filters.py`, `test_step_3d.py` (one test) | Minimal env **without** PySide6: those modules skip; full `requirements.txt` includes PySide6 — CI should install full requirements. |
@@ -142,6 +188,9 @@ When you touch an area listed in [LLM.md](LLM.md) **Important Files**, run the m
 | MMD export                           | `tests/test_mmd_export.py`                                                                                        |
 | Yamaha `.Tou` / DevLib               | `tests/test_yamaha_tou.py`, `tests/test_yamaha_devlib.py`                                                         |
 | Hanwha `.mdb` (Qt-free tools)        | `tests/test_hanwha_mdbtools.py`                                                                                   |
+| Hanwha SQLite cache / import         | `tests/test_hanwha_sqlite_cache.py`, `tests/test_hanwha_import_mdb_to_cache.py`                                  |
+| UPD footprint builder                | `tests/test_upd_footprint_builder.py`, `tests/test_hanwha_upd_geometry_load.py`                                  |
+| Machine Lib tab (headless Open)      | `tests/test_machine_lib_open_reload.py`                                                                           |
 | Paths / session links                | `tests/test_app_paths.py`                                                                                         |
 | HTML report                          | `tests/test_report_html.py`                                                                                       |
 | UI i18n catalogs                     | `tests/test_ui_i18n.py`                                                                                           |
@@ -151,6 +200,11 @@ When you touch an area listed in [LLM.md](LLM.md) **Important Files**, run the m
 | Clean BOM golden corpus              | `tests/test_clean_corpus_golden.py`, `tests/test_clean_corpus_harvest.py`, `tests/test_hanwha_partname_filter.py` |
 | GUI-free services (`src/services/`)  | `tests/test_services.py`                                                                                          |
 | App startup / tabs (headless Qt)     | `tests/test_app_startup.py`                                                                                       |
+| Silent fallback logging              | `tests/test_logger_fallbacks.py`                                                                                  |
+| Access ODBC (no timeout / close)     | `tests/test_access_odbc.py`                                                                                       |
+| Pint SI helpers                      | `tests/test_parser_p0_vendor_off.py` (`test_pint_*`)                                                               |
+| BOM/PnP load via MainWindow          | `tests/test_bom_pnp_window_load.py`, `tests/test_cli_pipeline.py`                                                  |
+| PCB Preview tab Gerber layer         | `tests/test_pcb_preview_tab_gerber.py`                                                                            |
 
 
 **Clean BOM golden corpus** (`tests/fixtures/clean_corpus/`):
@@ -185,9 +239,9 @@ Full discovery: `python -m pytest tests --collect-only -q`.
 
 Tracked in [TODO.md](../TODO.md) in more detail:
 
-- **PCB Preview:** more Qt-free fixtures (small Gerber + PnP) beyond the minimal Gerber roundtrip.
+- **Invariant gaps:** natsort dirty-input fixture (when natural sort is added); `pyodbc` connection mock asserting `.close()` on failure paths in `hanwha_mdb_edit` saves; missing-file / corrupt import tests for BOM/PnP/Gerber beyond happy path.
 - **Machine library / Yamaha:** Qt-free services + fixtures before large UI wiring (Phase 5).
-- `**app_pyside6.py`:** BOM/PnP load, language, and file dialogs still need manual smoke; main tabs and debug dialogs are covered by `tests/test_app_startup.py` (Level 1b). Optional future `pytest-qt` for modal file/recovery flows.
+- `**app_pyside6.py`:** BOM/PnP load, language, and file dialogs still need manual smoke; main tabs and debug dialogs are covered by `tests/test_app_startup.py` (Level 1b). Headless load-by-path: `tests/test_bom_pnp_window_load.py`. Optional future `pytest-qt` for modal file/recovery flows (not in `requirements-dev.txt` yet). `pytest-mock` is in `requirements-dev.txt` for spies; keep `monkeypatch.setenv` for env vars.
 
 ---
 
