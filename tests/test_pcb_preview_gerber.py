@@ -11,6 +11,14 @@ from pcb_preview.gerber_io import load_gerber_svg
 from pcb_preview.types import FootprintOutlineMM, PlacementRecord
 
 
+def test_gerber_missing_file_returns_errors(tmp_path) -> None:
+    missing = tmp_path / "missing.gbr"
+    payload = load_gerber_svg(str(missing))
+    assert not payload.svg
+    assert payload.errors
+    assert any("not found" in str(e).lower() for e in payload.errors)
+
+
 def test_minimal_gerber_roundtrip(tmp_path) -> None:
     g = """G04 Test*
 %FSLAX26Y26*%

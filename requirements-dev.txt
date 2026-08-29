@@ -3,3 +3,4 @@ pyinstaller>=6.0
 ruff>=0.4
 vulture>=2.11
 pytest-cov>=5.0
+pytest-mock>=3.14

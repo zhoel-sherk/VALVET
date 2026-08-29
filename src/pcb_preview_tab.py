@@ -433,6 +433,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_mils, self._rb_g_in):
             self._bg_gunit.addButton(rb)
             lu.addWidget(rb)
+        self._bg_gunit.buttonToggled.connect(self._on_gerber_unit_toggled)
         self._rb_g_auto.setToolTip(
             "Backends already convert Gerber to millimetres; scene grid is mm (same as PnP)."
         )
@@ -836,8 +837,14 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._btn_gerber.setEnabled(False)
         self._append_log(self._tr("pcb.gerber_loading"))
         thread = GerberLoadThread(path, self._px_per_mm, self)
-        thread.result_ready.connect(self._on_gerber_loaded)
-        thread.finished.connect(self._on_gerber_thread_finished)
+        thread.result_ready.connect(
+            self._on_gerber_loaded,
+            QtCore.Qt.ConnectionType.QueuedConnection,
+        )
+        thread.finished.connect(
+            self._on_gerber_thread_finished,
+            QtCore.Qt.ConnectionType.QueuedConnection,
+        )
         self._gerber_thread = thread
         thread.start()
 
@@ -846,6 +853,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         t = self._gerber_thread
         self._gerber_thread = None
         if t is not None:
+            t.wait(5000)
             t.deleteLater()
 
     def _on_gerber_loaded(self, packed: object) -> None:

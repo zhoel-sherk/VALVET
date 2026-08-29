@@ -150,6 +150,16 @@ def merge_coordinate_cell(value: object) -> float:
 # ==============================================================================
 
 
+def _require_readable_file(path: str) -> Path:
+    """Reject empty or missing paths before format-specific loading."""
+    if path is None or not str(path).strip():
+        raise SMTFileNotFoundError("Empty file path")
+    path_obj = Path(path)
+    if not path_obj.is_file():
+        raise SMTFileNotFoundError(f"File not found: {path}")
+    return path_obj
+
+
 def read_file(
     path: str,
     sheet_name: Optional[str] = None,
@@ -180,10 +190,7 @@ def read_file(
         SMTSheetNotFoundError: Named sheet missing.
         SMTEmptyDataError: No usable rows.
     """
-    path_obj = Path(path)
-
-    if not path_obj.exists():
-        raise SMTFileNotFoundError(f"File not found: {path}")
+    path_obj = _require_readable_file(path)
 
     suffix = path_obj.suffix.lower()
     df: pd.DataFrame
@@ -376,6 +383,7 @@ def read_text_whitespace_sp(path: str) -> pd.DataFrame:
     (0, 1, …). The GUI loads the full grid and trims with First/Last row like ``read_file``;
     it does not promote a row into headers (preview keeps every data row).
     """
+    _require_readable_file(path)
     try:
         with open(path, "r", encoding="utf-8") as f:
             file_lines = f.read().splitlines()

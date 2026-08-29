@@ -8,6 +8,7 @@ import sqlite3
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from machine_library.hanwha_sqlite_cache import (
     cache_is_fresh,
@@ -160,3 +161,67 @@ def test_cache_is_fresh_mtime(tmp_path: Path) -> None:
 def test_empty_profile_name(tmp_path: Path) -> None:
     r = build_outline_from_sqlite(tmp_path, "")
     assert r.error == "empty profile name"
+
+
+def test_import_mdb_to_cache_closes_odbc_on_mid_loop_failure(
+    monkeypatch, mocker, tmp_path: Path
+) -> None:
+    from machine_library.hanwha_sqlite_cache import import_mdb_to_cache
+
+    src = tmp_path / "lib.mdb"
+    src.write_bytes(b"fake-mdb")
+    cache = tmp_path / "cache"
+    odbc_conn = mocker.Mock()
+    write_calls = {"n": 0}
+
+    def _write_df_sqlite(_conn, table, _df):
+        write_calls["n"] += 1
+        if write_calls["n"] == 2:
+            raise RuntimeError("sqlite write failed")
+
+    monkeypatch.setattr("sys.platform", "win32")
+    monkeypatch.setattr(
+        "machine_library.access_odbc.connect_mdb",
+        lambda *_a, **_k: odbc_conn,
+    )
+    monkeypatch.setattr(
+        "machine_library.hanwha_sqlite_cache._read_mdb_table",
+        lambda *_a, **_k: __import__("pandas").DataFrame(),
+    )
+    monkeypatch.setattr(
+        "machine_library.hanwha_sqlite_cache._write_df_sqlite",
+        _write_df_sqlite,
+    )
+    with pytest.raises(RuntimeError, match="sqlite write failed"):
+        import_mdb_to_cache(src, cache, force=True)
+    odbc_conn.close.assert_called_once()
+
+
+def test_read_mdb_table_odbc_failure_falls_back_to_mdbtools(
+    monkeypatch, mocker, tmp_path: Path
+) -> None:
+    from machine_library.access_odbc import AccessOdbcError
+    from machine_library.hanwha_sqlite_cache import _read_mdb_table
+
+    mdb = tmp_path / "lib.mdb"
+    mdb.write_bytes(b"x")
+    odbc_conn = mocker.Mock()
+    monkeypatch.setattr(
+        "machine_library.access_odbc.fetch_named_columns",
+        lambda *_a, **_k: (_ for _ in ()).throw(AccessOdbcError("no table")),
+    )
+    monkeypatch.setattr(
+        "machine_library.hanwha_sqlite_cache.export_table_csv",
+        lambda *_a, **_k: "PARTNAME\nA\n",
+    )
+    warn_spy = mocker.spy(__import__("logger"), "warning")
+    df = _read_mdb_table(
+        mdb,
+        "PART_Det",
+        ("PARTNAME", "PROFILENAME"),
+        odbc_conn,
+    )
+    assert list(df["PARTNAME"]) == ["A"]
+    assert warn_spy.called
+    blob = str(warn_spy.call_args.args[0]).lower()
+    assert "mdbtools" in blob or "odbc" in blob

@@ -10,7 +10,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_main_py_smoke_exits_zero(monkeypatch) -> None:
+def test_main_py_smoke_exits_zero() -> None:
     env = {**os.environ, "PYTHONPATH": "src", "QT_QPA_PLATFORM": "offscreen"}
     proc = subprocess.run(
         [sys.executable, str(_ROOT / "src" / "main.py"), "--smoke"],

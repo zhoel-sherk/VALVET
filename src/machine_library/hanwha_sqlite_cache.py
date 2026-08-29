@@ -17,6 +17,7 @@ from typing import Any, Callable
 
 import pandas as pd
 
+import logger
 from machine_library.hanwha_mdbtools import HanwhaMdbToolsError, export_table_csv
 from machine_library.hanwha_preview import attach_part_group_type
 from machine_library.upd_geometry_load import (
@@ -97,6 +98,39 @@ def _progress(cb: ProgressFn | None, pct: int, msg: str) -> None:
         cb(pct, msg)
 
 
+def _read_mdb_table_odbc(
+    odbc_conn: Any,
+    table: str,
+    columns: tuple[str, ...],
+) -> pd.DataFrame | None:
+    """Return a frame on success, or ``None`` when ODBC cannot read the table."""
+    from machine_library.access_odbc import AccessOdbcError, fetch_named_columns
+
+    try:
+        df = fetch_named_columns(odbc_conn, table, columns)
+    except AccessOdbcError as e:
+        if table == "PART_Det":
+            try:
+                df = fetch_named_columns(odbc_conn, table, columns[:-1])
+                df["VENDORID"] = 0
+            except AccessOdbcError as e2:
+                logger.warning(
+                    "ODBC read of %s failed (%s); using mdbtools export",
+                    table,
+                    e2,
+                )
+                return None
+        else:
+            logger.warning(
+                "ODBC read of %s failed (%s); using mdbtools export",
+                table,
+                e,
+            )
+            return None
+    keep = [c for c in columns if c in df.columns]
+    return df[keep] if keep else pd.DataFrame(columns=list(columns))
+
+
 def _read_mdb_table(
     mdb_path: Path,
     table: str,
@@ -104,24 +138,17 @@ def _read_mdb_table(
     odbc_conn: Any | None,
 ) -> pd.DataFrame:
     if odbc_conn is not None:
-        from machine_library.access_odbc import AccessOdbcError, fetch_named_columns
-
-        try:
-            df = fetch_named_columns(odbc_conn, table, columns)
-        except AccessOdbcError:
-            if table == "PART_Det":
-                try:
-                    df = fetch_named_columns(odbc_conn, table, columns[:-1])
-                    df["VENDORID"] = 0
-                except AccessOdbcError:
-                    return pd.DataFrame(columns=list(columns))
-            else:
-                return pd.DataFrame(columns=list(columns))
-        keep = [c for c in columns if c in df.columns]
-        return df[keep] if keep else pd.DataFrame(columns=list(columns))
+        df = _read_mdb_table_odbc(odbc_conn, table, columns)
+        if df is not None:
+            return df
     try:
         raw = export_table_csv(mdb_path, table)
-    except HanwhaMdbToolsError:
+    except HanwhaMdbToolsError as e:
+        logger.warning(
+            "mdbtools export of %s failed (%s); empty frame",
+            table,
+            e,
+        )
         return pd.DataFrame(columns=list(columns))
     df = pd.read_csv(io.StringIO(raw))
     keep = [c for c in columns if c in df.columns]
@@ -193,7 +220,12 @@ def import_mdb_to_cache(
 
         try:
             odbc_conn = connect_mdb(src, read_only=True)
-        except AccessOdbcError:
+        except AccessOdbcError as e:
+            logger.warning(
+                "ODBC connect failed (%s); using mdbtools for SQLite import from %s",
+                e,
+                src,
+            )
             odbc_conn = None
 
     sconn = sqlite3.connect(str(sql_path))

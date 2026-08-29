@@ -8,6 +8,7 @@ from typing import Any
 
 import pandas as pd
 
+import logger
 from machine_library.hanwha_mdbtools import HanwhaMdbToolsError, export_table_csv
 from pcb_preview.types import FootprintOutlineMM
 from pcb_preview.upd_footprint_builder import (
@@ -232,7 +233,12 @@ def _odbc_where(
     except Exception:
         try:
             df = fetch_named_columns(conn, table, columns)
-        except AccessOdbcError:
+        except AccessOdbcError as e:
+            logger.warning(
+                "ODBC fetch_named_columns for %s failed (%s); empty frame",
+                table,
+                e,
+            )
             return pd.DataFrame(columns=list(columns))
         if "PROFILENAME" not in df.columns:
             return pd.DataFrame(columns=list(columns))
@@ -249,7 +255,12 @@ def _load_tables(mdb_path: Path, name: str) -> dict[str, pd.DataFrame]:
 
         try:
             conn = connect_mdb(mdb_path, read_only=True)
-        except AccessOdbcError:
+        except AccessOdbcError as e:
+            logger.warning(
+                "ODBC connect failed (%s); using mdbtools for geometry in %s",
+                e,
+                mdb_path,
+            )
             conn = None
         if conn is not None:
             try:
@@ -259,7 +270,12 @@ def _load_tables(mdb_path: Path, name: str) -> dict[str, pd.DataFrame]:
                     if table == "PARTGROUP_Map":
                         try:
                             out[table] = fetch_named_columns(conn, table, cols)
-                        except AccessOdbcError:
+                        except AccessOdbcError as e:
+                            logger.warning(
+                                "ODBC read of %s failed (%s); empty frame",
+                                table,
+                                e,
+                            )
                             out[table] = pd.DataFrame(columns=list(cols))
                     else:
                         out[table] = _odbc_where(conn, table, cols, name)
@@ -275,7 +291,12 @@ def _load_tables(mdb_path: Path, name: str) -> dict[str, pd.DataFrame]:
                 out[table] = df[keep] if keep else pd.DataFrame(columns=list(cols))
             else:
                 out[table] = _filter_csv(mdb_path, table, cols, name)
-        except HanwhaMdbToolsError:
+        except HanwhaMdbToolsError as e:
+            logger.warning(
+                "mdbtools export of %s failed (%s); empty frame",
+                table,
+                e,
+            )
             out[table] = pd.DataFrame(columns=list(cols))
     return out
 

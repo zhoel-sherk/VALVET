@@ -412,6 +412,7 @@ class Step3DTabWidget(QtWidgets.QWidget):
         thread = self._load_thread
         self._load_thread = None
         if thread is not None:
+            thread.wait(5000)
             thread.deleteLater()
 
     def _on_cancel_load(self) -> None:

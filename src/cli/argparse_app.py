@@ -47,14 +47,18 @@ def _parser() -> argparse.ArgumentParser:
 
     lb = sub.add_parser("load-bom", help="Load a BOM file into the session")
     lb.add_argument("path")
-    lb.add_argument("--sep", default="auto", help="Delimiter: auto, comma, tab, spaces, …")
+    lb.add_argument(
+        "--sep", default="auto", help="Delimiter: auto, comma, tab, spaces, …"
+    )
 
     lp = sub.add_parser("load-pnp", help="Load a PnP file into the session")
     lp.add_argument("path")
     lp.add_argument("--sep", default="auto")
 
     mp = sub.add_parser("map", help="Set column role mappings")
-    mp.add_argument("--map-json", help="JSON file with {bom: {REF, Comment}, pnp: {REF, X, Y, …}}")
+    mp.add_argument(
+        "--map-json", help="JSON file with {bom: {REF, Comment}, pnp: {REF, X, Y, …}}"
+    )
     mp.add_argument("--bom-ref")
     mp.add_argument("--bom-comment")
     mp.add_argument("--pnp-ref")
@@ -65,10 +69,14 @@ def _parser() -> argparse.ArgumentParser:
     mp.add_argument("--pnp-layer")
     mp.add_argument("--pnp-footprint")
     mp.add_argument("--coord-mils", action="store_true", help="Treat PnP X/Y as mils")
-    mp.add_argument("--coord-mm", action="store_true", help="Treat PnP X/Y as millimetres")
+    mp.add_argument(
+        "--coord-mm", action="store_true", help="Treat PnP X/Y as millimetres"
+    )
 
     cl = sub.add_parser("clean", help="Clean BOM Comment column")
-    cl.add_argument("--apply", action="store_true", help="Write cleaned values into the BOM frame")
+    cl.add_argument(
+        "--apply", action="store_true", help="Write cleaned values into the BOM frame"
+    )
     cl.add_argument("--limit", type=int, default=20, help="Preview rows to print")
 
     mg = sub.add_parser("merge", help="Merge BOM + PnP and optionally export")
@@ -102,7 +110,7 @@ def _open_session(path: str) -> CliSession:
         try:
             reload_tables(session)
         except Exception as exc:
-            print(f"warning: could not reload tables: {exc}", file=sys.stderr)
+            logger.warning("Could not reload tables from %s: %s", path, exc)
     return session
 
 
@@ -172,7 +180,9 @@ def _cmd_clean(session: CliSession, args: argparse.Namespace) -> int:
         return 1
     preview = clean_comments(session, apply=args.apply)
     n = max(0, args.limit)
-    print(f"clean preview: {len(preview)} row(s)" + (" (applied)" if args.apply else ""))
+    print(
+        f"clean preview: {len(preview)} row(s)" + (" (applied)" if args.apply else "")
+    )
     for row in preview[:n]:
         orig = row[1] if len(row) > 1 else ""
         cleaned = row[2] if len(row) > 2 else ""
@@ -263,7 +273,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         code = handlers[args.cmd](session, args)
     except Exception as exc:
-        print(str(exc), file=sys.stderr)
+        logger.error("Command %s failed: %s", args.cmd, exc, exc_info=True)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
     save_session_file(session, args.session)
     return code

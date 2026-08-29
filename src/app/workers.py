@@ -1,7 +1,9 @@
+import os
 from typing import Optional
 
 from PySide6 import QtCore
 
+import logger
 from smt_processor import SMTDataProcessor, SMTProcessorError
 from machine_library.hanwha_mdbtools import (
     HanwhaMdbToolsError,
@@ -24,8 +26,10 @@ class CrossCheckThread(QtCore.QThread):
         try:
             r = self._proc.cross_check()
         except SMTProcessorError as e:
+            logger.error("cross_check failed: %s", e)
             self.result_ready.emit(None, str(e))
         except Exception as e:
+            logger.error("cross_check failed: %s", e)
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(r, "")
@@ -43,6 +47,11 @@ class HanwhaPartDetLoadThread(QtCore.QThread):
         self.load_gen = 0
 
     def run(self) -> None:
+        if not self._mdb_path or not os.path.isfile(self._mdb_path):
+            msg = f"Not a file: {self._mdb_path}"
+            logger.error("Hanwha PART_Det load failed: %s", msg)
+            self.result_ready.emit(None, msg)
+            return
         try:
             from machine_library.access_odbc import ensure_com_sta
 
@@ -51,8 +60,10 @@ class HanwhaPartDetLoadThread(QtCore.QThread):
                 self._mdb_path, progress=self.progress.emit
             )
         except HanwhaMdbToolsError as e:
+            logger.error("Hanwha PART_Det load failed: %s", e)
             self.result_ready.emit(None, str(e))
         except Exception as e:
+            logger.error("Hanwha PART_Det load failed: %s", e)
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(df, "")
@@ -79,6 +90,11 @@ class HanwhaSqliteImportThread(QtCore.QThread):
         self.load_gen = 0
 
     def run(self) -> None:
+        if not self._mdb_path or not os.path.isfile(self._mdb_path):
+            msg = f"Not a file: {self._mdb_path}"
+            logger.error("Hanwha SQLite import failed: %s", msg)
+            self.result_ready.emit(None, msg)
+            return
         try:
             from machine_library.access_odbc import ensure_com_sta
             from machine_library.hanwha_sqlite_cache import (
@@ -95,6 +111,7 @@ class HanwhaSqliteImportThread(QtCore.QThread):
             )
             df = load_preview_dataframe_from_sqlite(self._cache_dir)
         except Exception as e:
+            logger.error("Hanwha SQLite import failed: %s", e)
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(df, "")
@@ -127,6 +144,9 @@ class HanwhaFootprintBuildThread(QtCore.QThread):
                 self._cache_dir, self._profilename, partdesc=self._partdesc
             )
         except Exception as e:
+            logger.error(
+                "Hanwha footprint build failed for %s: %s", self._profilename, e
+            )
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(result, "")

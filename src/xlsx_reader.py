@@ -9,11 +9,23 @@ import datetime
 # https://openpyxl.readthedocs.io/en/stable/tutorial.html
 import openpyxl
 
+from pathlib import Path
+
 from text_grid import TextGrid
 
 # -----------------------------------------------------------------------------
 
 
+def _require_existing_file(path: str) -> Path:
+    assert path is not None
+    if not str(path).strip():
+        logger.error("Empty file path")
+        raise FileNotFoundError("Empty file path")
+    p = Path(path)
+    if not p.is_file():
+        logger.error("File not found: %s", path)
+        raise FileNotFoundError(f"File not found: {path}")
+    return p
 def __check_row_valid(row_cells: list[str]) -> bool:
     # ignore rows with empty cells 'A,B,C' or cell 'A' with a long horizontal line
     row_valid = (len(row_cells) > 3) and (row_cells[0] or row_cells[1] or row_cells[2])
@@ -25,10 +37,13 @@ def read_xlsx_sheet(path: str) -> TextGrid:
     """
     Reads entire sheet 0
     """
-    assert path is not None
+    p = _require_existing_file(path)
     logger.info(f"Reading file '{path}'")
-    # Define variable to load the wookbook
-    workbook = openpyxl.load_workbook(path)
+    try:
+        workbook = openpyxl.load_workbook(str(p))
+    except Exception as e:
+        logger.error("Cannot read XLSX file %s: %s", path, e)
+        raise
     sheet = workbook.active
     tg = TextGrid()
 

@@ -24,6 +24,8 @@ Resistance coding:
 
 from parsers.regex_api import match
 
+import logger
+
 VENDOR_NAME = "Royal Ohm"
 COMPONENT_TYPES = ["RES"]
 PARSER_PRIORITY = 25
@@ -185,7 +187,8 @@ def parse(pn: str, component_type: str) -> str | None:
 
         return "_".join(parts) if parts else None
 
-    except Exception:
+    except Exception as exc:
+        logger.warning("Royal Ohm parse failed for %r: %s", pn, exc)
         return None
 
 

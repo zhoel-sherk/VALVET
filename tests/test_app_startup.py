@@ -181,24 +181,23 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
 
 
 def test_debug_logs_checkbox_calls_set_debug_mode(
-    import_parsers, qapp, tmp_path, monkeypatch
+    import_parsers, qapp, tmp_path, mocker
 ) -> None:
     from app.window import MainWindow
+    import logger
 
-    states: list[bool] = []
-    monkeypatch.setattr(
-        "logger.set_debug_mode", lambda on, **_k: states.append(bool(on))
-    )
+    spy = mocker.spy(logger, "set_debug_mode")
     settings = _ini_settings(tmp_path)
     _set_experimental(settings, enabled=False)
     win = MainWindow(settings=settings)
     try:
         assert win.chk_colorful.isChecked() is False
-        assert states[-1] is False
         win.chk_colorful.setChecked(True)
-        assert states[-1] is True
+        on_arg = spy.call_args[0][0] if spy.call_args.args else spy.call_args.kwargs.get("on")
+        assert on_arg is True
         win.chk_colorful.setChecked(False)
-        assert states[-1] is False
+        on_arg = spy.call_args[0][0] if spy.call_args.args else spy.call_args.kwargs.get("on")
+        assert on_arg is False
     finally:
         win.close()
 

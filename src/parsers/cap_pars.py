@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
 
+import logger
 from clean_types import CleanConfig, default_clean_config
 
 from parsers.bom_text_utils import (
@@ -220,7 +221,12 @@ def parse_capacitor_token_fields(
             from parsers.si_units import convert_nf_token_to_uf
 
             value = convert_nf_token_to_uf(value)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "si_units NF→UF conversion failed for %r; using manual fallback: %s",
+                value,
+                exc,
+            )
             m = match(r"^([\d.]+)NF$", value, I)
             if m:
                 n = float(m.group(1))

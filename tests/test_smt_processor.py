@@ -18,6 +18,26 @@ def test_read_file_no_file():
         smt_processor.read_file("/nonexistent/file.xlsx")
 
 
+def test_read_file_empty_path():
+    with pytest.raises(smt_processor.SMTFileNotFoundError, match="Empty file path"):
+        smt_processor.read_file("")
+    with pytest.raises(smt_processor.SMTFileNotFoundError, match="Empty file path"):
+        smt_processor.read_file("   ")
+
+
+def test_read_file_corrupt_xlsx(tmp_path):
+    bad = tmp_path / "bad.xlsx"
+    bad.write_bytes(b"not a zip archive")
+    with pytest.raises(smt_processor.SMTEmptyDataError):
+        smt_processor.read_file(str(bad))
+
+
+def test_read_pnp_whitespace_missing_file(tmp_path):
+    missing = tmp_path / "missing.txt"
+    with pytest.raises(smt_processor.SMTFileNotFoundError):
+        smt_processor.read_pnp_whitespace(str(missing))
+
+
 def test_read_file_xlsx():
     path = os.path.join(tests_path, "assets", "bom.xlsx")
     df = smt_processor.read_file(path)

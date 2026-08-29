@@ -706,6 +706,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         if sender is self._fp_thread:
             self._fp_thread = None
         if sender is not None:
+            sender.wait(5000)
             sender.deleteLater()
         pending = self._fp_pending
         if pending is None or self._fp_thread_running():

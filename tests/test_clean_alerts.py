@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from clean_alerts import analyze_token_alert
+import logger
+from clean_alerts import _best_film_hint, analyze_token_alert
 from clean_component import CleanConfig, clean_preview
 
 
@@ -45,3 +46,12 @@ def test_clean_preview_emits_alert_column_with_master(tmp_path: Path, monkeypatc
     line = log_path.read_text(encoding="utf-8").strip().splitlines()[0]
     payload = json.loads(line)
     assert payload["alert"].startswith("missing=")
+
+
+def test_best_film_hint_logs_when_rapidfuzz_missing(mocker) -> None:
+    warn_spy = mocker.spy(logger, "warning")
+    mocker.patch.dict("sys.modules", {"rapidfuzz": None})
+    assert _best_film_hint(["X7S"]) == ""
+    assert warn_spy.called
+    msg = str(warn_spy.call_args.args[0]).lower()
+    assert "rapidfuzz" in msg

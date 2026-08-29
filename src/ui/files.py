@@ -144,6 +144,10 @@ class FilesMixin:
         if n2 > 0 and v2 is not None:
             self._pnp_df.iloc[n1:, j] = v2
     def _load_bom(self, path: str, *, force_original: bool = False):
+        path = (path or "").strip()
+        if not path:
+            self._log("Empty BOM path", "error")
+            return
         try:
             recovered = (
                 None if force_original else self._recover_snapshot_choice(path, "bom")
@@ -211,6 +215,10 @@ class FilesMixin:
         finally:
             self._loading_working_copy = False
     def _load_pnp(self, path: str, *, force_original: bool = False):
+        path = (path or "").strip()
+        if not path:
+            self._log("Empty PnP path", "error")
+            return
         self._pnp_layer_reload_timer.stop()
         try:
             p_secondary = (self._pnp_secondary_path or "").strip()

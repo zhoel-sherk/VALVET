@@ -4,6 +4,8 @@
 
 import logger
 
+from pathlib import Path
+
 from odf import opendocument, table
 
 # local copy of odf:
@@ -17,6 +19,18 @@ from text_grid import TextGrid
 # -----------------------------------------------------------------------------
 
 
+def _require_existing_file(path: str) -> Path:
+    assert path is not None
+    if not str(path).strip():
+        logger.error("Empty file path")
+        raise FileNotFoundError("Empty file path")
+    p = Path(path)
+    if not p.is_file():
+        logger.error("File not found: %s", path)
+        raise FileNotFoundError(f"File not found: {path}")
+    return p
+
+
 def __check_row_valid(row_cells: list[str]) -> bool:
     # ignore rows with empty cells 'A,B,C' or cell 'A' with a long horizontal line
     row_valid = (len(row_cells) > 3) and (row_cells[0] or row_cells[1] or row_cells[2])
@@ -28,9 +42,13 @@ def read_ods_sheet(path: str) -> TextGrid:
     """
     Reads ODS/spreadsheet document, returning the first sheet
     """
-    assert path is not None
+    p = _require_existing_file(path)
     logger.info(f"Reading file '{path}'")
-    doc = opendocument.load(path)
+    try:
+        doc = opendocument.load(str(p))
+    except Exception as e:
+        logger.error("Cannot read ODS file %s: %s", path, e)
+        raise
     tg = TextGrid()
 
     # with open(path + "-dump.xml", "w") as f:

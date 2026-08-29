@@ -21,6 +21,8 @@ Parsing rules mirror ``royalohm_resistor.py`` for compatible PN patterns.
 
 from parsers.regex_api import match
 
+import logger
+
 VENDOR_NAME = "Uniohm"
 COMPONENT_TYPES = ["RES"]
 PARSER_PRIORITY = 25
@@ -191,7 +193,8 @@ def parse(pn: str, component_type: str) -> str | None:
 
         return "_".join(parts) if parts else None
 
-    except Exception:
+    except Exception as exc:
+        logger.warning("Uniohm parse failed for %r: %s", pn, exc)
         return None
 
 

@@ -86,7 +86,7 @@ def test_odbc_connection_string_readonly(tmp_path: Path, monkeypatch: pytest.Mon
     assert "ReadOnly=1" in ro
 
 
-def test_connect_mdb_does_not_set_odbc_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_connect_mdb_does_not_set_odbc_timeout(mocker, tmp_path: Path) -> None:
     """Jet/Access raises HYC00 if pyodbc sets SQL_ATTR_* timeout via SQLSetConnectAttr."""
     pytest.importorskip("pyodbc")
     import pyodbc
@@ -95,28 +95,93 @@ def test_connect_mdb_does_not_set_odbc_timeout(monkeypatch: pytest.MonkeyPatch, 
 
     mdb = tmp_path / "lib.mdb"
     mdb.write_bytes(b"x")
-    seen: list[dict] = []
-
-    class _Conn:
-        pass
-
-    def fake_connect(conn_str: str, **kwargs: object) -> _Conn:
-        seen.append({"conn_str": conn_str, **kwargs})
-        return _Conn()
-
-    monkeypatch.setattr(pyodbc, "connect", fake_connect)
-    monkeypatch.setattr(access_odbc, "pick_access_odbc_driver", lambda **_k: "Microsoft Access Driver (*.mdb)")
-    monkeypatch.setattr(access_odbc, "ensure_com_sta", lambda: None)
-    monkeypatch.setattr(access_odbc, "_try_unlink_stale_lock", lambda _p: None)
+    mocker.patch.object(pyodbc, "connect", return_value=mocker.Mock())
+    mocker.patch.object(
+        access_odbc,
+        "pick_access_odbc_driver",
+        return_value="Microsoft Access Driver (*.mdb)",
+    )
+    mocker.patch.object(access_odbc, "ensure_com_sta")
+    mocker.patch.object(access_odbc, "_try_unlink_stale_lock")
 
     conn = access_odbc.connect_mdb(mdb, timeout=8)
     assert conn is not None
-    assert seen
-    for call in seen:
-        assert "timeout" not in call
+    assert pyodbc.connect.called
+    kwargs = pyodbc.connect.call_args.kwargs
+    assert "timeout" not in kwargs
 
 
 def test_part_det_select_is_narrow() -> None:
     assert "PARTNAME" in PART_DET_SELECT_COLS
     assert "VENDORID" in PART_DET_SELECT_COLS
     assert len(PART_DET_SELECT_COLS) == 6
+
+
+def test_load_part_det_dataframe_odbc_closes_on_success(
+    mocker, tmp_path: Path
+) -> None:
+    from machine_library.access_odbc import load_part_det_dataframe_odbc
+
+    mdb = tmp_path / "lib.mdb"
+    mdb.write_bytes(b"x")
+    conn = mocker.Mock()
+    mocker.patch(
+        "machine_library.access_odbc.connect_mdb",
+        return_value=conn,
+    )
+    mocker.patch(
+        "machine_library.access_odbc.load_part_det_on_connection",
+        return_value=__import__("pandas").DataFrame(columns=list(PART_DET_SELECT_COLS)),
+    )
+    load_part_det_dataframe_odbc(mdb)
+    conn.close.assert_called_once()
+
+
+def test_load_part_det_dataframe_odbc_closes_on_query_failure(
+    mocker, tmp_path: Path
+) -> None:
+    from machine_library.access_odbc import load_part_det_dataframe_odbc
+
+    mdb = tmp_path / "lib.mdb"
+    mdb.write_bytes(b"x")
+    conn = mocker.Mock()
+    mocker.patch(
+        "machine_library.access_odbc.connect_mdb",
+        return_value=conn,
+    )
+    mocker.patch(
+        "machine_library.access_odbc.load_part_det_on_connection",
+        side_effect=RuntimeError("query blew up"),
+    )
+    with pytest.raises(RuntimeError, match="query blew up"):
+        load_part_det_dataframe_odbc(mdb)
+    conn.close.assert_called_once()
+
+
+def test_load_machine_lib_join_tables_odbc_closes_on_profile_failure(
+    mocker, tmp_path: Path
+) -> None:
+    from machine_library.access_odbc import AccessOdbcError, load_machine_lib_join_tables_odbc
+
+    mdb = tmp_path / "lib.mdb"
+    mdb.write_bytes(b"x")
+    conn = mocker.Mock()
+    mocker.patch(
+        "machine_library.access_odbc.connect_mdb",
+        return_value=conn,
+    )
+    mocker.patch(
+        "machine_library.access_odbc.load_part_det_on_connection",
+        return_value=__import__("pandas").DataFrame(columns=list(PART_DET_SELECT_COLS)),
+    )
+    mocker.patch(
+        "machine_library.access_odbc.fetch_named_columns",
+        side_effect=AccessOdbcError("PROFILE_Det missing"),
+    )
+    warn_spy = mocker.spy(__import__("logger"), "warning")
+    parts, profile, gmap = load_machine_lib_join_tables_odbc(mdb)
+    assert len(parts.columns) == len(PART_DET_SELECT_COLS)
+    assert list(profile.columns) == ["PROFILENAME", "UPDPARTGROUPID"]
+    assert list(gmap.columns) == ["UPDPARTGROUPID", "UPDPARTGROUPNAME"]
+    conn.close.assert_called_once()
+    assert warn_spy.call_count >= 2

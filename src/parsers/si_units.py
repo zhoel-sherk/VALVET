@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+import logger
 from parsers.regex_api import I, match
 
 
@@ -22,7 +23,12 @@ def convert_nf_token_to_uf(value: str) -> str:
     try:
         q = float(m.group(1)) * unit_registry().nanofarad
         uf = q.to("microfarad").magnitude
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "convert_nf_token_to_uf failed for %r; keeping original token: %s",
+            value,
+            exc,
+        )
         return value
     if uf == int(uf):
         return f"{int(uf)}UF"

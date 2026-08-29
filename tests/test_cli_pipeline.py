@@ -19,6 +19,7 @@ from cli.pipeline import (
 )
 from cli.session import CliSession, load_session_file, save_session_file
 from machine_library.hanwha_mdbtools import HanwhaMdbToolsError
+from smt_processor import SMTFileNotFoundError
 
 _ROOT = Path(__file__).resolve().parents[1]
 _TABULAR = _ROOT / "tests" / "fixtures" / "clean_corpus" / "tabular_sample.csv"
@@ -45,6 +46,13 @@ def test_session_json_omits_dataframes(tmp_path: Path) -> None:
     assert loaded.bom_df is None
 
 
+def test_pipeline_load_bom_missing_file(tmp_path: Path) -> None:
+    session = CliSession()
+    missing = tmp_path / "missing.csv"
+    with pytest.raises(SMTFileNotFoundError):
+        load_bom(session, str(missing), separator=",")
+
+
 def test_pipeline_load_clean_merge_export(tmp_path: Path) -> None:
     assert _TABULAR.is_file()
     pnp_path = tmp_path / "pnp.csv"
@@ -66,6 +74,9 @@ def test_pipeline_load_clean_merge_export(tmp_path: Path) -> None:
     assert "Comment" in session.bom_df.columns
     preview = clean_comments(session, apply=True)
     assert len(preview) == 2
+    assert "comment" in session.bom_df.columns
+    cleaned = session.bom_df["comment"].astype(str).tolist()
+    assert any("0402" in c or "10" in c for c in cleaned)
     merge_df, report_df = merge_and_check(session)
     assert list(merge_df.columns) == [
         "Ref",

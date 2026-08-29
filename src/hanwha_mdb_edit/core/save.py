@@ -119,91 +119,97 @@ def _write_text(path: Path, text: str) -> None:
 
 
 def _save_part_pyodbc(mdb_path: Path, df: pd.DataFrame) -> None:
+    conn = None
     try:
-        conn = connect_mdb(mdb_path)
-    except AccessOdbcError as e:
-        raise HanwhaSaveError(str(e)) from e
+        try:
+            conn = connect_mdb(mdb_path)
+        except AccessOdbcError as e:
+            raise HanwhaSaveError(str(e)) from e
 
-    rows = dataframe_to_rows(df)
-    cur = conn.cursor()
-    try:
-        cur.execute("DELETE FROM [PART_Det]")
-        for partname, profilename, partdesc, conf, used, vid in rows:
-            cur.execute(
-                "INSERT INTO [PART_Det] ([PARTNAME], [PROFILENAME], [PARTDESC], [CONFIDENCE_LEVEL], [USED_MACHINE_SET], [VENDORID]) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (partname, profilename, partdesc, conf, used, vid),
-            )
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise HanwhaSaveError(f"ODBC PART_Det write failed: {e}") from e
+        rows = dataframe_to_rows(df)
+        cur = conn.cursor()
+        try:
+            cur.execute("DELETE FROM [PART_Det]")
+            for partname, profilename, partdesc, conf, used, vid in rows:
+                cur.execute(
+                    "INSERT INTO [PART_Det] ([PARTNAME], [PROFILENAME], [PARTDESC], [CONFIDENCE_LEVEL], [USED_MACHINE_SET], [VENDORID]) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (partname, profilename, partdesc, conf, used, vid),
+                )
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise HanwhaSaveError(f"ODBC PART_Det write failed: {e}") from e
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def _save_profiles_pyodbc(mdb_path: Path, enriched: pd.DataFrame) -> None:
     patches = build_patch_tables(enriched)
+    conn = None
     try:
-        conn = connect_mdb(mdb_path)
-    except AccessOdbcError as e:
-        raise HanwhaSaveError(str(e)) from e
-    cur = conn.cursor()
-    try:
-        pd_tbl = patches["PROFILE_Det"]
-        for _, row in pd_tbl.iterrows():
-            fn = row.get("PROFILENAME")
-            if pd.isna(fn) or str(fn).strip() == "":
-                continue
-            sets: list[str] = []
-            vals: list[object] = []
-            if "PARENTPROFILE" in row.index and pd.notna(row["PARENTPROFILE"]):
-                sets.append("[PARENTPROFILE]=?")
-                vals.append(row["PARENTPROFILE"])
-            if "UPDPARTGROUPID" in row.index and pd.notna(row["UPDPARTGROUPID"]):
-                sets.append("[UPDPARTGROUPID]=?")
-                vals.append(int(row["UPDPARTGROUPID"]))
-            if sets:
-                vals.append(str(fn).strip())
-                sql = (
-                    f"UPDATE [PROFILE_Det] SET {', '.join(sets)} WHERE [PROFILENAME]=?"
+        try:
+            conn = connect_mdb(mdb_path)
+        except AccessOdbcError as e:
+            raise HanwhaSaveError(str(e)) from e
+        cur = conn.cursor()
+        try:
+            pd_tbl = patches["PROFILE_Det"]
+            for _, row in pd_tbl.iterrows():
+                fn = row.get("PROFILENAME")
+                if pd.isna(fn) or str(fn).strip() == "":
+                    continue
+                sets: list[str] = []
+                vals: list[object] = []
+                if "PARENTPROFILE" in row.index and pd.notna(row["PARENTPROFILE"]):
+                    sets.append("[PARENTPROFILE]=?")
+                    vals.append(row["PARENTPROFILE"])
+                if "UPDPARTGROUPID" in row.index and pd.notna(row["UPDPARTGROUPID"]):
+                    sets.append("[UPDPARTGROUPID]=?")
+                    vals.append(int(row["UPDPARTGROUPID"]))
+                if sets:
+                    vals.append(str(fn).strip())
+                    sql = (
+                        f"UPDATE [PROFILE_Det] SET {', '.join(sets)} WHERE [PROFILENAME]=?"
+                    )
+                    cur.execute(sql, tuple(vals))
+
+            com_tbl = patches["PROFILECOMDATA"]
+            for _, row in com_tbl.iterrows():
+                fn = row.get("PROFILENAME")
+                if (
+                    pd.isna(fn)
+                    or "FEEDINGSPEEDLEVEL" not in row.index
+                    or pd.isna(row["FEEDINGSPEEDLEVEL"])
+                ):
+                    continue
+                cur.execute(
+                    "UPDATE [PROFILECOMDATA_Det] SET [FEEDINGSPEEDLEVEL]=? WHERE [PROFILENAME]=?",
+                    (int(row["FEEDINGSPEEDLEVEL"]), str(fn).strip()),
                 )
-                cur.execute(sql, tuple(vals))
 
-        com_tbl = patches["PROFILECOMDATA"]
-        for _, row in com_tbl.iterrows():
-            fn = row.get("PROFILENAME")
-            if (
-                pd.isna(fn)
-                or "FEEDINGSPEEDLEVEL" not in row.index
-                or pd.isna(row["FEEDINGSPEEDLEVEL"])
-            ):
-                continue
-            cur.execute(
-                "UPDATE [PROFILECOMDATA_Det] SET [FEEDINGSPEEDLEVEL]=? WHERE [PROFILENAME]=?",
-                (int(row["FEEDINGSPEEDLEVEL"]), str(fn).strip()),
-            )
+            qh_tbl = patches["Q_HANDDATA"]
+            for _, row in qh_tbl.iterrows():
+                fn = row.get("PROFILENAME")
+                if (
+                    pd.isna(fn)
+                    or "OVERALL_SPEED_LEVEL" not in row.index
+                    or pd.isna(row["OVERALL_SPEED_LEVEL"])
+                ):
+                    continue
+                cur.execute(
+                    "UPDATE [Q_HANDDATA_Det] SET [OVERALL_SPEED_LEVEL]=? WHERE [PROFILENAME]=?",
+                    (int(row["OVERALL_SPEED_LEVEL"]), str(fn).strip()),
+                )
 
-        qh_tbl = patches["Q_HANDDATA"]
-        for _, row in qh_tbl.iterrows():
-            fn = row.get("PROFILENAME")
-            if (
-                pd.isna(fn)
-                or "OVERALL_SPEED_LEVEL" not in row.index
-                or pd.isna(row["OVERALL_SPEED_LEVEL"])
-            ):
-                continue
-            cur.execute(
-                "UPDATE [Q_HANDDATA_Det] SET [OVERALL_SPEED_LEVEL]=? WHERE [PROFILENAME]=?",
-                (int(row["OVERALL_SPEED_LEVEL"]), str(fn).strip()),
-            )
-
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise HanwhaSaveError(f"ODBC profile tables failed: {e}") from e
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise HanwhaSaveError(f"ODBC profile tables failed: {e}") from e
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 def save_enriched_library(

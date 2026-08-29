@@ -285,6 +285,7 @@ class MergeTabMixin:
         t = self._cc_thread
         self._cc_thread = None
         if t is not None:
+            t.wait(5000)
             t.deleteLater()
 
     def _on_cross_check_finished(self, result: Any, err: str) -> None:

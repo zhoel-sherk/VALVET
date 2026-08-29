@@ -358,14 +358,16 @@ def load_machine_lib_join_tables_odbc(
             profile = fetch_named_columns(
                 conn, "PROFILE_Det", ("PROFILENAME", "UPDPARTGROUPID")
             )
-        except AccessOdbcError:
+        except AccessOdbcError as e:
+            logger.warning("ODBC PROFILE_Det query failed (%s); empty frame", e)
             profile = pd.DataFrame(columns=["PROFILENAME", "UPDPARTGROUPID"])
         _progress(70, "Reading PARTGROUP_Map…")
         try:
             gmap = fetch_named_columns(
                 conn, "PARTGROUP_Map", ("UPDPARTGROUPID", "UPDPARTGROUPNAME")
             )
-        except AccessOdbcError:
+        except AccessOdbcError as e:
+            logger.warning("ODBC PARTGROUP_Map query failed (%s); empty frame", e)
             gmap = pd.DataFrame(columns=["UPDPARTGROUPID", "UPDPARTGROUPNAME"])
         logger.info(
             "ODBC machine lib: %s PART_Det rows from %s in %.1fs",
