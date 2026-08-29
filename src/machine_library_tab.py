@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Set
@@ -11,10 +12,12 @@ from typing import TYPE_CHECKING, Optional, Set
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import logger
+
 from hanwha_mdb_edit.core.column_labels import build_column_header_metadata
 from hanwha_mdb_edit.gui import open_hanwha_mdb_editor
 
-from app.workers import HanwhaPartDetLoadThread
+from app.workers import HanwhaFootprintBuildThread, HanwhaSqliteImportThread
 from machine_library.hanwha_mdbtools import part_det_rows_to_dataframe
 from machine_library.hanwha_preview import machine_lib_preview_frame
 from machine_library.yamaha_devlib import load_devlib_items
@@ -28,12 +31,14 @@ if TYPE_CHECKING:
 HANWHA_CONFIDENCE_KNOWN_LEVELS: frozenset[int] = frozenset((0, 10, 20, 40))
 
 from ui.chrome import left_rail_widget
+from ui.machine_lib.footprint_preview import FootprintPreviewWidget
 
 _HANWHA_HELP = (
     "Hanwha/Samsung UPD library (.mdb).\n\n"
-    "On Windows VALVET reads via pyodbc and the Microsoft Access Database Engine "
-    "(ACE) ODBC driver. Install the redistributable (same bitness as VALVET) if "
-    "opening fails. Linux uses mdbtools on PATH.\n\n"
+    "On Windows VALVET copies the .mdb into the VALVET profile cache and dumps "
+    "vision tables to SQLite (one ACE/ODBC pass). Row clicks read SQLite only. "
+    "Install the Access Database Engine redistributable (same bitness as VALVET) "
+    "if import fails. Linux uses mdbtools on PATH.\n\n"
     "Preview columns:\n"
     "• Part name (PARTNAME) — Clean BOM match key\n"
     "• Description (PARTDESC)\n"
@@ -125,7 +130,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._btn_open_mdb = browse
         hw_layout.addWidget(browse)
         reload_btn = QtWidgets.QPushButton("Reload")
-        reload_btn.setToolTip("Reload PART_Det and Type join from the .mdb")
+        reload_btn.setToolTip(
+            "Re-import the .mdb into the profile SQLite cache (PART_Det + vision tables)"
+        )
         reload_btn.clicked.connect(self._reload_part_det)
         self._btn_reload_mdb = reload_btn
         hw_layout.addWidget(reload_btn)
@@ -211,9 +218,13 @@ class MachineLibraryTab(QtWidgets.QWidget):
         root.addWidget(left, 0)
 
         self._hanwha_editor_window: Optional[QtWidgets.QMainWindow] = None
-        self._mdb_load_thread: Optional[HanwhaPartDetLoadThread] = None
+        self._mdb_load_thread: Optional[HanwhaSqliteImportThread] = None
         self._mdb_load_gen = 0
         self._mdb_busy = False
+        self._hanwha_cache_dir: str = ""
+        self._fp_thread: Optional[HanwhaFootprintBuildThread] = None
+        self._fp_gen = 0
+        self._fp_pending: Optional[tuple[str, str, int]] = None
 
         self._table = QtWidgets.QTableView()
         self._table.setAlternatingRowColors(True)
@@ -222,7 +233,21 @@ class MachineLibraryTab(QtWidgets.QWidget):
         hdr = self._table.horizontalHeader()
         hdr.setStretchLastSection(False)
         hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Interactive)
-        root.addWidget(self._table, 1)
+        self._table.selectionModel().currentChanged.connect(self._on_table_current_changed)
+
+        self._fp_preview = FootprintPreviewWidget(self)
+        self._fp_debounce = QtCore.QTimer(self)
+        self._fp_debounce.setSingleShot(True)
+        self._fp_debounce.setInterval(150)
+        self._fp_debounce.timeout.connect(self._load_selected_footprint)
+
+        split = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
+        split.addWidget(self._table)
+        split.addWidget(self._fp_preview)
+        split.setStretchFactor(0, 3)
+        split.setStretchFactor(1, 2)
+        split.setChildrenCollapsible(False)
+        root.addWidget(split, 1)
         self._show_hanwha_preview(self._hanwha_df)
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
@@ -250,6 +275,18 @@ class MachineLibraryTab(QtWidgets.QWidget):
             "This table still lists every loaded row. Level is not LIBRARY_TYPE "
             "and 0 is not MASTER/STANDART.",
         )
+
+    def _valvet_profile_id(self) -> str:
+        from app.constants import PROFILE_LAST_ACTIVE_KEY
+
+        raw = "default"
+        if self._settings is not None:
+            raw = str(
+                self._settings.value(PROFILE_LAST_ACTIVE_KEY, "default") or "default"
+            )
+        t = (raw or "default").strip().replace(" ", "_")
+        out = re.sub(r"[^a-zA-Z0-9_-]", "", t)
+        return out[:64] or "default"
 
     def loaded_mdb_path(self) -> str:
         """Absolute path of the Hanwha library opened on this tab, or empty."""
@@ -367,8 +404,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
             else:
                 self._hanwha_df = part_det_rows_to_dataframe([])
                 self._show_hanwha_preview(self._hanwha_df)
+            self._fp_preview.set_idle("Select a part")
         else:
             self._reload_yamaha_preview()
+            self._fp_preview.set_yamaha_placeholder()
 
     def _browse_mdb(self) -> None:
         start = os.path.expanduser("~")
@@ -389,23 +428,29 @@ class MachineLibraryTab(QtWidgets.QWidget):
                 )
             self._start_mdb_load()
 
-    def _start_mdb_load(self) -> None:
+    def _start_mdb_load(self, *, force: bool = False) -> None:
         if not self._mdb_path:
             return
         if self._mdb_load_thread is not None and self._mdb_load_thread.isRunning():
             return
         self._mdb_load_gen += 1
         gen = self._mdb_load_gen
-        self._tables_label.setText("Loading PART_Det… (ACE/ODBC, may take a while)")
+        self._tables_label.setText("Importing .mdb → SQLite cache (one-time ODBC)…")
         lock = Path(self._mdb_path).with_suffix(".ldb")
         if not lock.is_file():
             lock = Path(self._mdb_path).with_suffix(".LDB")
         if lock.is_file():
             self._tables_label.setText(
-                "Loading PART_Det… Access lock (.ldb) found — close the library in Microsoft Access if this stalls."
+                "Importing… Access lock (.ldb) found — close the library in Microsoft Access if this stalls."
             )
         self._set_mdb_busy(True)
-        thread = HanwhaPartDetLoadThread(self._mdb_path)
+        from app_paths import hanwha_lib_cache_dir
+
+        cache = str(hanwha_lib_cache_dir(self._valvet_profile_id()))
+        self._hanwha_cache_dir = cache
+        thread = HanwhaSqliteImportThread(
+            self._mdb_path, cache, parent=self, force=force
+        )
         thread.load_gen = gen
         self._mdb_load_thread = thread
         thread.result_ready.connect(
@@ -444,7 +489,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._hanwha_df = frame
         self._show_hanwha_preview(frame)
         n = 0 if frame is None else len(frame)
-        self._tables_label.setText(f"PART_Det: {n} rows")
+        self._tables_label.setText(f"PART_Det: {n} rows (SQLite cache)")
 
     def _on_mdb_load_thread_finished(self) -> None:
         t = self._mdb_load_thread
@@ -459,7 +504,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
                 self, "Machine library", "Select an .mdb file first."
             )
             return
-        self._start_mdb_load()
+        self._start_mdb_load(force=True)
 
     def _browse_yamaha_tou(self) -> None:
         start = os.path.expanduser("~")
@@ -513,6 +558,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
             empty = pd.DataFrame(columns=["PARTNAME", "Kind", "File"])
             self._table_model.update_dataframe(empty)
             self._table_model.set_column_header_metadata({}, {})
+            self._fp_preview.set_yamaha_placeholder()
             return
         self._yamaha_partnames = names
         df = (
@@ -522,6 +568,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         )
         self._table_model.update_dataframe(df)
         self._table_model.set_column_header_metadata({}, {})
+        self._fp_preview.set_yamaha_placeholder()
 
     def _open_hanwha_editor(self) -> None:
         def _sync_path_chosen(p: str) -> None:
@@ -565,3 +612,130 @@ class MachineLibraryTab(QtWidgets.QWidget):
         )
         if r == QtWidgets.QMessageBox.StandardButton.Yes:
             QDesktopServices.openUrl(QtCore.QUrl(ACCESS_ENGINE_2016_REDIST_URL))
+
+    def _on_table_current_changed(
+        self, current: QtCore.QModelIndex, _prev: QtCore.QModelIndex
+    ) -> None:
+        if self._vendor_combo.currentData() != 0:
+            return
+        if not current.isValid():
+            self._fp_preview.set_idle("Select a part")
+            return
+        self._fp_debounce.start()
+
+    def _selected_hanwha_keys(self) -> tuple[str, str, str]:
+        """PARTNAME, PROFILENAME, PARTDESC from the current table row."""
+        idx = self._table.currentIndex()
+        if not idx.isValid():
+            return "", "", ""
+        row = self._table_model.get_row_values(idx.row())
+        partname = str(row.get("PARTNAME") or "").strip()
+        partdesc = str(row.get("PARTDESC") or "").strip()
+        profilename = partname
+        df = self._hanwha_df
+        if df is not None and not df.empty and partname and "PARTNAME" in df.columns:
+            hit = df[df["PARTNAME"].astype(str) == partname]
+            if not hit.empty:
+                rec = hit.iloc[0]
+                if "PROFILENAME" in hit.columns:
+                    pn = str(rec.get("PROFILENAME") or "").strip()
+                    if pn:
+                        profilename = pn
+                if not partdesc and "PARTDESC" in hit.columns:
+                    partdesc = str(rec.get("PARTDESC") or "").strip()
+        return partname, profilename, partdesc
+
+    def _fp_thread_running(self) -> bool:
+        t = self._fp_thread
+        if t is None:
+            return False
+        try:
+            from shiboken6 import isValid
+
+            if not isValid(t):
+                self._fp_thread = None
+                return False
+            return bool(t.isRunning())
+        except RuntimeError:
+            self._fp_thread = None
+            return False
+
+    def _load_selected_footprint(self) -> None:
+        if self._vendor_combo.currentData() != 0:
+            self._fp_preview.set_yamaha_placeholder()
+            return
+        from machine_library.hanwha_sqlite_cache import sqlite_path as vision_sqlite_path
+
+        if not self._hanwha_cache_dir or not vision_sqlite_path(
+            self._hanwha_cache_dir
+        ).is_file():
+            self._fp_preview.set_idle("Open a Hanwha .mdb first (builds SQLite cache)")
+            return
+        _part, profile, desc = self._selected_hanwha_keys()
+        if not profile:
+            self._fp_preview.set_idle("Select a part")
+            return
+        self._fp_gen += 1
+        gen = self._fp_gen
+        self._fp_preview.set_loading(profile)
+        # One SQLite lookup at a time. Queue the latest row if a load is in flight.
+        if self._fp_thread_running():
+            self._fp_pending = (profile, desc, gen)
+            return
+        self._fp_pending = None
+        self._start_footprint_thread(profile, desc, gen)
+
+    def _start_footprint_thread(self, profile: str, desc: str, gen: int) -> None:
+        thread = HanwhaFootprintBuildThread(
+            self._hanwha_cache_dir, profile, partdesc=desc, parent=self
+        )
+        thread.load_gen = gen
+        self._fp_thread = thread
+        thread.result_ready.connect(
+            self._on_footprint_ready,
+            QtCore.Qt.ConnectionType.QueuedConnection,
+        )
+        thread.finished.connect(
+            self._on_fp_thread_finished,
+            QtCore.Qt.ConnectionType.QueuedConnection,
+        )
+        thread.start()
+
+    def _on_fp_thread_finished(self) -> None:
+        sender = self.sender()
+        if sender is self._fp_thread:
+            self._fp_thread = None
+        if sender is not None:
+            sender.deleteLater()
+        pending = self._fp_pending
+        if pending is None or self._fp_thread_running():
+            return
+        profile, desc, gen = pending
+        if gen != self._fp_gen:
+            self._fp_pending = None
+            return
+        self._fp_pending = None
+        self._start_footprint_thread(profile, desc, gen)
+
+    def _on_footprint_ready(self, result: object, err: str) -> None:
+        sender = self.sender()
+        gen = getattr(sender, "load_gen", None) if sender is not None else None
+        if gen is not None and gen != self._fp_gen:
+            return
+        from pcb_preview.upd_footprint_builder import FootprintBuildResult
+
+        if err:
+            self._fp_preview.set_idle(err.split("\n", 1)[0])
+            return
+        if not isinstance(result, FootprintBuildResult):
+            self._fp_preview.set_idle("No geometry")
+            return
+        _part, profile, _d = self._selected_hanwha_keys()
+        try:
+            self._fp_preview.show_result(
+                result, title=profile or result.partgroup_name
+            )
+        except Exception as e:
+            logger.error("footprint preview paint failed: %s", e)
+            self._fp_preview.set_idle(str(e)[:400])
+

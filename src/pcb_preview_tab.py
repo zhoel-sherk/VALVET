@@ -10,6 +10,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pcb_preview.alignment import Similarity2D
 from pcb_preview.footprint_db import FootprintStore
+from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 from pcb_preview.engine.identify import (
     guess_layer_kind,
     layer_default_opacity,
@@ -42,37 +43,6 @@ _LABEL_SCENE_SCALE = 0.12
 _CROSS_HALF_MM = 0.9
 # Gerber raster: pixels per mm of SVG viewBox (higher = sharper, more memory).
 _GERBER_PX_PER_MM = 14.0
-
-
-def _outline_to_path(
-    outline: FootprintOutlineMM, y_flip: bool = True
-) -> QtGui.QPainterPath:
-    path = QtGui.QPainterPath()
-    fy = -1.0 if y_flip else 1.0
-
-    def qy(y: float) -> float:
-        return y * fy
-
-    for ln in outline.lines:
-        path.moveTo(ln.x1, qy(ln.y1))
-        path.lineTo(ln.x2, qy(ln.y2))
-    for c in outline.circles:
-        cy = qy(c.cy)
-        path.addEllipse(
-            QtCore.QRectF(
-                c.cx - c.radius_mm, cy - c.radius_mm, 2 * c.radius_mm, 2 * c.radius_mm
-            )
-        )
-    for p in outline.pads:
-        w, h = p.width_mm, p.height_mm
-        rect = QtCore.QRectF(-w / 2, -h / 2, w, h)
-        poly = QtGui.QPolygonF(rect)
-        tr = QtGui.QTransform()
-        tr.rotate(-p.rotation_deg if y_flip else p.rotation_deg)
-        poly = tr.map(poly)
-        poly.translate(p.cx, qy(p.cy))
-        path.addPolygon(poly)
-    return path
 
 
 def _similarity_to_qtransform(sim: Similarity2D) -> QtGui.QTransform:

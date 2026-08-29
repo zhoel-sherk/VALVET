@@ -14,4 +14,4 @@ Package: `src/hanwha_mdb_edit/`. Opens from the Machine lib tab.
 - Hide S is a view filter (`__` / `[STDVER.]`); it does not delete rows.
 - Confidence 0 is templates / not placement-ready, not “standard library”.
 
-See [hanwha_UPD_mdb_schema.md](hanwha_UPD_mdb_schema.md).
+See [hanwha_UPD_mdb_schema.md](hanwha_UPD_mdb_schema.md). Footprint / vision geometry (µm): [UPD_MDB_Footprint_Geometry_Report.md](UPD_MDB_Footprint_Geometry_Report.md). Machine Lib canvas: [MACHINE_LIB_FOOTPRINT_PREVIEW.md](MACHINE_LIB_FOOTPRINT_PREVIEW.md).

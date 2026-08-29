@@ -56,3 +56,77 @@ class HanwhaPartDetLoadThread(QtCore.QThread):
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(df, "")
+
+
+class HanwhaSqliteImportThread(QtCore.QThread):
+    """Copy .mdb into the VALVET profile cache and dump vision tables to SQLite."""
+
+    result_ready = QtCore.Signal(object, str)  # DataFrame or None, error
+    progress = QtCore.Signal(int, str)
+
+    def __init__(
+        self,
+        mdb_path: str,
+        cache_dir: str,
+        parent: Optional[QtCore.QObject] = None,
+        *,
+        force: bool = False,
+    ) -> None:
+        super().__init__(parent)
+        self._mdb_path = mdb_path
+        self._cache_dir = cache_dir
+        self._force = force
+        self.load_gen = 0
+
+    def run(self) -> None:
+        try:
+            from machine_library.access_odbc import ensure_com_sta
+            from machine_library.hanwha_sqlite_cache import (
+                import_mdb_to_cache,
+                load_preview_dataframe_from_sqlite,
+            )
+
+            ensure_com_sta()
+            import_mdb_to_cache(
+                self._mdb_path,
+                self._cache_dir,
+                progress=self.progress.emit,
+                force=self._force,
+            )
+            df = load_preview_dataframe_from_sqlite(self._cache_dir)
+        except Exception as e:
+            self.result_ready.emit(None, str(e))
+        else:
+            self.result_ready.emit(df, "")
+
+
+class HanwhaFootprintBuildThread(QtCore.QThread):
+    """Load one UPD profile geometry from the SQLite cache (no ODBC)."""
+
+    result_ready = QtCore.Signal(object, str)  # FootprintBuildResult or None, error
+
+    def __init__(
+        self,
+        cache_dir: str,
+        profilename: str,
+        *,
+        partdesc: str = "",
+        parent: Optional[QtCore.QObject] = None,
+    ) -> None:
+        super().__init__(parent)
+        self._cache_dir = cache_dir
+        self._profilename = profilename
+        self._partdesc = partdesc
+        self.load_gen = 0
+
+    def run(self) -> None:
+        try:
+            from machine_library.hanwha_sqlite_cache import build_outline_from_sqlite
+
+            result = build_outline_from_sqlite(
+                self._cache_dir, self._profilename, partdesc=self._partdesc
+            )
+        except Exception as e:
+            self.result_ready.emit(None, str(e))
+        else:
+            self.result_ready.emit(result, "")

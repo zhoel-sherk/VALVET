@@ -65,3 +65,11 @@ def user_parsers_dir() -> Path:
     d = user_state_dir() / "user_parsers"
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def hanwha_lib_cache_dir(profile_id: str) -> Path:
+    """Per-VALVET-profile Hanwha library cache (MDB copy + vision.sqlite)."""
+    pid = (profile_id or "default").strip() or "default"
+    d = user_state_dir() / "profiles" / pid / "hanwha_lib"
+    d.mkdir(parents=True, exist_ok=True)
+    return d

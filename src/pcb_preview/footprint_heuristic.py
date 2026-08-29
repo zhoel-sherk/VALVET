@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from pcb_preview.types import BBoxMM, FootprintOutlineMM, PadRectMM, StrokeLineMM
+from pcb_preview.types import BBoxMM, FootprintOutlineMM, StrokeLineMM
+from pcb_preview.upd_footprint_builder import chip_heuristic_pads
 
 # Body size (mm) approximations for common SMD codes (length x width of rectangle).
 _CHIP_MM: dict[str, tuple[float, float]] = {
@@ -48,12 +49,6 @@ def heuristic_footprint_outline(footprint_name: str) -> Optional[FootprintOutlin
         StrokeLineMM(half_l, half_w, -half_l, half_w, 0.1),
         StrokeLineMM(-half_l, half_w, -half_l, -half_w, 0.1),
     )
-    pad_w = min(0.6, L * 0.35)
-    pad_h = W * 0.9
-    gap = L * 0.45
-    pads = (
-        PadRectMM(-gap / 2.0, 0.0, pad_w, pad_h, 0.0, "1"),
-        PadRectMM(gap / 2.0, 0.0, pad_w, pad_h, 0.0, "2"),
-    )
+    pads = chip_heuristic_pads(L, W)
     bbox = BBoxMM(-half_l, -half_w, half_l, half_w)
     return FootprintOutlineMM(lines=lines, pads=pads, bbox=bbox, source="heuristic")
