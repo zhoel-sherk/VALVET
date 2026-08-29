@@ -72,11 +72,24 @@ def cache_is_fresh(source_mdb: str | Path, cache_dir: str | Path) -> bool:
         return False
     if str(src.resolve()) != str(meta.get("source_path") or ""):
         return False
+    st = src.stat()
+    try:
+        stored_size = int(meta.get("source_size", -1))
+    except (TypeError, ValueError):
+        stored_size = -1
+    if stored_size >= 0 and stored_size != st.st_size:
+        return False
+    stored_ns = meta.get("source_mtime_ns")
+    if stored_ns is not None:
+        try:
+            return int(stored_ns) == st.st_mtime_ns
+        except (TypeError, ValueError):
+            return False
     try:
         stored = float(meta.get("source_mtime") or 0)
     except (TypeError, ValueError):
         return False
-    return abs(src.stat().st_mtime - stored) < 0.001
+    return abs(st.st_mtime - stored) < 0.001
 
 
 def _progress(cb: ProgressFn | None, pct: int, msg: str) -> None:
@@ -163,7 +176,8 @@ def import_mdb_to_cache(
 
     _progress(progress, 8, "Hashing source…")
     digest = file_sha256(src)
-    mtime = src.stat().st_mtime
+    st = src.stat()
+    mtime = st.st_mtime
 
     spec: list[tuple[str, tuple[str, ...]]] = [("PART_Det", PART_DET_DUMP_COLS)]
     spec.extend(VISION_DUMP_TABLES.items())
@@ -198,6 +212,8 @@ def import_mdb_to_cache(
     meta = {
         "source_path": str(src.resolve()),
         "source_mtime": mtime,
+        "source_mtime_ns": st.st_mtime_ns,
+        "source_size": st.st_size,
         "source_sha256": digest,
         "imported_at": datetime.now(timezone.utc).isoformat(),
         "tables": [t for t, _ in spec],

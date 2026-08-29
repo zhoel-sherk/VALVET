@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 
@@ -122,17 +123,37 @@ def test_cache_is_fresh_mtime(tmp_path: Path) -> None:
     cache = tmp_path / "hanwha_lib"
     cache.mkdir()
     (cache / "vision.sqlite").write_bytes(b"x")
+    st = src.stat()
     meta_path(cache).write_text(
         json.dumps(
             {
                 "source_path": str(src.resolve()),
-                "source_mtime": src.stat().st_mtime,
+                "source_mtime": st.st_mtime,
+                "source_mtime_ns": st.st_mtime_ns,
+                "source_size": st.st_size,
             }
         ),
         encoding="utf-8",
     )
     assert cache_is_fresh(src, cache)
     src.write_bytes(b"fake2")
+    assert not cache_is_fresh(src, cache)
+    src.write_bytes(b"fake")
+    st = src.stat()
+    meta_path(cache).write_text(
+        json.dumps(
+            {
+                "source_path": str(src.resolve()),
+                "source_mtime": st.st_mtime,
+                "source_mtime_ns": st.st_mtime_ns,
+                "source_size": st.st_size,
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert cache_is_fresh(src, cache)
+    ns = src.stat().st_mtime_ns + 1_000_000
+    os.utime(src, ns=(ns, ns))
     assert not cache_is_fresh(src, cache)
 
 
