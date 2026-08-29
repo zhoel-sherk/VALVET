@@ -26,7 +26,7 @@ python -m ruff check src tests
 python -m vulture
 ```
 
-CI runs `ruff check` (rules `E`/`F`, ignoring E501/E402). **Vulture is non-blocking** in GitHub Actions (`continue-on-error`); Qt slots and dynamic calls produce false positives at `min_confidence = 80`.
+CI runs `ruff check` (rules `E`/`F`/`I`/`ICN`, ignoring E501/E402). Import aliases and block order: [IMPORTS.md](IMPORTS.md). **Vulture is non-blocking** in GitHub Actions (`continue-on-error`); Qt slots and dynamic calls produce false positives at `min_confidence = 80`.
 
 Hypothesis and mutmut are **not** part of the default stack.
 
@@ -96,6 +96,10 @@ Headless tests: `try`/`finally` `win.close()`; if a tab set a wait cursor, `rest
 ### No hardcoded machine paths
 
 Production code uses [`src/app_paths.py`](../../src/app_paths.py) (`user_state_dir`, `hanwha_lib_cache_dir`, platformdirs). Tests use `tmp_path` / `tmp_path_factory` and repo-relative helpers ([`tests/mdb_paths.py`](../../tests/mdb_paths.py) — `examples/UPD.MDB` or `../UPD.MDB`), never `C:\Users\...` or `/home/runner/...`. Monkeypatch `hanwha_lib_cache_dir` when a test would otherwise write under the real profile dir ([`tests/test_machine_lib_open_reload.py`](../../tests/test_machine_lib_open_reload.py)).
+
+### Import aliases (PEP 8 + Ruff `I` / `ICN`)
+
+Full policy: [IMPORTS.md](IMPORTS.md). Short version: `numpy` as `np`, `pandas` as `pd`; never `from PySide6… import *`; Qt modules stay `QtWidgets` / `QtCore` / `QtGui` (no `qtw`); do not alias `platformdirs` to save letters; PyPI `regex` goes through `parsers.regex_api`, not `import regex as re`. Tests must follow the same import blocks so Ruff `I` stays green.
 
 ---
 
