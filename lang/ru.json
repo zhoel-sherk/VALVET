@@ -127,7 +127,7 @@
   "debug.tab_bundle": "Пакет сессии",
   "debug.tab_fonts": "Шрифты",
   "debug.tab_experimental": "Экспериментальные функции",
-  "debug.experimental_note": "Какие дополнительные вкладки создавать при запуске. Отключение не подгружает тяжёлый код (PCB Preview — Gerber; Step 3D — VTK/PyVista). **Перезапустите приложение** после изменения.",
+  "debug.experimental_note": "Дополнительная вкладка Step 3D (VTK/PyVista, не в default freeze). PCB Preview всегда включён. **Перезапустите приложение** после изменения.",
   "debug.fonts_note": "Две группы настроек независимы. **Основной UI** — рамка окна, комбобоксы, поля ввода. **Таблицы данных** — табличные и древовидные представления (BOM/PnP, заголовки колонок). Консоль **«Проект»** всегда JetBrains Mono или системный моноширинный fallback. Скачать шрифты: `tools/fetch_inter.py` (Inter), `tools/fetch_jetbrains_mono.py` (Mono).",
   "debug.fonts_group_ui": "Основной UI (рамка, поля, списки)",
   "debug.fonts_group_table": "Таблицы данных",

@@ -127,7 +127,7 @@
   "debug.tab_bundle": "Session bundle",
   "debug.tab_fonts": "Fonts",
   "debug.tab_experimental": "Experimentelle Funktionen",
-  "debug.experimental_note": "Welche optionalen Hauptregister beim Start angelegt werden. Aus = schwerer Code wird nicht geladen (PCB Preview: Gerber; Step 3D: VTK/PyVista). **Neustart** nach Änderung.",
+  "debug.experimental_note": "Optionales Step-3D-Register (VTK/PyVista, nicht im Default-Freeze). PCB Preview ist immer sichtbar. **Neustart** nach Änderung.",
   "debug.fonts_note": "Die beiden Bereiche sind unabhängig. **Haupt‑UI** — Rahmen, Kombos, Eingabefelder. **Datentabellen** — Tabellen- und Baumansichten (BOM/PnP, Spaltenköpfe). Die **Projekt**‑Konsole nutzt immer JetBrains Mono oder einen System‑Monospace. Schriften laden: `tools/fetch_inter.py` (Inter), `tools/fetch_jetbrains_mono.py` (Mono).",
   "debug.fonts_group_ui": "Haupt‑UI (Rahmen, Felder, Kombos)",
   "debug.fonts_group_table": "Datentabellen",

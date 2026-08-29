@@ -169,11 +169,8 @@ class MainWindow(
         main_layout.addWidget(self.tabs)
         self._tab_keys_in_order = []
 
-        exp_pcb = _prefs_profile_bool(
-            self._settings.value("experimental/enable_pcb_preview", True), True
-        )
         exp_step = _prefs_profile_bool(
-            self._settings.value("experimental/enable_step_3d", True), True
+            self._settings.value("experimental/enable_step_3d", False), False
         )
 
         # Tabs (titles via ui_tr in _register_main_tab)
@@ -183,8 +180,7 @@ class MainWindow(
         self._create_clean_tab()
         self._create_merge_tab()
         self._create_report_tab()
-        if exp_pcb:
-            self._create_pcb_preview_tab()
+        self._create_pcb_preview_tab()
         if exp_step:
             self._create_step_3d_tab()
         self._create_machine_library_tab()

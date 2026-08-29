@@ -354,24 +354,16 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         colours_inner.addStretch(1)
         tabs.addTab(colours_w, main.ui_tr("debug.tab_colours"))
 
-        # --- Experimental: optional heavy tabs (restart required to load/unload) ---
+        # --- Experimental: optional Step 3D tab (restart required) ---
         exp_w = QtWidgets.QWidget()
         exp_l = QtWidgets.QVBoxLayout(exp_w)
         exp_note = QtWidgets.QLabel(main.ui_tr("debug.experimental_note"))
         exp_note.setWordWrap(True)
         exp_l.addWidget(exp_note)
         s = main._settings
-        self._cb_exp_pcb = QtWidgets.QCheckBox(main.ui_tr("tab.pcb_preview"))
-        self._cb_exp_pcb.setChecked(
-            _prefs_profile_bool(s.value("experimental/enable_pcb_preview", True), True)
-        )
-        self._cb_exp_pcb.toggled.connect(
-            lambda on: self._on_experimental_toggled("pcb_preview", on)
-        )
-        exp_l.addWidget(self._cb_exp_pcb)
         self._cb_exp_step = QtWidgets.QCheckBox(main.ui_tr("tab.step_3d"))
         self._cb_exp_step.setChecked(
-            _prefs_profile_bool(s.value("experimental/enable_step_3d", True), True)
+            _prefs_profile_bool(s.value("experimental/enable_step_3d", False), False)
         )
         self._cb_exp_step.toggled.connect(
             lambda on: self._on_experimental_toggled("step_3d", on)
@@ -528,13 +520,10 @@ class DebugSettingsDialog(QtWidgets.QDialog):
 
     def _reload_experimental_tab_state(self) -> None:
         s = self._main._settings
-        for cb, key in (
-            (self._cb_exp_pcb, "pcb_preview"),
-            (self._cb_exp_step, "step_3d"),
-        ):
+        for cb, key, default in ((self._cb_exp_step, "step_3d", False),):
             cb.blockSignals(True)
             cb.setChecked(
-                _prefs_profile_bool(s.value(f"experimental/enable_{key}", True), True)
+                _prefs_profile_bool(s.value(f"experimental/enable_{key}", default), default)
             )
             cb.blockSignals(False)
 

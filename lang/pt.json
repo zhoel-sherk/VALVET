@@ -127,7 +127,7 @@
   "debug.tab_bundle": "Pacote de sessão",
   "debug.tab_fonts": "Fontes",
   "debug.tab_experimental": "Recursos experimentais",
-  "debug.experimental_note": "Quais abas opcionais criar ao iniciar. Desligar evita carregar código pesado (PCB Preview: Gerber; Step 3D: VTK/PyVista). **Reinicie o aplicativo** após alterar.",
+  "debug.experimental_note": "Aba opcional Step 3D (VTK/PyVista, fora do freeze padrão). PCB Preview está sempre visível. **Reinicie o aplicativo** após alterar.",
   "debug.fonts_note": "Os dois blocos são independentes. **UI principal** — moldura, combos, campos. **Tabelas de dados** — vistas em grelha e árvore (BOM/PnP, cabeçalhos). A consola **Projeto** usa sempre JetBrains Mono ou um monoespaçado do sistema. Obter fontes: `tools/fetch_inter.py` (Inter), `tools/fetch_jetbrains_mono.py` (Mono).",
   "debug.fonts_group_ui": "UI principal (moldura, campos, combos)",
   "debug.fonts_group_table": "Tabelas de dados",

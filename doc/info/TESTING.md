@@ -81,7 +81,7 @@ export PYTHONPATH=src   # Windows: $env:PYTHONPATH = "src"
 python -m pytest tests/test_app_startup.py -q
 ```
 
-Uses `tests/conftest.py` (`QT_QPA_PLATFORM=offscreen`). `MainWindow(settings=…)` accepts an isolated `QSettings` Ini file so tests do not touch the user registry. Experimental tabs: **7** tabs when all `experimental/enable_*` are false; **9** when all true (`pcb_preview`, `step_3d`). Step 3D tab construction does not require `requirements-step3d.txt`; VTK mesh load is not exercised here.
+Uses `tests/conftest.py` (`QT_QPA_PLATFORM=offscreen`). `MainWindow(settings=…)` accepts an isolated `QSettings` Ini file so tests do not touch the user registry. **PCB Preview is always created.** Step 3D is optional: **8** tabs when `experimental/enable_step_3d` is false; **9** when true. Step 3D tab construction does not require `requirements-step3d.txt`; VTK mesh load is not exercised here.
 
 GUI-free service unit tests: `tests/test_services.py` (same Level 1 run).
 

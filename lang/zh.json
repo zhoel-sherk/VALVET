@@ -127,7 +127,7 @@
   "debug.tab_bundle": "会话包",
   "debug.tab_fonts": "字体",
   "debug.tab_experimental": "实验功能",
-  "debug.experimental_note": "启动时创建哪些可选主标签页。关闭可避免加载重型代码（PCB 预览：Gerber；Step 3D：VTK/PyVista）。更改后请**重启应用**。",
+  "debug.experimental_note": "可选 Step 3D 标签页（VTK/PyVista，不在默认 freeze 中）。PCB 预览始终显示。更改后请**重启应用**。",
   "debug.fonts_note": "下方两组设置相互独立。**主界面 UI** 作用于窗口框架、下拉框、单行输入等。**数据表格** 作用于 BOM/PnP 等表格与树视图及列标题。**项目** 控制台始终使用 JetBrains Mono（或系统等宽回退）。获取字体：`tools/fetch_inter.py`（Inter）、`tools/fetch_jetbrains_mono.py`（Mono）。",
   "debug.fonts_group_ui": "主界面（框架、字段、下拉）",
   "debug.fonts_group_table": "数据表格",

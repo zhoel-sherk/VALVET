@@ -26,8 +26,8 @@ def _ini_settings(tmp_path: Path) -> QSettings:
 
 
 def _set_experimental(settings: QSettings, *, enabled: bool) -> None:
-    for key in ("pcb_preview", "step_3d"):
-        settings.setValue(f"experimental/enable_{key}", enabled)
+    """Toggle optional Step 3D tab. PCB Preview is always created."""
+    settings.setValue("experimental/enable_step_3d", enabled)
 
 
 @pytest.fixture
@@ -44,7 +44,10 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
     try:
         assert win.windowTitle()
         assert win.tabs.count() == len(win._tab_keys_in_order)
-        assert win.tabs.count() == 7
+        assert win.tabs.count() == 8
+        assert "pcb_preview" in win._tab_keys_in_order
+        assert "step_3d" not in win._tab_keys_in_order
+        assert hasattr(win._machine_library_tab, "_fp_preview")
     finally:
         win.close()
 
@@ -52,7 +55,7 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
 @pytest.mark.parametrize(
     "experimental_on,expected_tabs",
     [
-        (False, 7),
+        (False, 8),
         (True, 9),
     ],
 )

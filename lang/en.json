@@ -127,7 +127,7 @@
   "debug.tab_bundle": "Session bundle",
   "debug.tab_fonts": "Fonts",
   "debug.tab_experimental": "Experimental features",
-  "debug.experimental_note": "Choose which optional main tabs are created when VALVET starts. Turning a tab off avoids loading its heavy code (PCB Preview: Gerber stack; Step 3D: VTK/PyVista). **Restart the application** after changing these options.",
+  "debug.experimental_note": "Optional Step 3D tab (VTK/PyVista, not in the default freeze). PCB Preview is always shown. **Restart the application** after changing this option.",
   "debug.fonts_note": "The two groups below are independent. **Main UI** applies to chrome, combos, and line edits. **Data tables** applies to spreadsheet-style views (BOM/PnP tables, tree views, column headers). The **Project** console always uses JetBrains Mono (or a system monospace fallback). Fetch fonts: `tools/fetch_inter.py` (Inter), `tools/fetch_jetbrains_mono.py` (Mono).",
   "debug.fonts_group_ui": "Main UI (chrome, fields, combos)",
   "debug.fonts_group_table": "Data tables",

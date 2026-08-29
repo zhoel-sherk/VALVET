@@ -127,7 +127,7 @@
   "debug.tab_bundle": "Pakiet sesji",
   "debug.tab_fonts": "Czcionki",
   "debug.tab_experimental": "Funkcje eksperymentalne",
-  "debug.experimental_note": "Które opcjonalne zakładki tworzyć przy starcie. Wyłączenie pomija ciężki kod (PCB Preview: Gerber; Step 3D: VTK/PyVista). **Uruchom ponownie** po zmianie.",
+  "debug.experimental_note": "Opcjonalna zakładka Step 3D (VTK/PyVista, nie w domyślnym freeze). PCB Preview jest zawsze widoczny. **Uruchom ponownie** po zmianie.",
   "debug.fonts_note": "Dwa bloki są niezależne. **Główne UI** — ramka, pola, listy rozwijane. **Tabele danych** — widoki tabel i drzew (BOM/PnP, nagłówki). Konsola **Projekt** zawsze JetBrains Mono lub zastępczy monospace. Pobieranie: `tools/fetch_inter.py` (Inter), `tools/fetch_jetbrains_mono.py` (Mono).",
   "debug.fonts_group_ui": "Główne UI (ramka, pola, listy)",
   "debug.fonts_group_table": "Tabele danych",
