@@ -1,4 +1,4 @@
-# VALVET — ALPHA v0.2.0
+# VALVET — BETA v0.5.0
 
 [English](README.md) | **Русский**
 
@@ -8,7 +8,7 @@
 
 Десктоп (PySide6) для подготовки SMT: открыть **BOM** и **pick-and-place**, почистить имена, сверить, слить, выгрузить на линию.
 
-Репозиторий: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Свой проект (не GitHub-форк [marmidr/boomer](https://github.com/marmidr/boomer)). **ALPHA** — правка Hanwha MDB, PCB Preview и Step 3D ещё сырые.
+Репозиторий: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Свой проект (не GitHub-форк [marmidr/boomer](https://github.com/marmidr/boomer)). **BETA** — правка Hanwha MDB, PCB Preview и Step 3D ещё сырые.
 
 ## Скриншоты
 
@@ -47,7 +47,7 @@
 
 ## Установка: Windows zip (без Python)
 
-1. Скачай [VALVET-0.2.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.2.0/VALVET-0.2.0-windows-x64.zip) с [релиза v0.2.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.2.0).
+1. Скачай [VALVET-0.2.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.2.0/VALVET-0.2.0-windows-x64.zip) с [релиза v0.2.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.2.0). Это дерево — **0.5.0 BETA**; последний опубликованный zip по-прежнему **0.2.0** (скачивания 0.5.0 ещё нет).
 2. Распакуй. Запусти `VALVET\VALVET.exe` (папка `_internal` должна лежать рядом с exe).
 3. На флешку копируй **всю** папку.
 

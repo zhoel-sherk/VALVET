@@ -9,15 +9,15 @@ import sys
 import pytest
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
-_boomer_root = os.path.dirname(tests_path)
-sys.path.append(os.path.join(_boomer_root, "src"))
+_repo_root = os.path.dirname(tests_path)
+sys.path.append(os.path.join(_repo_root, "src"))
 
 import clean_component
 from parsers.bom_text_utils import normalize_for_regex_parsing
 
 
 def _example6_xlsx_paths() -> tuple[str, str]:
-    d = os.path.join(_boomer_root, "examples", "example6")
+    d = os.path.join(_repo_root, "examples", "example6")
     return (
         os.path.join(d, "original_gen3_bom.xlsx"),
         os.path.join(d, "bom_final.xlsx"),

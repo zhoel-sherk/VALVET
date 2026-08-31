@@ -1,5 +1,5 @@
 {
-  "app.window_title": "VALVET — ALPHA v0.2.0",
+  "app.window_title": "VALVET — BETA v0.5.0",
   "tab.group.data": "数据",
   "tab.group.transform": "转换",
   "tab.group.output": "输出",
@@ -84,7 +84,7 @@
   "status.comment_unmapped": "（未映射）",
   "status.clean_stale": " · Clean 预览已过期",
   "status.rows_all": "all",
-  "wip.banner": "<b>开发中（ALPHA）。</b>Hanwha MDB 编辑器与 PCB 预览为实验功能；在核心 BOM/PnP 功能稳定前，界面与行为可能不完善。",
+  "wip.banner": "<b>开发中（BETA）。</b>Hanwha MDB 编辑器与 PCB 预览为实验功能；在核心 BOM/PnP 功能稳定前，界面与行为可能不完善。",
   "msg.app_ready": "应用程序已就绪",
   "bom.clear_workspace": "清空",
   "bom.clear_workspace_tip": "从工作区卸载 BOM（表格与列映射）。已加载文件的路径不会保存在配置文件中。",

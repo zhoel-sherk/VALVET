@@ -1,8 +1,4 @@
-"""
-HTML report from cross-check DataFrame (smt_processor output).
-
-(c) 2023-2026 Mariusz Midor
-"""
+"""HTML report from cross-check DataFrame (smt_processor output)."""
 
 from __future__ import annotations
 

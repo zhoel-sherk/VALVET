@@ -10,14 +10,14 @@ from pathlib import Path
 import pytest
 
 tests_dir = Path(__file__).resolve().parent
-_boomer_root = tests_dir.parent
+_repo_root = tests_dir.parent
 
 
 def _golden_path() -> Path:
     raw = os.environ.get("BOOMER_CLEAN_CORPUS_GOLDEN", "").strip()
     if raw:
         return Path(raw)
-    return _boomer_root / "tests" / "fixtures" / "clean_corpus" / "golden.xlsx"
+    return _repo_root / "tests" / "fixtures" / "clean_corpus" / "golden.xlsx"
 
 
 def test_clean_corpus_golden_matches_clean_one() -> None:
@@ -25,8 +25,8 @@ def test_clean_corpus_golden_matches_clean_one() -> None:
         pytest.skip(f"golden corpus missing: {_golden_path()}")
     env = {**os.environ, "PYTHONPATH": "src"}
     proc = subprocess.run(
-        [sys.executable, str(_boomer_root / "tools" / "clean_corpus.py"), "test"],
-        cwd=str(_boomer_root),
+        [sys.executable, str(_repo_root / "tools" / "clean_corpus.py"), "test"],
+        cwd=str(_repo_root),
         env=env,
         capture_output=True,
         text=True,

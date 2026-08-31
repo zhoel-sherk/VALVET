@@ -1,4 +1,4 @@
-# Boomer Tools — testing guide
+# VALVET — testing guide
 
 Structured pytest workflow for this repo. **Primary development OS is Windows 11** (daily runs). **Fedora 43** (or GitHub `ubuntu-latest`) remains the Linux regression check for paths, optional Step 3D / VTK, and Hanwha `.mdb` via **mdbtools** vs Windows ODBC — see [hanwha_mdb_editor.md](hanwha_mdb_editor.md).
 
@@ -17,7 +17,7 @@ Canonical commands below assume repository root `VALVET/` (the folder containing
 
 ### Lint (optional)
 
-Install dev tools: `python -m pip install -r requirements-dev.txt` (`[requirements-dev.txt](requirements-dev.txt)`).
+Install dev tools: `python -m pip install -r requirements-dev.txt` ([`requirements-dev.txt`](../../requirements-dev.txt)).
 
 ```bash
 export PYTHONPATH=src   # Windows: $env:PYTHONPATH = "src"
@@ -30,7 +30,7 @@ CI runs `ruff check` (rules `E`/`F`/`I`/`ICN`, ignoring E501/E402). Import alias
 
 Hypothesis and mutmut are **not** part of the default stack.
 
-`[pyproject.toml](pyproject.toml)` configures Ruff, Vulture, and coverage omit for GUI packages (`src/app/`, `src/ui/`, `src/hanwha_mdb_edit/gui/`). Lower vulture confidence (`--min-confidence 60`) reports many more false positives.
+[`pyproject.toml`](../../pyproject.toml) configures Ruff, Vulture, and coverage omit for GUI packages (`src/app/`, `src/ui/`, `src/hanwha_mdb_edit/gui/`). Lower vulture confidence (`--min-confidence 60`) reports many more false positives.
 
 **Windows (PowerShell 7):**
 
@@ -73,9 +73,9 @@ Existing pattern: [`src/app/workers.py`](../../src/app/workers.py), [`tests/test
 
 A `Signal` payload, a preview tuple, or a return value is one contract: either a typed object (`DataFrame`, `FootprintBuildResult`) **or** a documented sentinel (`None` + `str` error), not `0` vs `{}` vs `""` for the same slot. Tests should `isinstance` the success object and treat error as a string. Packed tuples (`payload, image, viewbox`) must keep a fixed length and types — see `GerberLoadThread.result_ready`.
 
-### Pint: `Quantity` vs `float`
+### SI units: `SiQuantity` vs `float`
 
-[`src/parsers/si_units.py`](../../src/parsers/si_units.py) returns `SiQuantity` (`quantity_farads`, `quantity_ohms`, `quantity_volts`). Callers that do arithmetic must not add a raw `float` to a `SiQuantity` (and must not pass a quantity into millimetre geometry). Geometry (`um_to_mm`) stays **floats**. Tests: invalid tokens return `None`; successful parses compare `.to("nanofarad").magnitude` (etc.). Existing: `test_si_*` in [`tests/test_parser_p0_vendor_off.py`](../../tests/test_parser_p0_vendor_off.py).
+[`src/parsers/si_units.py`](../../src/parsers/si_units.py) returns `SiQuantity` (`quantity_farads`, `quantity_ohms`, `quantity_volts`). Callers that do arithmetic must not add a raw `float` to a `SiQuantity` (and must not pass a quantity into millimetre geometry). Geometry (`um_to_mm`) stays **floats**. Tests: invalid tokens return `None`; successful parses compare `.to("nanofarad").magnitude` (etc.). Existing: `test_si_*` in [`tests/test_parser_p0_vendor_off.py`](../../tests/test_parser_p0_vendor_off.py) and [`tests/test_si_units.py`](../../tests/test_si_units.py).
 
 ### natsort on dirty data
 
@@ -105,7 +105,7 @@ Full policy: [IMPORTS.md](IMPORTS.md). Short version: `numpy` as `np`, `pandas` 
 
 ## Level 1 — fast smoke (every commit / PR)
 
-Expect **0 failed**. Record `passed` / `skipped` / OS / Python version when updating [TODO.md](../TODO.md) or [CHANGELOG.md](../../CHANGELOG.md).
+Expect **0 failed**. Record `passed` / `skipped` / OS / Python version when updating [TODO.md](../TODO.md).
 
 ```bash
 python -m compileall -q src
@@ -172,23 +172,24 @@ Run **on Windows 11 and on Linux** (Fedora 43 locally or `ubuntu-latest` in CI) 
 | `pytest.skip(...)` — example6 / cmp missing   | `tests/test_clean_component.py`, `tests/test_smt_processor_formats.py`                                                                                     | **Skip** at runtime if paths missing.                                                                                                |
 | `pytest.importorskip("PySide6")`              | `tests/test_qsettings_bom_pnp_persist.py`, `tests/test_working_copy_ui.py`, `tests/test_hanwha_column_labels_and_filters.py`, `test_step_3d.py` (one test) | Minimal env **without** PySide6: those modules skip; full `requirements.txt` includes PySide6 — CI should install full requirements. |
 | `pytest.importorskip("textual")`              | `tests/test_tui_app.py`                                                                                                                                    | **Skip** unless `requirements-cli.txt` is installed; default CI uses `requirements.txt` + `requirements-dev.txt` only.               |
-| `@pytest.mark.skip` — Python 3.14 + xlsx      | `tests/test_smt_processor.py`                                                                                                                              | **Skipped** on 3.14 (xlrd/xlsx); matrix should document supported Python versions.                                                   |
-| `pytest.importorskip("pandas")` / `openpyxl`  | Several tests                                                                                                                                              | Use full `requirements.txt` in CI.                                                                                                   |
+| `pytest.skip(...)` — spreadsheet fixtures     | `tests/test_read_file_spreadsheet.py`                                                                                                                      | **Skip** if `tests/assets/bom.xlsx` / `.xls` / `.ods` are absent; CSV whitespace assets in `tests/assets/` are required.             |
+| `pytest.importorskip("pandas")` / `openpyxl`  | Several tests                                                                                                                                              | Use full `requirements.txt` in CI. Spreadsheet loaders use pandas + **calamine** with openpyxl/xlrd/odf fallbacks.                    |
 
 
-Fedora / Wayland: for **interactive** Step 3D (not pytest), operators may need `QT_QPA_PLATFORM=xcb` — see [README.md](README.md). Passing Step3D-related tests on Windows alone is **not** sufficient proof for Linux VTK stacks.
+Fedora / Wayland: for **interactive** Step 3D (not pytest), operators may need `QT_QPA_PLATFORM=xcb` — see [README.md](../../README.md). Passing Step3D-related tests on Windows alone is **not** sufficient proof for Linux VTK stacks.
 
 ---
 
 ## Level 4 — module → pytest mapping
 
-When you touch an area listed in [LLM.md](LLM.md) **Important Files**, run the matching tests first.
+When you touch an area in the table below, run the matching tests first.
 
 
 | Area                                 | Suggested pytest targets                                                                                          |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
 | Clean BOM / regex master             | `tests/test_clean_component.py`, `tests/test_clean_arbiter.py`                                                    |
 | SMT / merge / XY / cross-check       | `tests/test_smt_processor.py`, `tests/test_smt_processor_formats.py`, `tests/test_duplicate/`                     |
+| Spreadsheet / whitespace readers     | `tests/test_read_file_spreadsheet.py`, `tests/test_read_text_whitespace.py`                                        |
 | MMD export                           | `tests/test_mmd_export.py`                                                                                        |
 | Yamaha `.Tou` / DevLib               | `tests/test_yamaha_tou.py`, `tests/test_yamaha_devlib.py`                                                         |
 | Hanwha `.mdb` (Qt-free tools)        | `tests/test_hanwha_mdbtools.py`                                                                                   |
@@ -206,7 +207,7 @@ When you touch an area listed in [LLM.md](LLM.md) **Important Files**, run the m
 | App startup / tabs (headless Qt)     | `tests/test_app_startup.py`                                                                                       |
 | Silent fallback logging              | `tests/test_logger_fallbacks.py`                                                                                  |
 | Access ODBC (no timeout / close)     | `tests/test_access_odbc.py`                                                                                       |
-| SI helpers                           | `tests/test_parser_p0_vendor_off.py` (`test_si_*`)                                                               |
+| SI helpers                           | `tests/test_parser_p0_vendor_off.py` (`test_si_*`), `tests/test_si_units.py`                                       |
 | BOM/PnP load via MainWindow          | `tests/test_bom_pnp_window_load.py`, `tests/test_cli_pipeline.py`                                                  |
 | PCB Preview tab Gerber layer         | `tests/test_pcb_preview_tab_gerber.py`                                                                            |
 
@@ -245,7 +246,7 @@ Tracked in [TODO.md](../TODO.md) in more detail:
 
 - **Invariant gaps:** natsort dirty-input fixture (when natural sort is added); `pyodbc` connection mock asserting `.close()` on failure paths in `hanwha_mdb_edit` saves; missing-file / corrupt import tests for BOM/PnP/Gerber beyond happy path.
 - **Machine library / Yamaha:** Qt-free services + fixtures before large UI wiring (Phase 5).
-- `**app_pyside6.py`:** BOM/PnP load, language, and file dialogs still need manual smoke; main tabs and debug dialogs are covered by `tests/test_app_startup.py` (Level 1b). Headless load-by-path: `tests/test_bom_pnp_window_load.py`. Optional future `pytest-qt` for modal file/recovery flows (`pytest-qt` is in `requirements-dev.txt`). `pytest-mock` is in `requirements-dev.txt` for spies; keep `monkeypatch.setenv` for env vars.
+- **Desktop entry `src/main.py` / `src/app/window.py`:** BOM/PnP load, language, and file dialogs still need manual smoke; main tabs and debug dialogs are covered by `tests/test_app_startup.py` (Level 1b). Headless load-by-path: `tests/test_bom_pnp_window_load.py`. Optional future `pytest-qt` for modal file/recovery flows (`pytest-qt` is in `requirements-dev.txt`). `pytest-mock` is in `requirements-dev.txt` for spies; keep `monkeypatch.setenv` for env vars. `src/app_pyside6.py` is a deprecated import shim.
 
 ---
 
@@ -256,10 +257,10 @@ After **large** changes (paths, `app_paths`, `pcb_preview`, `step_3d`, `machine_
 1. Run **Level 1** and **Level 2** on **Windows 11** (primary dev machine).
 2. Repeat on **Fedora 43** (or Linux CI job) with the same Python major as CI when possible.
 3. Compare `passed` / `skipped` and failure output. If counts differ only due to optional fixtures (`.mdb`, example6), document that next to the numbers in [TODO.md](../TODO.md).
-4. If behavior diverges by OS, file a note in [CHANGELOG.md](../../CHANGELOG.md) **Unreleased** and/or open an issue with both logs.
+4. If behavior diverges by OS, file a note in [TODO.md](../TODO.md) and/or open an issue with both logs.
 
 ---
 
 ## GitHub Actions
 
-Workflow `[.github/workflows/ci.yml](.github/workflows/ci.yml)` runs on **windows-latest** and **ubuntu-latest**: `ruff check`, Level 1 pytest (coverage report on Ubuntu only, no fail-under), Gerber test, `compileall`, `requirements.txt` + `requirements-dev.txt`, `PYTHONPATH=src`. Vulture runs on Ubuntu and does not fail the job.
+Workflow [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on **windows-latest** and **ubuntu-latest** for pushes/PRs to `main`/`master`: `ruff check`, Level 1 pytest (coverage report on Ubuntu only, no fail-under), Gerber test (`tests/test_pcb_preview_gerber.py`), `compileall`, `requirements.txt` + `requirements-dev.txt`, `PYTHONPATH=src`. Vulture runs on Ubuntu and does not fail the job.

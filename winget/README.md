@@ -2,6 +2,8 @@
 
 Templates for the [Windows Package Manager community repo](https://github.com/microsoft/winget-pkgs). Inno Setup and NSIS are **not** used for v1: the asset is the PyInstaller **onedir zip**.
 
+The last published package folder is **0.2.0** (ALPHA zip). This repo is **0.5.0 BETA**; do not invent a 0.5.0 installer URL until a matching GitHub Release zip exists.
+
 ## After a public GitHub Release
 
 1. Run **Actions → Release Windows** (`workflow_dispatch`). First time leave **draft** on, download the artifact, launch `VALVET.exe` on a real PC.

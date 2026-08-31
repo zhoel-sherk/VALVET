@@ -1,4 +1,4 @@
-# VALVET — ALPHA v0.2.0
+# VALVET — BETA v0.5.0
 
 **English** | [Русский](README.ru.md)
 
@@ -8,7 +8,7 @@
 
 Desktop app (PySide6) for SMT prep: open a **BOM** and a **pick-and-place** file, clean part names, check they match, merge, export for the line.
 
-Repo: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Own project (not a GitHub fork of [marmidr/boomer](https://github.com/marmidr/boomer)). **ALPHA** — Hanwha MDB edit, PCB Preview, and Step 3D are still rough.
+Repo: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Own project (not a GitHub fork of [marmidr/boomer](https://github.com/marmidr/boomer)). **BETA** — Hanwha MDB edit, PCB Preview, and Step 3D are still rough.
 
 ## Screenshots
 
@@ -47,7 +47,7 @@ Repo: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Own project (
 
 ## Install: Windows zip (no Python)
 
-1. Download [VALVET-0.2.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.2.0/VALVET-0.2.0-windows-x64.zip) from [release v0.2.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.2.0).
+1. Download [VALVET-0.2.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.2.0/VALVET-0.2.0-windows-x64.zip) from [release v0.2.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.2.0). This tree is **0.5.0 BETA**; the last published zip is still **0.2.0** (no 0.5.0 download yet).
 2. Unzip. Run `VALVET\VALVET.exe` (keep the `_internal` folder next to the exe).
 3. Copy the whole folder if you put it on a USB stick.
 

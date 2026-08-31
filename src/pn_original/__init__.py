@@ -22,8 +22,11 @@ import sys
 
 from parsers.regex_api import sub
 
-# Add src to path for logger
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
+# ``src/`` is on PYTHONPATH in tests/CI; keep a fallback when this package is
+# imported without that (parent of ``pn_original`` is ``src``).
+_src = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _src not in sys.path:
+    sys.path.insert(0, _src)
 
 try:
     import logger

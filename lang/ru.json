@@ -1,5 +1,5 @@
 {
-  "app.window_title": "VALVET — ALPHA v0.2.0",
+  "app.window_title": "VALVET — BETA v0.5.0",
   "tab.group.data": "Данные",
   "tab.group.transform": "Преобразование",
   "tab.group.output": "Выход",
@@ -84,7 +84,7 @@
   "status.comment_unmapped": "(не назначен)",
   "status.clean_stale": " · превью Clean устарело",
   "status.rows_all": "все",
-  "wip.banner": "<b>В разработке (ALPHA).</b> Редактор Hanwha MDB и просмотр ПП экспериментальные; возможны ограничения, пока ядро BOM/PnP стабилизируется.",
+  "wip.banner": "<b>В разработке (BETA).</b> Редактор Hanwha MDB и просмотр ПП экспериментальные; возможны ограничения, пока ядро BOM/PnP стабилизируется.",
   "msg.app_ready": "Приложение готово",
   "bom.clear_workspace": "Очистить",
   "bom.clear_workspace_tip": "Выгрузить BOM из рабочей области (таблица и сопоставление столбцов). Пути к загруженным файлам в профилях не сохраняются.",

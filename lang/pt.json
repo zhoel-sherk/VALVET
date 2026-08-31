@@ -1,5 +1,5 @@
 {
-  "app.window_title": "VALVET — ALPHA v0.2.0",
+  "app.window_title": "VALVET — BETA v0.5.0",
   "tab.group.data": "Dados",
   "tab.group.transform": "Transformação",
   "tab.group.output": "Saída",
@@ -84,7 +84,7 @@
   "status.comment_unmapped": "(não mapeado)",
   "status.clean_stale": " · prévia Clean desatualizada",
   "status.rows_all": "all",
-  "wip.banner": "<b>Em desenvolvimento (ALPHA).</b> O editor Hanwha MDB e a visualização de PCB são experimentais; espere imperfeições enquanto os recursos principais de BOM/PnP se estabilizam.",
+  "wip.banner": "<b>Em desenvolvimento (BETA).</b> O editor Hanwha MDB e a visualização de PCB são experimentais; espere imperfeições enquanto os recursos principais de BOM/PnP se estabilizam.",
   "msg.app_ready": "Aplicativo pronto",
   "bom.clear_workspace": "Limpar",
   "bom.clear_workspace_tip": "Remove a BOM do espaço de trabalho (tabela e mapeamento de colunas). Os caminhos dos arquivos carregados não são salvos nos perfis.",

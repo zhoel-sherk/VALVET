@@ -45,5 +45,5 @@
 
   <text x="320" y="128" fill="#f8fafc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="800" letter-spacing="10">VALVET</text>
   <text x="320" y="178" fill="#7dd3fc" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" letter-spacing="1.5">Validator And Line-Verified Export Tool</text>
-  <text x="320" y="218" fill="#94a3b8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18">ALPHA v0.1.3 · BOM · PnP · Clean · Merge</text>
+  <text x="320" y="218" fill="#94a3b8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18">BETA v0.5.0 · BOM · PnP · Clean · Merge</text>
 </svg>
