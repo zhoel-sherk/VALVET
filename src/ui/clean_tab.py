@@ -28,7 +28,12 @@ from qt_models import CleanPreviewTableModel
 from services.clean_apply import apply_clean_preview_to_bom
 from services.clean_config import build_clean_config
 from services.clean_import import import_bom_comments_for_clean
-from ui.chrome import WidePopupComboBox
+from ui.chrome import (
+    CLEAN_PRIMARY_BTN_MIN_H,
+    CLEAN_PRIMARY_BTN_MIN_W,
+    WidePopupComboBox,
+    apply_equal_widths,
+)
 
 _CLEAN_PRESET_SMT = {
     "res": ("nom", "pack", "watt", "%"),
@@ -267,31 +272,59 @@ class CleanTabMixin:
         self.clean_format_preset.currentIndexChanged.connect(self._on_clean_preset_changed)
 
         buttons = QtWidgets.QHBoxLayout()
+        buttons.setSpacing(10)
         self.btn_clean_import = QtWidgets.QPushButton()
+        self.btn_clean_import.setObjectName("cleanPrimaryImport")
         self.btn_clean_import.clicked.connect(self._clean_import)
         self.btn_clean_convert = QtWidgets.QPushButton()
+        self.btn_clean_convert.setObjectName("cleanPrimaryConvert")
         self.btn_clean_convert.setEnabled(False)
         self.btn_clean_convert.clicked.connect(self._run_clean_preview)
         self.btn_clean_apply = QtWidgets.QPushButton()
+        self.btn_clean_apply.setObjectName("cleanPrimaryApply")
         self.btn_clean_apply.setEnabled(False)
         self.btn_clean_apply.clicked.connect(self._clean_apply)
         self.clean_apply_replace = QtWidgets.QCheckBox()
         self.clean_apply_replace.stateChanged.connect(self._save_clean_settings)
         self.btn_clean_learn_other = QtWidgets.QPushButton()
+        self.btn_clean_learn_other.setObjectName("cleanSecondaryAction")
         self.btn_clean_learn_other.setEnabled(False)
         self.btn_clean_learn_other.clicked.connect(self._learn_selected_other)
         self.btn_clean_save = QtWidgets.QPushButton()
+        self.btn_clean_save.setObjectName("cleanSecondaryAction")
         self.btn_clean_save.clicked.connect(self._clean_save_excel)
         for b in (
             self.btn_clean_import,
             self.btn_clean_convert,
             self.btn_clean_apply,
         ):
+            f = b.font()
+            f.setBold(True)
+            b.setFont(f)
+            b.setAutoDefault(False)
+            b.setDefault(False)
+            b.setMinimumHeight(CLEAN_PRIMARY_BTN_MIN_H)
+            b.setMinimumWidth(CLEAN_PRIMARY_BTN_MIN_W)
+            b.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Minimum,
+                QtWidgets.QSizePolicy.Policy.Fixed,
+            )
             buttons.addWidget(b)
         buttons.addWidget(self.clean_apply_replace)
         buttons.addStretch()
-        buttons.addWidget(self.btn_clean_learn_other)
-        buttons.addWidget(self.btn_clean_save)
+        for b in (self.btn_clean_learn_other, self.btn_clean_save):
+            f = b.font()
+            f.setBold(True)
+            b.setFont(f)
+            b.setAutoDefault(False)
+            b.setDefault(False)
+            b.setMinimumHeight(CLEAN_PRIMARY_BTN_MIN_H)
+            b.setMinimumWidth(CLEAN_PRIMARY_BTN_MIN_W)
+            b.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Minimum,
+                QtWidgets.QSizePolicy.Policy.Fixed,
+            )
+            buttons.addWidget(b)
         layout.addLayout(buttons)
 
         self.clean_apply_ok_banner = QtWidgets.QFrame()
@@ -649,9 +682,28 @@ class CleanTabMixin:
             return
         conv = self.btn_clean_convert.isEnabled()
         apply_on = self.btn_clean_apply.isEnabled()
-        self.btn_clean_import.setDefault(not conv and not apply_on)
-        self.btn_clean_convert.setDefault(conv and not apply_on)
-        self.btn_clean_apply.setDefault(apply_on)
+        import_active = not conv and not apply_on
+        convert_active = conv and not apply_on
+        apply_active = apply_on
+        for btn, active in (
+            (self.btn_clean_import, import_active),
+            (self.btn_clean_convert, convert_active),
+            (self.btn_clean_apply, apply_active),
+        ):
+            btn.setProperty("cleanStep", "active" if active else "idle")
+            sty = btn.style()
+            sty.unpolish(btn)
+            sty.polish(btn)
+            btn.update()
+        apply_equal_widths(
+            (
+                self.btn_clean_import,
+                self.btn_clean_convert,
+                self.btn_clean_apply,
+                self.btn_clean_learn_other,
+                self.btn_clean_save,
+            )
+        )
 
     def _set_clean_custom_slots_visible(self, visible: bool) -> None:
         for combos in (
@@ -832,6 +884,7 @@ class CleanTabMixin:
             self.lbl_clean_source.setText(self.ui_tr("clean.source_hint"))
         self._refresh_clean_context_chip()
         self._sync_clean_parser_grid_sizes()
+        self._sync_clean_primary_buttons()
 
     def _get_bom_comment_column_names(
         self, df: pd.DataFrame | None = None
@@ -1467,6 +1520,7 @@ class CleanTabMixin:
         logger.info("Applied clean to BOM: %s", msg)
         self._mark_working_dirty("bom")
         self._show_clean_apply_banner(self.ui_tr("clean.apply_ok_banner"))
+        self._sync_clean_primary_buttons()
 
     def _clean_save_excel(self) -> None:
         self._sync_bom_df_from_model()
