@@ -18,8 +18,12 @@ from hanwha_mdb_edit.core.column_labels import build_column_header_metadata
 from hanwha_mdb_edit.gui import open_hanwha_mdb_editor
 from machine_library.hanwha_mdbtools import part_det_rows_to_dataframe
 from machine_library.hanwha_preview import machine_lib_preview_frame
-from machine_library.yamaha_devlib import load_devlib_items
-from machine_library.yamaha_tou import load_tou_items
+from machine_library.yamaha_devlib import load_devlib_records
+from machine_library.yamaha_tou import TouRecord, iter_tou_records, tou_files_in_dir
+from machine_library.yamaha_tou_geometry import (
+    build_outline_from_name,
+    build_outline_from_tou_record,
+)
 from qt_models import SortableTableModel
 from ui.chrome import left_rail_widget
 from ui.machine_lib.footprint_preview import FootprintPreviewWidget
@@ -46,10 +50,14 @@ _HANWHA_HELP = (
 )
 
 _YAMAHA_HELP = (
-    "Yamaha machine libraries: .Tou (320-byte records, 40-byte names) and "
-    "DevLibEd / DevLibEd2 .Lib files with a Ver500 header.\n\n"
+    "Yamaha machine libraries: .Tou (320-byte job/placement records, "
+    "40-byte names) and DevLibEd / DevLibEd2 .Lib files with a Ver500 header.\n\n"
     "Preview columns are PARTNAME, Kind (Tou/Lib), and File. Names feed the "
-    "same Clean BOM matching as Hanwha PARTNAME."
+    "same Clean BOM matching as Hanwha PARTNAME.\n\n"
+    "Footprint silhouette is best-effort from package codes in the name "
+    "(imperial 1206/0603/… or metric CAPC1005). The .Tou payload stores "
+    "refdes, board XY, and rotation — not body size. Open a folder of .Tou "
+    "files to merge names like yedytor."
 )
 
 
@@ -83,8 +91,11 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._settings = settings
         self._mdb_path: str = ""
         self._yam_tou_path: str = ""
+        self._yam_tou_is_dir: bool = False
         self._yam_lib_path: str = ""
         self._yamaha_partnames: Set[str] = set()
+        self._yamaha_tou_by_key: dict[str, TouRecord] = {}
+        self._yamaha_lib_basename: dict[str, str] = {}
         self._hanwha_df = part_det_rows_to_dataframe([])
         self._table_model = SortableTableModel(self._hanwha_df)
 
@@ -193,6 +204,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
         tou_btn = QtWidgets.QPushButton("Open .tou…")
         tou_btn.clicked.connect(self._browse_yamaha_tou)
         ym_layout.addWidget(tou_btn)
+        tou_dir_btn = QtWidgets.QPushButton("Open .tou folder…")
+        tou_dir_btn.setToolTip("Merge all *.tou in a directory (yedytor-style scan)")
+        tou_dir_btn.clicked.connect(self._browse_yamaha_tou_folder)
+        ym_layout.addWidget(tou_dir_btn)
 
         self._yam_lib_label = QtWidgets.QLabel("<no .lib>")
         self._yam_lib_label.setWordWrap(False)
@@ -401,7 +416,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
             self._fp_preview.set_idle("Select a part")
         else:
             self._reload_yamaha_preview()
-            self._fp_preview.set_yamaha_placeholder()
+            self._load_selected_footprint()
 
     def _browse_mdb(self) -> None:
         start = os.path.expanduser("~")
@@ -502,6 +517,8 @@ class MachineLibraryTab(QtWidgets.QWidget):
 
     def _browse_yamaha_tou(self) -> None:
         start = os.path.expanduser("~")
+        if self._settings is not None:
+            start = str(self._settings.value("machine_lib/last_tou_dir", start) or start)
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select Yamaha .tou",
@@ -510,11 +527,33 @@ class MachineLibraryTab(QtWidgets.QWidget):
         )
         if path:
             self._yam_tou_path = path
+            self._yam_tou_is_dir = False
             self._refresh_path_elides()
+            if self._settings is not None:
+                self._settings.setValue(
+                    "machine_lib/last_tou_dir", os.path.dirname(path)
+                )
+            self._reload_yamaha_preview()
+
+    def _browse_yamaha_tou_folder(self) -> None:
+        start = os.path.expanduser("~")
+        if self._settings is not None:
+            start = str(self._settings.value("machine_lib/last_tou_dir", start) or start)
+        path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Select folder of Yamaha .tou files", start
+        )
+        if path:
+            self._yam_tou_path = path
+            self._yam_tou_is_dir = True
+            self._refresh_path_elides()
+            if self._settings is not None:
+                self._settings.setValue("machine_lib/last_tou_dir", path)
             self._reload_yamaha_preview()
 
     def _browse_yamaha_lib(self) -> None:
         start = os.path.expanduser("~")
+        if self._settings is not None:
+            start = str(self._settings.value("machine_lib/last_lib_dir", start) or start)
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select Yamaha DevLib .lib",
@@ -524,37 +563,64 @@ class MachineLibraryTab(QtWidgets.QWidget):
         if path:
             self._yam_lib_path = path
             self._refresh_path_elides()
+            if self._settings is not None:
+                self._settings.setValue(
+                    "machine_lib/last_lib_dir", os.path.dirname(path)
+                )
             self._reload_yamaha_preview()
+
+    def _yamaha_tou_paths(self) -> list[Path]:
+        if not self._yam_tou_path:
+            return []
+        p = Path(self._yam_tou_path)
+        if self._yam_tou_is_dir:
+            return tou_files_in_dir(p)
+        if p.is_file():
+            return [p]
+        return []
 
     def _reload_yamaha_preview(self) -> None:
         rows: list[dict[str, str]] = []
         names: Set[str] = set()
+        tou_by_key: dict[str, TouRecord] = {}
+        lib_basename: dict[str, str] = {}
         try:
-            if self._yam_tou_path:
-                p = Path(self._yam_tou_path)
+            for p in self._yamaha_tou_paths():
                 base = p.name
-                for _k, variants in load_tou_items(p).items():
-                    for nm in variants:
-                        names.add(nm)
-                        rows.append({"PARTNAME": nm, "Kind": "Tou", "File": base})
+                for rec in iter_tou_records(p):
+                    names.add(rec.name)
+                    if rec.key not in tou_by_key:
+                        tou_by_key[rec.key] = rec
+                        rows.append(
+                            {"PARTNAME": rec.name, "Kind": "Tou", "File": base}
+                        )
             if self._yam_lib_path:
                 p = Path(self._yam_lib_path)
                 base = p.name
-                for _k, variants in load_devlib_items(p).items():
-                    for nm in variants:
-                        names.add(nm)
-                        rows.append({"PARTNAME": nm, "Kind": "Lib", "File": base})
+                seen: Set[str] = set()
+                for rec in load_devlib_records(p):
+                    names.add(rec.name)
+                    if rec.basename and rec.key not in lib_basename:
+                        lib_basename[rec.key] = rec.basename
+                    if rec.key in seen:
+                        continue
+                    seen.add(rec.key)
+                    rows.append({"PARTNAME": rec.name, "Kind": "Lib", "File": base})
         except OSError as e:
             QtWidgets.QMessageBox.warning(
                 self, "Machine library", f"Cannot read Yamaha file: {e}"
             )
             self._yamaha_partnames = set()
+            self._yamaha_tou_by_key = {}
+            self._yamaha_lib_basename = {}
             empty = pd.DataFrame(columns=["PARTNAME", "Kind", "File"])
             self._table_model.update_dataframe(empty)
             self._table_model.set_column_header_metadata({}, {})
-            self._fp_preview.set_yamaha_placeholder()
+            self._fp_preview.set_idle("Cannot read Yamaha file")
             return
         self._yamaha_partnames = names
+        self._yamaha_tou_by_key = tou_by_key
+        self._yamaha_lib_basename = lib_basename
         df = (
             pd.DataFrame(rows)
             if rows
@@ -562,7 +628,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         )
         self._table_model.update_dataframe(df)
         self._table_model.set_column_header_metadata({}, {})
-        self._fp_preview.set_yamaha_placeholder()
+        self._load_selected_footprint()
 
     def _open_hanwha_editor(self) -> None:
         def _sync_path_chosen(p: str) -> None:
@@ -652,9 +718,34 @@ class MachineLibraryTab(QtWidgets.QWidget):
             self._fp_thread = None
             return False
 
+    def _load_yamaha_footprint(self) -> None:
+        idx = self._table.currentIndex()
+        if not idx.isValid():
+            self._fp_preview.set_idle("Select a Yamaha part")
+            return
+        row = self._table_model.get_row_values(idx.row())
+        name = str(row.get("PARTNAME") or "").strip()
+        kind = str(row.get("Kind") or "").strip()
+        if not name:
+            self._fp_preview.set_idle("Select a Yamaha part")
+            return
+        if kind == "Tou":
+            rec = self._yamaha_tou_by_key.get(name.lower())
+            result = (
+                build_outline_from_tou_record(rec)
+                if rec is not None
+                else build_outline_from_name(name, kind="Tou")
+            )
+        else:
+            bn = self._yamaha_lib_basename.get(name.lower(), "")
+            result = build_outline_from_name(
+                name, kind=kind or "Lib", basename=bn
+            )
+        self._fp_preview.show_result(result, title=name)
+
     def _load_selected_footprint(self) -> None:
         if self._vendor_combo.currentData() != 0:
-            self._fp_preview.set_yamaha_placeholder()
+            self._load_yamaha_footprint()
             return
         import machine_library.hanwha_sqlite_cache as hanwha_cache
 

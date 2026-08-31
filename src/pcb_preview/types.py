@@ -86,7 +86,15 @@ class FootprintOutlineMM:
     circles: tuple[StrokeCircleMM, ...] = ()
     pads: tuple[PadRectMM, ...] = ()
     bbox: BBoxMM = field(default_factory=lambda: BBoxMM(0.0, 0.0, 0.0, 0.0))
-    source: Literal["heuristic", "kicad_mod", "hanwha_upd", "none"] = "none"
+    source: Literal[
+        "heuristic",
+        "kicad_mod",
+        "hanwha_upd",
+        "yamaha_tou",
+        "yamaha_heuristic",
+        "vspd_heuristic",
+        "none",
+    ] = "none"
 
 
 def union_bbox(boxes: Sequence[BBoxMM]) -> BBoxMM:

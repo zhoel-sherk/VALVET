@@ -18,7 +18,11 @@ from machine_library.hanwha_partnames import (
     resolve_upd_mdb_path,
 )
 from machine_library.yamaha_devlib import load_devlib_items, load_devlib_partname_set
-from machine_library.yamaha_tou import load_tou_items, load_tou_partname_set
+from machine_library.yamaha_tou import (
+    load_tou_items,
+    load_tou_partname_set,
+    merge_tou_items,
+)
 
 __all__ = [
     "export_partnames_snapshot",
@@ -38,4 +42,5 @@ __all__ = [
     "load_devlib_partname_set",
     "load_tou_items",
     "load_tou_partname_set",
+    "merge_tou_items",
 ]
