@@ -30,6 +30,7 @@ from pcb_preview.types import (
     PlacementRecord,
 )
 from pcb_preview_load_thread import GerberLoadThread
+from pcb_preview_outline_thread import PackageOutlineThread
 from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
@@ -68,6 +69,11 @@ def _bbox_union(a: QtCore.QRectF, b: QtCore.QRectF) -> QtCore.QRectF:
     return a.united(b)
 
 
+_GRID_STEP_MM = 10.0
+_GRID_DOT = QtGui.QColor(110, 110, 110)
+_CANVAS_BG = QtGui.QColor(0, 0, 0)
+
+
 class ZoomGraphicsView(QtWidgets.QGraphicsView):
     """Wheel zoom (anchor under mouse); scene coordinates stay in mm for PnP + Gerber."""
 
@@ -81,6 +87,24 @@ class ZoomGraphicsView(QtWidgets.QGraphicsView):
             QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
         )
         self.setResizeAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setBackgroundBrush(QtGui.QBrush(_CANVAS_BG))
+
+    def drawBackground(self, painter: QtGui.QPainter, rect: QtCore.QRectF) -> None:
+        painter.fillRect(rect, _CANVAS_BG)
+        step = _GRID_STEP_MM
+        pen = QtGui.QPen(_GRID_DOT)
+        pen.setCosmetic(True)
+        pen.setWidthF(1.6)
+        painter.setPen(pen)
+        x0 = int(rect.left() / step) * step - step
+        y0 = int(rect.top() / step) * step - step
+        x = x0
+        while x <= rect.right() + step:
+            y = y0
+            while y <= rect.bottom() + step:
+                painter.drawPoint(QtCore.QPointF(x, y))
+                y += step
+            x += step
 
     def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
         if event.angleDelta().y() == 0:
@@ -263,6 +287,9 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
     def set_footprint_visible(self, on: bool) -> None:
         self._path_item.setVisible(on)
 
+    def set_outline(self, outline: FootprintOutlineMM) -> None:
+        self._path_item.setPath(_outline_to_path(outline))
+
 
 class PnpArrowNudgeBar(QtWidgets.QWidget):
     """Compact diamond nudge pad around the step field (mm); fixed width."""
@@ -343,7 +370,7 @@ class _GerberLayerRow:
     bbox_mm: BBoxMM
     native_bbox_mm: BBoxMM
     s_raster: float
-    rgb: tuple[int, int, int] = (120, 160, 200)
+    rgb: tuple[int, int, int] = (218, 176, 72)
     opacity: float = 0.8
 
 
@@ -352,6 +379,8 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
     #: Emitted when the user picks mm (True) or mils (False) for PnP table X/Y (mirrors main window).
     pnp_xy_unit_mm_selected = QtCore.Signal(bool)
+    showFromPnpRequested = QtCore.Signal()
+    showFromMergeRequested = QtCore.Signal()
 
     def __init__(
         self,
@@ -372,10 +401,15 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._px_per_mm = _GERBER_PX_PER_MM
         self._label_scale = _LABEL_SCENE_SCALE
         self._show_labels = True
-        self._show_footprints = True
+        self._show_footprints = False
+        self._show_top = True
+        self._show_bot = True
         self._placements_fp: tuple[Any, ...] | None = None
         self._did_initial_fit = False
         self._gerber_thread: Any = None
+        self._outline_thread: Any = None
+        self._outline_restart = False
+        self._outline_cache: dict[str, FootprintOutlineMM] = {}
 
         root = QtWidgets.QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -398,10 +432,30 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._btn_center = QtWidgets.QPushButton("Center on selection")
         self._btn_center.clicked.connect(self._center_selection)
         top.addWidget(self._btn_center)
+        self._btn_show_pnp = QtWidgets.QPushButton("Show from PnP")
+        self._btn_show_pnp.clicked.connect(self.showFromPnpRequested.emit)
+        top.addWidget(self._btn_show_pnp)
+        self._btn_show_merge = QtWidgets.QPushButton("Show from Merge")
+        self._btn_show_merge.clicked.connect(self.showFromMergeRequested.emit)
+        top.addWidget(self._btn_show_merge)
+        self._btn_show_pnp.setEnabled(False)
+        self._btn_show_merge.setEnabled(False)
+        self._btn_centroid = QtWidgets.QPushButton("Centroid")
+        self._btn_centroid.clicked.connect(self._align_centroids_coarse)
+        top.addWidget(self._btn_centroid)
+        self._chk_show_top = QtWidgets.QCheckBox("Top")
+        self._chk_show_top.setChecked(True)
+        self._chk_show_top.toggled.connect(self._on_side_filter_toggled)
+        top.addWidget(self._chk_show_top)
+        self._chk_show_bot = QtWidgets.QCheckBox("Bot")
+        self._chk_show_bot.setChecked(True)
+        self._chk_show_bot.toggled.connect(self._on_side_filter_toggled)
+        top.addWidget(self._chk_show_bot)
         top.addStretch()
         root.addLayout(top)
 
         self._scene = QtWidgets.QGraphicsScene()
+        self._scene.setBackgroundBrush(QtGui.QBrush(_CANVAS_BG))
         self._scene.setSceneRect(-5, -5, 200, 200)
         self._view = ZoomGraphicsView(self._scene)
         self._view.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
@@ -516,9 +570,17 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._chk_show_labels = QtWidgets.QCheckBox("Show labels")
         self._chk_show_labels.setChecked(True)
         self._chk_show_labels.toggled.connect(self._on_show_labels_toggled)
-        self._chk_show_footprints = QtWidgets.QCheckBox("Show footprints")
-        self._chk_show_footprints.setChecked(True)
+        self._chk_show_footprints = QtWidgets.QCheckBox("Package outline")
+        self._chk_show_footprints.setChecked(False)
         self._chk_show_footprints.toggled.connect(self._on_show_footprints_toggled)
+        if self._settings is not None:
+            saved_ol = self._settings.value(
+                "pcb_preview/show_package_outline", False, type=bool
+            )
+            self._show_footprints = bool(saved_ol)
+            self._chk_show_footprints.blockSignals(True)
+            self._chk_show_footprints.setChecked(self._show_footprints)
+            self._chk_show_footprints.blockSignals(False)
         view_opts.addWidget(self._lbl_label_scale)
         view_opts.addWidget(self._spin_label_scale)
         view_opts.addWidget(self._chk_show_labels)
@@ -568,7 +630,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._btn_pcb_settings_toggle.blockSignals(False)
         self._pcb_settings_panel.setVisible(expanded)
         self._btn_pcb_settings_toggle.setArrowType(
-            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+            QtCore.Qt.ArrowType.DownArrow
+            if expanded
+            else QtCore.Qt.ArrowType.RightArrow
         )
 
         self._scene.addItem(self._placements_root)
@@ -604,6 +668,11 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._btn_zoom_out.setText(self._tr("pcb.zoom_out"))
         self._btn_reset.setText(self._tr("pcb.reset_transform"))
         self._btn_center.setText(self._tr("pcb.center_sel"))
+        self._btn_show_pnp.setText(self._tr("pcb.show_from_pnp"))
+        self._btn_show_merge.setText(self._tr("pcb.show_from_merge"))
+        self._btn_centroid.setText(self._tr("pcb.centroid"))
+        self._chk_show_top.setText(self._tr("pcb.layer_top"))
+        self._chk_show_bot.setText(self._tr("pcb.layer_bot"))
         self._btn_pcb_settings_toggle.setText(self._tr("pcb.settings"))
         self._chk_mirror_x.setText(self._tr("pcb.mirror_x"))
         self._chk_mirror_y.setText(self._tr("pcb.mirror_y"))
@@ -628,7 +697,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
     def _on_pcb_settings_toggled(self, expanded: bool) -> None:
         self._pcb_settings_panel.setVisible(expanded)
         self._btn_pcb_settings_toggle.setArrowType(
-            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+            QtCore.Qt.ArrowType.DownArrow
+            if expanded
+            else QtCore.Qt.ArrowType.RightArrow
         )
         if self._settings is not None:
             self._settings.setValue("pcb_preview/settings_expanded", expanded)
@@ -646,10 +717,37 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
     def _on_show_footprints_toggled(self, on: bool) -> None:
         self._show_footprints = bool(on)
+        if self._settings is not None:
+            self._settings.setValue("pcb_preview/show_package_outline", on)
         for it in self._items.values():
             it.set_footprint_visible(self._show_footprints)
+        if self._show_footprints:
+            self._start_outline_thread()
 
-    def _placements_fingerprint(self, df: Any, kwargs: dict[str, Any]) -> tuple[Any, ...]:
+    def _on_side_filter_toggled(self, _on: bool = False) -> None:
+        self._show_top = self._chk_show_top.isChecked()
+        self._show_bot = self._chk_show_bot.isChecked()
+        self._apply_side_visibility()
+        self._update_scene_rect_from_content()
+
+    def _side_allowed(self, side: str) -> bool:
+        if side == "top":
+            return self._show_top
+        if side == "bottom":
+            return self._show_bot
+        return self._show_top or self._show_bot
+
+    def _apply_side_visibility(self) -> None:
+        for it in self._items.values():
+            it.setVisible(self._side_allowed(it._placement.side))
+
+    def set_source_enabled(self, *, pnp: bool, merge: bool) -> None:
+        self._btn_show_pnp.setEnabled(bool(pnp))
+        self._btn_show_merge.setEnabled(bool(merge))
+
+    def _placements_fingerprint(
+        self, df: Any, kwargs: dict[str, Any]
+    ) -> tuple[Any, ...]:
         if df is None:
             return (None,)
         cols = tuple(str(c) for c in df.columns)
@@ -682,6 +780,8 @@ class PcbPreviewTab(QtWidgets.QWidget):
             "label_scale": self._label_scale,
             "show_labels": self._show_labels,
             "show_footprints": self._show_footprints,
+            "show_top": self._show_top,
+            "show_bot": self._show_bot,
         }
 
     def apply_ui_prefs(self, prefs: dict[str, Any]) -> None:
@@ -737,10 +837,23 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._chk_show_footprints.blockSignals(True)
             self._chk_show_footprints.setChecked(self._show_footprints)
             self._chk_show_footprints.blockSignals(False)
+        if "show_top" in prefs:
+            self._show_top = bool(prefs["show_top"])
+            self._chk_show_top.blockSignals(True)
+            self._chk_show_top.setChecked(self._show_top)
+            self._chk_show_top.blockSignals(False)
+        if "show_bot" in prefs:
+            self._show_bot = bool(prefs["show_bot"])
+            self._chk_show_bot.blockSignals(True)
+            self._chk_show_bot.setChecked(self._show_bot)
+            self._chk_show_bot.blockSignals(False)
         for it in self._items.values():
             it.set_label_scale(self._label_scale)
             it.set_labels_visible(self._show_labels)
             it.set_footprint_visible(self._show_footprints)
+        self._apply_side_visibility()
+        if self._show_footprints:
+            self._start_outline_thread()
         self._set_placements_root_transform()
         self._rescale_all_gerber_layers(log=False)
 
@@ -1058,7 +1171,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
                 self._scene.sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio
             )
 
-    def set_placements_from_dataframe(self, df, *, force: bool = False, **kwargs) -> None:
+    def set_placements_from_dataframe(
+        self, df, *, force: bool = False, **kwargs
+    ) -> None:
         fp = self._placements_fingerprint(df, kwargs)
         if not force and fp == self._placements_fp:
             return
@@ -1076,15 +1191,14 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._scene.removeItem(it)
         self._items.clear()
         self._list.clear()
+        empty = FootprintOutlineMM(source="none")
         for pl in self._placements:
-            outline = self._store.lookup_outline(pl.footprint_name)
-            if outline.source == "none" and pl.footprint_name:
-                tail = pl.footprint_name.replace("\\", "/").split("/")[-1]
-                outline = self._store.lookup_outline(tail)
+            outline = self._outline_cache.get(pl.footprint_name, empty)
             item = PlacementGroupItem(pl, outline)
             item.set_label_scale(self._label_scale)
             item.set_labels_visible(self._show_labels)
             item.set_footprint_visible(self._show_footprints)
+            item.setVisible(self._side_allowed(pl.side))
             self._placements_root.addToGroup(item)
             self._items[pl.ref] = item
             self._list.addItem(pl.ref)
@@ -1094,9 +1208,79 @@ class PcbPreviewTab(QtWidgets.QWidget):
         if not self._did_initial_fit and (self._items or self._layers):
             self._fit_all_content()
             self._did_initial_fit = True
+        if self._show_footprints:
+            self._start_outline_thread()
 
     def _on_list_selection(self) -> None:
         self._sync_all_placement_styles()
+
+    def _start_outline_thread(self) -> None:
+        if not self._show_footprints or not self._placements:
+            return
+        names = [pl.footprint_name for pl in self._placements if pl.footprint_name]
+        pending = [n for n in names if n not in self._outline_cache]
+        if not pending:
+            self._apply_outline_cache()
+            return
+        t = self._outline_thread
+        if t is not None and t.isRunning():
+            self._outline_restart = True
+            return
+        thread = PackageOutlineThread(pending, self)
+        thread.result_ready.connect(self._on_outlines_ready)
+        thread.finished.connect(self._on_outline_thread_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._outline_thread = thread
+        thread.start()
+
+    def _on_outline_thread_finished(self) -> None:
+        self._outline_thread = None
+        if self._outline_restart:
+            self._outline_restart = False
+            self._start_outline_thread()
+
+    def _on_outlines_ready(self, packed: object) -> None:
+        if not isinstance(packed, dict):
+            return
+        for k, v in packed.items():
+            if isinstance(k, str) and isinstance(v, FootprintOutlineMM):
+                self._outline_cache[k] = v
+        self._apply_outline_cache()
+
+    def _apply_outline_cache(self) -> None:
+        if not self._show_footprints:
+            return
+        empty = FootprintOutlineMM(source="none")
+        for it in self._items.values():
+            name = it._placement.footprint_name
+            outline = self._outline_cache.get(name, empty)
+            it.set_outline(outline)
+            it.set_footprint_visible(True)
+        self._update_scene_rect_from_content()
+
+    def _align_centroids_coarse(self) -> None:
+        g = self._gerber_scene_rect()
+        if not g.isValid():
+            self._append_log("Centroid: no visible Gerber layer.")
+            return
+        vis = [it for it in self._items.values() if it.isVisible()]
+        if not vis:
+            self._append_log("Centroid: no visible components.")
+            return
+        sx = sum(it.pos().x() for it in vis) / len(vis)
+        sy = sum(it.pos().y() for it in vis) / len(vis)
+        t = _compose_pnp_preview_transform(
+            self._preview_sim, self._pnp_mirror_x, self._pnp_mirror_y
+        )
+        sc = t.map(QtCore.QPointF(sx, sy))
+        gx, gy = g.center().x(), g.center().y()
+        shift = Similarity2D(1.0, 1.0, 0.0, gx - sc.x(), gy - sc.y())
+        self._preview_sim = shift.compose(self._preview_sim)
+        self._set_placements_root_transform()
+        self._update_scene_rect_from_content()
+        self._append_log(
+            f"Centroid: overlay shifted by ({gx - sc.x():.3f}, {gy - sc.y():.3f}) mm."
+        )
 
     def _center_selection(self) -> None:
         refs = [it.text() for it in self._list.selectedItems()]
@@ -1160,5 +1344,10 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._append_log("Preview transform reset (similarity + mirrors).")
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self._outline_restart = False
+        t = self._outline_thread
+        if t is not None:
+            t.requestInterruption()
+            t.wait(500)
         self._store.close()
         super().closeEvent(event)

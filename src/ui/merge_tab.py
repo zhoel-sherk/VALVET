@@ -23,7 +23,9 @@ except ImportError:
 
         result_ready = QtCore.Signal(object, str)
 
-        def __init__(self, proc: SMTDataProcessor, parent: _Optional[QtCore.QObject] = None):
+        def __init__(
+            self, proc: SMTDataProcessor, parent: _Optional[QtCore.QObject] = None
+        ):
             super().__init__(parent)
             self._proc = proc
 
@@ -39,7 +41,6 @@ except ImportError:
 
 
 class MergeTabMixin:
-
     def _create_merge_tab(self):
         """Merge tab — combine BOM and PnP."""
         tab = QtWidgets.QWidget()
@@ -54,7 +55,9 @@ class MergeTabMixin:
         )
 
         root = QtWidgets.QHBoxLayout(tab)
-        root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)
+        root.setContentsMargins(
+            CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN
+        )
         root.setSpacing(CHROME_SPACING)
 
         left = left_rail_widget()
@@ -227,9 +230,7 @@ class MergeTabMixin:
             self._log("BOM dropdowns not created - reload BOM file", "error")
             return None
 
-        bom_roles = [
-            self._mapping_combo_role(combo) for combo in self.bom_col_combos
-        ]
+        bom_roles = [self._mapping_combo_role(combo) for combo in self.bom_col_combos]
         bom_cols = list(self._bom_df.columns)
         bom_mappings: dict[str, str] = {}
         for i, mapping in enumerate(bom_roles):
@@ -409,6 +410,7 @@ class MergeTabMixin:
             self.merge_model.update_dataframe(merged)
             self._update_merge_layer_export_controls()
             self._log(f"Merge complete: {len(merged)} rows", "info")
+            self._refresh_pcb_preview_from_ui(force=False)
         except SMTProcessorError as e:
             self._log(f"Merge error: {e}", "error")
             self._last_merge_df = None
