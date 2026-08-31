@@ -101,7 +101,10 @@ def list_mdb_tables(mdb_path: str | Path) -> list[str]:
     if sys.platform == "win32":
         odbc_msg: str | None = None
         try:
-            from machine_library.access_odbc import AccessOdbcError, list_mdb_tables_odbc
+            from machine_library.access_odbc import (
+                AccessOdbcError,
+                list_mdb_tables_odbc,
+            )
 
             return list_mdb_tables_odbc(p)
         except AccessOdbcError as e:
@@ -143,7 +146,10 @@ def export_table_csv(mdb_path: str | Path, table: str) -> str:
     if sys.platform == "win32":
         odbc_msg: str | None = None
         try:
-            from machine_library.access_odbc import AccessOdbcError, export_table_csv_odbc
+            from machine_library.access_odbc import (
+                AccessOdbcError,
+                export_table_csv_odbc,
+            )
 
             return export_table_csv_odbc(p, table)
         except AccessOdbcError as e:

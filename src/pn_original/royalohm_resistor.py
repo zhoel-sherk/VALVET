@@ -22,6 +22,7 @@ Resistance coding:
 3-digit E24 XXY = XX×10^Y Ω; 4-digit E96 XXXY = XXX×10^Y Ω
 """
 
+import logger
 from parsers.regex_api import match
 
 VENDOR_NAME = "Royal Ohm"
@@ -185,7 +186,8 @@ def parse(pn: str, component_type: str) -> str | None:
 
         return "_".join(parts) if parts else None
 
-    except Exception:
+    except Exception as exc:
+        logger.warning("Royal Ohm parse failed for %r: %s", pn, exc)
         return None
 
 

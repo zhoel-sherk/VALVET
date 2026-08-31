@@ -9,6 +9,10 @@ from PySide6 import QtWidgets
 LEFT_RAIL_W = 200
 ACTION_BTN_MIN_H = 32
 ACTION_BTN_MIN_W = 128
+# Clean BOM toolbar: Learn/Save −10% vs 40×152, then Import/Convert/Apply match.
+CLEAN_PRIMARY_BTN_MIN_H = 32
+CLEAN_PRIMARY_BTN_MIN_W = 137
+CLEAN_SECONDARY_BTN_MIN_H = 32
 CHROME_MARGIN = 6
 CHROME_SPACING = 8
 

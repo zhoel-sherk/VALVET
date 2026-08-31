@@ -5,18 +5,16 @@ import re
 from typing import TYPE_CHECKING, AbstractSet, List, Optional, Tuple
 
 import logger
-
+from clean_alerts import analyze_token_alert, append_missing_tokens_log
+from clean_arbiter import ParserCandidate, pick_best, vendor_pn_slots_from_string
 from clean_types import (
     CleanConfig,
     canonical_pipeline_order,
     default_clean_config,
 )
-from clean_alerts import analyze_token_alert, append_missing_tokens_log
-
-from clean_arbiter import ParserCandidate, pick_best, vendor_pn_slots_from_string
-
 from parsers.cap_pars import parse_capacitor, parse_capacitor_token_fields
 from parsers.constants import has_strict_chip_case_size
+from parsers.ferrite_beads import extract_ferrite_bead_mpn
 from parsers.formatting import apply_prefix, reformat_cleaned_pn
 from parsers.ind_pars import parse_inductor, parse_inductor_token_fields
 from parsers.inferit_pars import (
@@ -29,7 +27,6 @@ from parsers.inferit_pars import (
 )
 from parsers.other_pars import clean_other
 from parsers.res_pars import parse_resistor, parse_resistor_token_fields
-from parsers.ferrite_beads import extract_ferrite_bead_mpn
 from parsers.thermistors import extract_thermistor_mpn
 from parsers.vendor_context_merge import enrich_vendor_cleaned_from_bom
 

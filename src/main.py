@@ -13,11 +13,16 @@ if str(_SRC) not in sys.path:
 from PySide6 import QtGui, QtWidgets  # noqa: E402
 from PySide6.QtCore import QTimer  # noqa: E402
 
-from app.constants import APP_EXPANSION, APP_NAME, APP_VERSION, SETTINGS_ORG  # noqa: E402
+import logger  # noqa: E402
+from app.constants import (  # noqa: E402
+    APP_EXPANSION,
+    APP_NAME,
+    APP_VERSION,
+    SETTINGS_ORG,
+)
 from app.icons import application_icon_path  # noqa: E402
 from app.window import MainWindow  # noqa: E402
 from themes.fonts_loader import register_bundled_fonts  # noqa: E402
-import logger  # noqa: E402
 
 
 def _parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[str]]:

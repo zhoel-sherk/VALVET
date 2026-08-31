@@ -10,7 +10,7 @@ from clean_component import clean_preview
 from clean_types import CleanConfig
 from cli.session import CliSession
 from mmd_export import merge_dataframe_to_mmd_mercury
-from report_html import result_dataframe_to_html
+from report_html import html_document_from_fragment, result_dataframe_to_html
 from services.clean_apply import apply_clean_preview_to_bom
 from services.clean_import import import_bom_comments_for_clean
 from services.file_loading import read_pnp_dataframe
@@ -130,10 +130,10 @@ def export_merge(session: CliSession, path: str) -> None:
 def write_report_html(session: CliSession, path: str) -> None:
     if session.report_df is None:
         raise ValueError("Nothing to report; run merge first")
-    html = result_dataframe_to_html(
+    fragment = result_dataframe_to_html(
         session.report_df, bom_path=session.bom_path, pnp_path=session.pnp_path
     )
-    Path(path).write_text(html, encoding="utf-8")
+    Path(path).write_text(html_document_from_fragment(fragment), encoding="utf-8")
 
 
 def export_mmd(session: CliSession, path: str, *, layer: str = "") -> None:

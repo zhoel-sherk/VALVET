@@ -22,6 +22,7 @@ Tolerance:
 F=±1%, G=±2%, J=±5%, K=±10%, M=±20%; digits and extra letters (P,Q,R,S,T) supported — see code.
 """
 
+import logger
 from parsers.regex_api import I, search, sub
 
 from ._cap_decode import pf_eia_3_to_str
@@ -170,7 +171,8 @@ def parse(pn: str, component_type: str) -> str | None:
 
         return "_".join(parts) if parts else None
 
-    except Exception:
+    except Exception as exc:
+        logger.warning("Samsung parse failed for %r: %s", pn, exc)
         return None
 
 

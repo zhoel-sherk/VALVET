@@ -38,4 +38,46 @@ def extra_application_stylesheet() -> str:
         color: {fg};
         border-radius: {r}px;
     }}
+    QPushButton#cleanPrimaryImport,
+    QPushButton#cleanPrimaryConvert,
+    QPushButton#cleanPrimaryApply,
+    QPushButton#cleanSecondaryAction {{
+        min-height: 32px;
+        min-width: 137px;
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 2px solid transparent;
+    }}
+    QPushButton#cleanPrimaryImport,
+    QPushButton#cleanPrimaryConvert,
+    QPushButton#cleanPrimaryApply {{
+        font-weight: 700;
+    }}
+    QPushButton#cleanPrimaryImport[cleanStep="active"] {{
+        background-color: #1565c0;
+        color: #ffffff;
+        border: 2px solid #64b5f6;
+    }}
+    QPushButton#cleanPrimaryImport[cleanStep="active"]:hover {{
+        background-color: #1976d2;
+    }}
+    QPushButton#cleanPrimaryConvert[cleanStep="active"] {{
+        background-color: #ef6c00;
+        color: #ffffff;
+        border: 2px solid #ffcc80;
+    }}
+    QPushButton#cleanPrimaryConvert[cleanStep="active"]:hover {{
+        background-color: #f57c00;
+    }}
+    QPushButton#cleanPrimaryApply[cleanStep="active"] {{
+        background-color: #2e7d32;
+        color: #ffffff;
+        border: 2px solid #81c784;
+    }}
+    QPushButton#cleanPrimaryApply[cleanStep="active"]:hover {{
+        background-color: #388e3c;
+    }}
+    QPushButton#cleanSecondaryAction {{
+        font-weight: 600;
+    }}
     """

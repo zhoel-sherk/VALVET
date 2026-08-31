@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6.QtCore import QSettings
+from PySide6 import QtCore
 
 from settings_paths import path_settings_hash
 
@@ -16,7 +16,7 @@ from settings_paths import path_settings_hash
 def test_bom_ui_settings_roundtrip() -> None:
     org = f"ValvetTest_{uuid.uuid4().hex[:12]}"
     app_name = "Roundtrip"
-    s = QSettings(org, app_name)
+    s = QtCore.QSettings(org, app_name)
     path = "/tmp/example_bom_for_settings.csv"
     h = path_settings_hash(path)
     g = f"bom/ui/{h}"
@@ -27,7 +27,7 @@ def test_bom_ui_settings_roundtrip() -> None:
     s.endGroup()
     s.sync()
 
-    s2 = QSettings(org, app_name)
+    s2 = QtCore.QSettings(org, app_name)
     s2.beginGroup(g)
     assert str(s2.value("separator")) == ";"
     assert s2.value("has_headers") in (False, "false", 0, "0")

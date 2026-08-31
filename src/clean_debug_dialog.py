@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+
 from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import QSettings
 
 from clean_pipeline_settings import load_clean_debug_extras, load_pipeline_from_settings
 from clean_types import DEFAULT_CLEAN_PIPELINE, canonical_pipeline_order
@@ -32,7 +32,7 @@ class CleanPipelineDebugDialog(QtWidgets.QDialog):
     def __init__(
         self,
         parent: QtWidgets.QWidget | None,
-        settings: QSettings,
+        settings: QtCore.QSettings,
     ) -> None:
         super().__init__(parent)
         self._settings = settings

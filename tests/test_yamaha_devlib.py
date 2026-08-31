@@ -6,11 +6,14 @@ from pathlib import Path
 
 from machine_library.yamaha_devlib import (
     DEVLIB2_COMPONENT_SIZE,
+    DEVLIB_BASENAME_OFF,
+    DEVLIB_COMPONENT_BASENAME_SIZE,
     DEVLIB_COMPONENT_NAME_SIZE,
     DEVLIB_COMPONENT_SIZE,
     DEVLIB_OFFSET,
     load_devlib_items,
     load_devlib_partname_set,
+    load_devlib_records,
 )
 
 
@@ -35,11 +38,19 @@ def test_devlib_v1_single(tmp_path: Path) -> None:
     buf = bytearray(total)
     _pad_header(buf)
     _put_devlib_name(buf, DEVLIB_OFFSET, "2512_R_7,5R/5%/1W(3)")
+    braw = b"CHIPBASE" + b"\x00" * (DEVLIB_COMPONENT_BASENAME_SIZE - 8)
+    buf[
+        DEVLIB_OFFSET + DEVLIB_BASENAME_OFF : DEVLIB_OFFSET
+        + DEVLIB_BASENAME_OFF
+        + DEVLIB_COMPONENT_BASENAME_SIZE
+    ] = braw
     p = tmp_path / "v1.lib"
     p.write_bytes(buf)
     items = load_devlib_items(p)
     assert items == {"2512_r_7,5r/5%/1w": ["2512_R_7,5R/5%/1W"]}
     assert load_devlib_partname_set(p) == {"2512_R_7,5R/5%/1W"}
+    recs = load_devlib_records(p)
+    assert recs[0].basename == "CHIPBASE"
 
 
 def test_devlib_ed2_after_v1_fails(tmp_path: Path) -> None:

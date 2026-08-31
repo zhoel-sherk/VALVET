@@ -13,10 +13,10 @@ from app.constants import (
     _TABLE_COL_MAX_WIDTH,
 )
 from services.column_mapping import (
+    BOM_EXCLUSIVE_ROLES,
     guess_bom_role,
     guess_pnp_role,
     uniquify_roles,
-    BOM_EXCLUSIVE_ROLES,
 )
 from ui.mapping_header import MappingComboBox, MappingHeaderView
 

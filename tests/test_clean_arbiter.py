@@ -10,8 +10,8 @@ _boomer_root = os.path.dirname(tests_path)
 sys.path.insert(0, os.path.join(_boomer_root, "src"))
 
 import clean_arbiter  # noqa: E402
-from clean_types import CleanConfig, DEFAULT_CLEAN_PIPELINE  # noqa: E402
 import clean_component  # noqa: E402
+from clean_types import DEFAULT_CLEAN_PIPELINE, CleanConfig  # noqa: E402
 
 
 def test_pick_best_prefers_vendor_over_weak_regex_res():

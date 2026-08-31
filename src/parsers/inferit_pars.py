@@ -16,14 +16,17 @@ from __future__ import annotations
 from typing import Dict, Optional, Tuple
 
 from clean_types import CleanConfig, default_clean_config
-
 from parsers.bom_text_utils import (
     capacitor_nominal_pf,
     normalize_res_ohm_value,
     normalize_value_unit,
     snap_cap_tolerance_pf_to_std_pct,
 )
-from parsers.chip_tokens import canonical_voltage_token, match_package_token, watt_for_package
+from parsers.chip_tokens import (
+    canonical_voltage_token,
+    match_package_token,
+    watt_for_package,
+)
 from parsers.constants import PACKAGE_PATTERN
 from parsers.formatting import (
     format_cap_fields,

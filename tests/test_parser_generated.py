@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
+from tools.clean_corpus_lib import load_corpus_profile
+from tools.gen_parser_fixtures import load_all_samples, noise_variants
 
 import clean_component
 import pn_original
-from tools.clean_corpus_lib import load_corpus_profile
-from tools.gen_parser_fixtures import load_all_samples, noise_variants
 
 
 def _vendor_cfg():

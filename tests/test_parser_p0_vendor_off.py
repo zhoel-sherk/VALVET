@@ -5,11 +5,16 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
+from tools.clean_corpus_lib import load_corpus_profile
 
 import clean_component
 from parsers.chip_tokens import expand_compact_rkm, match_package_token
-from parsers.si_units import convert_nf_token_to_uf, quantity_farads, quantity_volts
-from tools.clean_corpus_lib import load_corpus_profile
+from parsers.si_units import (
+    convert_nf_token_to_uf,
+    quantity_farads,
+    quantity_ohms,
+    quantity_volts,
+)
 
 
 @pytest.fixture
@@ -130,7 +135,7 @@ def test_expand_compact_rkm_samples():
     assert match_package_token("C0603") == "0603"
 
 
-def test_pint_nf_and_voltage():
+def test_si_quantity_nf_and_voltage():
     assert convert_nf_token_to_uf("1000NF") == "1UF"
     q = quantity_farads("22nF")
     assert q is not None
@@ -138,3 +143,29 @@ def test_pint_nf_and_voltage():
     v = quantity_volts("3KV")
     assert v is not None
     assert abs(v.to("volt").magnitude - 3000) < 1e-6
+
+
+def test_si_quantity_invalid_returns_none():
+    assert quantity_farads("22") is None
+    assert quantity_farads("22X") is None
+    assert quantity_farads("") is None
+
+
+def test_convert_nf_to_uf_matrix():
+    assert convert_nf_token_to_uf("22NF") == "0.022UF"
+    assert convert_nf_token_to_uf("1NF") == "0.001UF"
+    assert convert_nf_token_to_uf("100NF") == "0.1UF"
+    assert convert_nf_token_to_uf("not_a_value") == "not_a_value"
+
+
+def test_si_ohm_prefixes():
+    q = quantity_ohms("10R")
+    assert q is not None
+    assert abs(q.to("ohm").magnitude - 10) < 1e-9
+    qk = quantity_ohms("4.7K")
+    assert qk is not None
+    assert abs(qk.to("ohm").magnitude - 4700) < 1e-6
+    qm = quantity_ohms("1M")
+    assert qm is not None
+    assert abs(qm.to("ohm").magnitude - 1_000_000) < 1e-3
+    assert quantity_ohms("") is None

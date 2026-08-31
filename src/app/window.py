@@ -8,9 +8,8 @@ from typing import Any, Optional
 
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import QSettings
-from PySide6.QtGui import QKeySequence, QShortcut
 
+import logger
 from app.constants import SETTINGS_APP, SETTINGS_ORG
 from app.prefs import _prefs_profile_bool
 from app.workers import CrossCheckThread
@@ -26,7 +25,6 @@ from themes.colour_prefs import (
 )
 from themes.fonts_loader import apply_app_font, build_mono_font
 from themes.stylesheet import apply_composed_stylesheet
-from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 from ui.bom_tab import BomTabMixin
 from ui.clean_tab import CleanTabMixin
 from ui.files import FilesMixin
@@ -39,14 +37,13 @@ from ui.report_tab import ReportTabMixin
 from ui.session import SessionMixin
 from ui.table_actions import TableActionsMixin
 from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n
-
-import logger
-
+from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 
 _TAB_GROUP_KEY = {
     "project": "data",
     "bom": "data",
     "pnp": "data",
+    "package": "data",
     "clean_bom": "transform",
     "merge": "transform",
     "report": "output",
@@ -73,7 +70,7 @@ class MainWindow(
 
     log_message = QtCore.Signal(str, str)  # message, level
 
-    def __init__(self, *, settings: QSettings | None = None, debug: bool = False):
+    def __init__(self, *, settings: QtCore.QSettings | None = None, debug: bool = False):
         super().__init__()
         self.setMinimumSize(900, 600)
         self.resize(1400, 900)
@@ -93,7 +90,7 @@ class MainWindow(
         self._last_report_html: str = ""
         self._last_merge_df: Optional[pd.DataFrame] = None
         self._restoring_settings: bool = False
-        self._settings = settings or QSettings(SETTINGS_ORG, SETTINGS_APP)
+        self._settings = settings or QtCore.QSettings(SETTINGS_ORG, SETTINGS_APP)
         self._autosave_dir = str(autosave_root())
         self._cc_thread: Optional[CrossCheckThread] = None
         self._bom_source_path: str = ""
@@ -169,22 +166,19 @@ class MainWindow(
         main_layout.addWidget(self.tabs)
         self._tab_keys_in_order = []
 
-        exp_pcb = _prefs_profile_bool(
-            self._settings.value("experimental/enable_pcb_preview", True), True
-        )
         exp_step = _prefs_profile_bool(
-            self._settings.value("experimental/enable_step_3d", True), True
+            self._settings.value("experimental/enable_step_3d", False), False
         )
 
         # Tabs (titles via ui_tr in _register_main_tab)
         self._create_project_tab()
         self._create_bom_tab()
         self._create_pnp_tab()
+        self._create_package_tab()
         self._create_clean_tab()
         self._create_merge_tab()
         self._create_report_tab()
-        if exp_pcb:
-            self._create_pcb_preview_tab()
+        self._create_pcb_preview_tab()
         if exp_step:
             self._create_step_3d_tab()
         self._create_machine_library_tab()
@@ -363,6 +357,14 @@ class MainWindow(
             self.btn_bom_pn_join_help.setToolTip(
                 self.ui_tr("mapping.pn_join_help_title")
             )
+        if hasattr(self, "btn_find_package"):
+            self.btn_find_package.setText(self.ui_tr("package.find"))
+            self.btn_find_package.setToolTip(self.ui_tr("package.find_tip"))
+        if hasattr(self, "btn_apply_package_table"):
+            self.btn_apply_package_table.setText(self.ui_tr("package.apply_table"))
+            self.btn_apply_package_table.setToolTip(
+                self.ui_tr("package.apply_table_tip")
+            )
         if hasattr(self, "btn_pnp_undo"):
             self.btn_pnp_undo.setText(self.ui_tr("pnp.undo"))
             self.btn_pnp_redo.setText(self.ui_tr("pnp.redo"))
@@ -423,6 +425,12 @@ class MainWindow(
             self, settings=self._settings, ui_tr=self.ui_tr
         )
         self._register_main_tab("step_3d", self._step_3d_tab)
+
+    def _create_package_tab(self) -> None:
+        from ui.package_tab import PackageTab
+
+        self._package_tab = PackageTab(self, settings=self._settings)
+        self._register_main_tab("package", self._package_tab)
 
     def _create_machine_library_tab(self) -> None:
         self._machine_library_tab = MachineLibraryTab(self, settings=self._settings)
@@ -523,10 +531,10 @@ class MainWindow(
         dlg.show()
 
     def _install_edit_shortcuts(self) -> None:
-        u = QShortcut(QKeySequence.StandardKey.Undo, self)
+        u = QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Undo, self)
         u.setContext(QtCore.Qt.ShortcutContext.ApplicationShortcut)
         u.activated.connect(self._shortcut_undo)
-        r = QShortcut(QKeySequence.StandardKey.Redo, self)
+        r = QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Redo, self)
         r.setContext(QtCore.Qt.ShortcutContext.ApplicationShortcut)
         r.activated.connect(self._shortcut_redo)
 

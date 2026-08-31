@@ -15,7 +15,6 @@ That avoids overwriting MPN-derived fields from stray ``…25V…`` text unrelat
 from __future__ import annotations
 
 from clean_types import CleanConfig, default_clean_config
-
 from parsers.bom_text_utils import (
     canonicalize_cap_dielectric,
     cap_value_token_pf,

@@ -7,6 +7,7 @@ from typing import Optional
 
 from PySide6 import QtCore
 
+import logger
 from step_3d.occ_load import StepLoadResult, load_step_file
 
 
@@ -32,10 +33,18 @@ class StepLoadThread(QtCore.QThread):
         def progress(done: int, total: int, msg: str) -> None:
             self.progress.emit(int(done), int(total), str(msg))
 
-        result: StepLoadResult = load_step_file(
-            self._path,
-            lin_deflection=self._lin_deflection,
-            should_stop=self._cancel.is_set,
-            progress=progress,
-        )
+        try:
+            result: StepLoadResult = load_step_file(
+                self._path,
+                lin_deflection=self._lin_deflection,
+                should_stop=self._cancel.is_set,
+                progress=progress,
+            )
+        except Exception as e:
+            logger.error("STEP load failed for %s: %s", self._path, e)
+            result = StepLoadResult(
+                parts=[],
+                source_path=self._path,
+                error=str(e),
+            )
         self.result_ready.emit(result)

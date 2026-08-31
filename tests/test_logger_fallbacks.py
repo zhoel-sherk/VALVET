@@ -50,16 +50,18 @@ def test_main_parse_args_debug() -> None:
     assert args.smoke is True
 
 
-def test_gerber_gerbonara_fallback_logs_warning(monkeypatch) -> None:
+def test_gerber_gerbonara_fallback_logs_warning(monkeypatch, mocker, tmp_path: Path) -> None:
+    gbr = tmp_path / "x.gbr"
+    gbr.write_text("G04 test*", encoding="ascii")
     empty = GerberSvgPayload(
-        source_path="x.gbr",
+        source_path=str(gbr),
         svg="",
         bbox_mm=BBoxMM(0.0, 0.0, 0.0, 0.0),
         errors=("parse failed",),
         backend_name="pygerber",
     )
     ok = GerberSvgPayload(
-        source_path="x.gbr",
+        source_path=str(gbr),
         svg="<svg xmlns='http://www.w3.org/2000/svg'/>",
         bbox_mm=BBoxMM(0.0, 0.0, 1.0, 1.0),
         backend_name="gerbonara",
@@ -68,27 +70,43 @@ def test_gerber_gerbonara_fallback_logs_warning(monkeypatch) -> None:
 
     monkeypatch.setattr(eng, "load_via_pygerber", lambda p: empty)
     monkeypatch.setattr(eng, "load_via_gerbonara", lambda p: ok)
-    logs: list[str] = []
-
-    def _warn(msg, *args, **kwargs):
-        logs.append(msg % args if args else str(msg))
-
-    monkeypatch.setattr(logger, "warning", _warn)
-    payload = load_gerber_layer("x.gbr")
+    warn_spy = mocker.spy(logger, "warning")
+    payload = load_gerber_layer(str(gbr))
     assert payload.backend_name == "gerbonara"
     assert payload.svg
-    assert logs
-    assert "gerbonara" in logs[0].lower() or "pygerber" in logs[0].lower()
+    assert warn_spy.called
+    msg = str(warn_spy.call_args.args[0]).lower()
+    assert "gerbonara" in msg or "pygerber" in msg
 
 
-def test_hanwha_odbc_fallback_logs_warning(monkeypatch, tmp_path: Path) -> None:
-    import machine_library.hanwha_mdbtools as mdb
+def test_gerber_missing_file_logs_error(mocker, tmp_path: Path) -> None:
+    missing = tmp_path / "nope.gbr"
+    err_spy = mocker.spy(logger, "error")
+    payload = load_gerber_layer(str(missing))
+    assert not payload.svg
+    assert err_spy.called
+    blob = " ".join(str(a) for a in err_spy.call_args.args).lower()
+    assert "not found" in blob or "gerber" in blob
+
+
+def test_gerber_corrupt_file_logs_error(mocker, tmp_path: Path) -> None:
+    bad = tmp_path / "bad.gbr"
+    bad.write_bytes(b"not gerber content")
+    err_spy = mocker.spy(logger, "error")
+    payload = load_gerber_layer(str(bad))
+    assert not payload.svg
+    assert payload.errors
+    assert err_spy.called
+
+
+def test_hanwha_odbc_fallback_logs_warning(monkeypatch, mocker, tmp_path: Path) -> None:
+    import machine_library.hanwha_mdbtools as mdbtools
     from machine_library.access_odbc import AccessOdbcError
 
     fake = tmp_path / "lib.mdb"
     fake.write_bytes(b"mdb")
-    monkeypatch.setattr(mdb.sys, "platform", "win32")
-    monkeypatch.setattr(mdb, "_mdb_tools_fallback_allowed", lambda: True)
+    monkeypatch.setattr(mdbtools.sys, "platform", "win32")
+    monkeypatch.setattr(mdbtools, "_mdb_tools_fallback_allowed", lambda: True)
 
     def _odbc_fail(_path):
         raise AccessOdbcError("no ACE")
@@ -96,14 +114,10 @@ def test_hanwha_odbc_fallback_logs_warning(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(
         "machine_library.access_odbc.list_mdb_tables_odbc", _odbc_fail
     )
-    monkeypatch.setattr(mdb, "_list_mdb_tables_cli", lambda _p: ["PART_Det"])
-    logs: list[str] = []
-
-    def _warn(msg, *args, **kwargs):
-        logs.append(msg % args if args else str(msg))
-
-    monkeypatch.setattr(logger, "warning", _warn)
-    names = mdb.list_mdb_tables(fake)
+    monkeypatch.setattr(mdbtools, "_list_mdb_tables_cli", lambda _p: ["PART_Det"])
+    warn_spy = mocker.spy(logger, "warning")
+    names = mdbtools.list_mdb_tables(fake)
     assert names == ["PART_Det"]
-    assert logs
-    assert "mdbtools" in logs[0].lower() or "ODBC" in logs[0]
+    assert warn_spy.called
+    blob = str(warn_spy.call_args.args[0])
+    assert "mdbtools" in blob.lower() or "ODBC" in blob

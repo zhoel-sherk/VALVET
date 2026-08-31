@@ -16,9 +16,9 @@ Each converter module must define:
 - PARSER_PRIORITY: int (optional, default 0) — higher runs first in ``parse_pn``
 """
 
+import importlib
 import os
 import sys
-import importlib
 
 from parsers.regex_api import sub
 

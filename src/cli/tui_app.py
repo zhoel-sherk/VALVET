@@ -139,21 +139,37 @@ class ValvetTui(App):
         elif bid == "mdb_parts":
             self._do_mdb(tables=False)
 
+    def _validate_path(self, raw: str, label: str) -> Path | None:
+        p = Path(raw.strip())
+        if not p.is_file():
+            self._log(f"{label} not found or not a file: {p}")
+            return None
+        return p
+
     def _do_load(self) -> None:
         bom = self.query_one("#bom_path", Input).value.strip()
         pnp = self.query_one("#pnp_path", Input).value.strip()
+        if not bom and not pnp:
+            self._log("Enter a BOM and/or PnP path")
+            return
         try:
             if bom:
-                load_bom(self.session, bom)
-                self._log(f"Loaded BOM {bom} ({len(self.session.bom_df)} rows)")
-                self._show_df(self.session.bom_df)
+                bom_path = self._validate_path(bom, "BOM")
+                if bom_path is not None:
+                    load_bom(self.session, str(bom_path))
+                    self._log(
+                        f"Loaded BOM {bom_path} ({len(self.session.bom_df)} rows)"
+                    )
+                    self._show_df(self.session.bom_df)
             if pnp:
-                load_pnp(self.session, pnp)
-                self._log(f"Loaded PnP {pnp} ({len(self.session.pnp_df)} rows)")
-                if not bom:
-                    self._show_df(self.session.pnp_df)
-            if not bom and not pnp:
-                self._log("Enter a BOM and/or PnP path")
+                pnp_path = self._validate_path(pnp, "PnP")
+                if pnp_path is not None:
+                    load_pnp(self.session, str(pnp_path))
+                    self._log(
+                        f"Loaded PnP {pnp_path} ({len(self.session.pnp_df)} rows)"
+                    )
+                    if self.session.bom_df is None:
+                        self._show_df(self.session.pnp_df)
         except Exception as exc:
             self._log(f"Load failed: {exc}")
 
@@ -191,12 +207,19 @@ class ValvetTui(App):
             self._log(f"Save failed: {exc}")
 
     def _do_mdb(self, *, tables: bool) -> None:
-        path = self.query_one("#mdb_path", Input).value.strip()
-        if not path:
+        raw = self.query_one("#mdb_path", Input).value.strip()
+        if not raw:
             self._log("Enter a .mdb path")
             return
+        path = self._validate_path(raw, "MDB")
+        if path is None:
+            return
         try:
-            text = format_tables(path) if tables else format_part_det(path, limit=40)
+            text = (
+                format_tables(str(path))
+                if tables
+                else format_part_det(str(path), limit=40)
+            )
             for line in text.splitlines():
                 self._log(line)
         except HanwhaMdbToolsError as exc:

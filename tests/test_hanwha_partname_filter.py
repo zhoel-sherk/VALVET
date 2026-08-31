@@ -12,6 +12,7 @@ tests_dir = Path(__file__).resolve().parent
 _boomer_root = tests_dir.parent
 sys.path.insert(0, str(_boomer_root / "src"))
 
+from machine_library.hanwha_mdbtools import part_det_rows_to_dataframe  # noqa: E402
 from machine_library.hanwha_partnames import (  # noqa: E402
     filter_by_confidence_levels,
     is_junk_hanwha_partname,
@@ -20,7 +21,6 @@ from machine_library.hanwha_partnames import (  # noqa: E402
     partnames_for_clean,
     resolve_upd_mdb_path,
 )
-from machine_library.hanwha_mdbtools import part_det_rows_to_dataframe  # noqa: E402
 
 _FIXTURE = _boomer_root / "tests" / "fixtures" / "hanwha_PART_Det_sample.csv"
 

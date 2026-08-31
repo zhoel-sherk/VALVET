@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from clean_types import CleanConfig
-
 from parsers.chip_tokens import match_package_token
 from parsers.constants import PACKAGE_PATTERN
 from parsers.regex_api import I, compile, match, search

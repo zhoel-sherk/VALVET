@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pandas as pd
 
+import machine_library.hanwha_mdbtools as mdbtools
 from hanwha_mdb_edit.core.part_group import join_part_group_names
-from machine_library.hanwha_mdbtools import export_table_csv, list_mdb_tables
 
 # Safety limits while scanning every joinable table (temporary wide mode).
 _MAX_WIDE_TABLES = 120
@@ -43,7 +43,7 @@ SPEED_Q_COL = "OVERALL_SPEED_LEVEL"
 
 
 def load_table_dataframe(mdb_path: str | Path, table: str) -> pd.DataFrame:
-    csv_text = export_table_csv(mdb_path, table)
+    csv_text = mdbtools.export_table_csv(mdb_path, table)
     return pd.read_csv(io.StringIO(csv_text))
 
 
@@ -130,7 +130,7 @@ def load_wide_editor_dataframe(mdb_path: str | Path) -> pd.DataFrame:
     Intended as a temporary exploration mode until the schema is narrowed again.
     """
     base = load_enriched_parts_dataframe(mdb_path)
-    tables = [t for t in list_mdb_tables(mdb_path) if not str(t).startswith("~")]
+    tables = [t for t in mdbtools.list_mdb_tables(mdb_path) if not str(t).startswith("~")]
     merged_count = 0
 
     for table in tables:

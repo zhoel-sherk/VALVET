@@ -8,15 +8,6 @@ src/pcb_preview/     – Gerber/PnP preview core (no Qt)
 """
 
 from app.constants import (
-    APP_NAME,
-    APP_VERSION,
-    HIDDEN_TABLE_HAS_HEADER_ROW,
-    PROFILE_LAST_ACTIVE_KEY,
-    PROFILE_NAMES_KEY,
-    PROFILE_STATE_VERSION,
-    SETTINGS_APP,
-    SETTINGS_ORG,
-    VERSION_DISPLAY,
     _BOM_MAPPING_ROLES,
     _DANGER_CLEAR_BTN_STYLE,
     _MAPPING_COMBO_HIGHLIGHT_STYLE,
@@ -26,6 +17,15 @@ from app.constants import (
     _PREVIEW_TABLE_HDR_HEIGHT,
     _RCL_ROW_DISABLED_STYLE,
     _TABLE_COL_MAX_WIDTH,
+    APP_NAME,
+    APP_VERSION,
+    HIDDEN_TABLE_HAS_HEADER_ROW,
+    PROFILE_LAST_ACTIVE_KEY,
+    PROFILE_NAMES_KEY,
+    PROFILE_STATE_VERSION,
+    SETTINGS_APP,
+    SETTINGS_ORG,
+    VERSION_DISPLAY,
 )
 from app.window import MainWindow
 

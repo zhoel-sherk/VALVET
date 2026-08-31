@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import logger
 from step_3d.conversion import run_step_to_mesh
 from step_3d.occ_load import (
     DEFAULT_LIN_DEFLECTION,
@@ -17,8 +18,6 @@ from step_3d.occ_load import (
     pythonocc_available,
 )
 from step_3d.viewer_pyvista import PyVistaViewPane
-
-import logger
 
 _SETTINGS_CMD = "step_3d/converter_command"
 _SETTINGS_DEFLECT = "step_3d/lin_deflection"
@@ -32,9 +31,8 @@ _ui_tr_type = Callable[[str], str]
 
 def _has_pyvista_stack() -> bool:
     try:
-        import pyvistaqt  # noqa: F401
-
         import pyvista  # noqa: F401
+        import pyvistaqt  # noqa: F401
     except ImportError:
         return False
     return True
@@ -412,6 +410,7 @@ class Step3DTabWidget(QtWidgets.QWidget):
         thread = self._load_thread
         self._load_thread = None
         if thread is not None:
+            thread.wait(5000)
             thread.deleteLater()
 
     def _on_cancel_load(self) -> None:

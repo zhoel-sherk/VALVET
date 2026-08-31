@@ -8,6 +8,7 @@ https://github.com/marmidr/yedytor). Qt-free; no PySide6.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Union
 
@@ -18,6 +19,8 @@ DEVLIB_HEADER = b"Ver500"
 DEVLIB_COMPONENT_SIZE = 640
 DEVLIB2_COMPONENT_SIZE = 2048
 DEVLIB_COMPONENT_NAME_SIZE = 82
+DEVLIB_COMPONENT_BASENAME_SIZE = 44
+DEVLIB_BASENAME_OFF = 82
 
 _log = logging.getLogger(__name__)
 
@@ -41,14 +44,25 @@ def _normalize_devlib_display_name(name_str: str) -> str:
     return name_str.strip()
 
 
-def _scan_devlib_records(data: bytes, lib_v1: bool) -> dict[str, list[str]] | None:
+@dataclass(frozen=True)
+class DevLibRecord:
+    name: str
+    basename: str
+    record_index: int
+
+    @property
+    def key(self) -> str:
+        return self.name.lower()
+
+
+def _scan_devlib_records(data: bytes, lib_v1: bool) -> list[DevLibRecord] | None:
     """Like yedytor ``__scan``: return part index, or ``None`` to try the other stride."""
     if len(data) < len(DEVLIB_HEADER) or data[: len(DEVLIB_HEADER)] != DEVLIB_HEADER:
         _log.error("DevLib file has no expected Ver500 header")
         return None
 
     component_size = DEVLIB_COMPONENT_SIZE if lib_v1 else DEVLIB2_COMPONENT_SIZE
-    items: dict[str, list[str]] = {}
+    records: list[DevLibRecord] = []
     n = 0
     while True:
         base = DEVLIB_OFFSET + n * component_size
@@ -70,23 +84,48 @@ def _scan_devlib_records(data: bytes, lib_v1: bool) -> dict[str, list[str]] | No
         name_str = _normalize_devlib_display_name(name_raw)
         if not name_str:
             continue
-        key = name_str.lower()
-        if key in items:
-            items[key].append(name_str)
-        else:
-            items[key] = [name_str]
+        b_off = base + DEVLIB_BASENAME_OFF
+        b_end = b_off + DEVLIB_COMPONENT_BASENAME_SIZE
+        basename = ""
+        if b_end <= len(data):
+            braw = data[b_off:b_end]
+            if braw and braw[0] != 0:
+                nul_b = braw.find(0)
+                if nul_b >= 0:
+                    braw = braw[:nul_b]
+                decoded = _decode_devlib_name(n, braw)
+                basename = (decoded or "").strip()
+        records.append(
+            DevLibRecord(name=name_str, basename=basename, record_index=n)
+        )
         _log.debug("DevLib %s %s", n, name_str)
-    return items
+    return records
+
+
+def _pick_devlib_scan(data: bytes) -> list[DevLibRecord]:
+    first = _scan_devlib_records(data, True)
+    if first is None:
+        second = _scan_devlib_records(data, False)
+        return second if second is not None else []
+    return first
+
+
+def load_devlib_records(path: PathLike) -> list[DevLibRecord]:
+    """Named DevLib rows with optional basename (yedytor field at +82)."""
+    return _pick_devlib_scan(Path(path).read_bytes())
 
 
 def load_devlib_items(path: PathLike) -> dict[str, list[str]]:
     """Load ``.Lib`` with v1 vs Ed2 stride auto-detection (same strategy as yedytor ``DevLibFile``)."""
-    data = Path(path).read_bytes()
-    first = _scan_devlib_records(data, True)
-    if first is None:
-        second = _scan_devlib_records(data, False)
-        return second if second is not None else {}
-    return first
+    items: dict[str, list[str]] = {}
+    for rec in load_devlib_records(path):
+        key = rec.key
+        if key in items:
+            if rec.name not in items[key]:
+                items[key].append(rec.name)
+        else:
+            items[key] = [rec.name]
+    return items
 
 
 def load_devlib_partname_set(path: PathLike) -> set[str]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from services.column_mapping import (
+    BOM_EXCLUSIVE_ROLES,
     guess_bom_role,
     is_designator_header,
     likely_ref_mapped_to_pn,
@@ -12,7 +13,6 @@ from services.column_mapping import (
     pn_columns_in_order,
     roles_after_clean_apply,
     uniquify_roles,
-    BOM_EXCLUSIVE_ROLES,
 )
 
 

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from tools.clean_corpus_lib import load_corpus_profile
 
 import clean_component
 import pn_original
@@ -20,7 +21,6 @@ from services import (
     read_pnp_dataframe,
 )
 from smt_processor import ColumnConfig
-from tools.clean_corpus_lib import load_corpus_profile
 
 _ASSETS = Path(__file__).resolve().parent / "assets"
 
@@ -136,6 +136,23 @@ def test_apply_clean_preview_seven_column_rows() -> None:
     out = apply_clean_preview_to_bom(bom, preview, [0], "Comment")
     assert out.at[0, "comment"] == "cleaned"
     assert out.at[0, "clean_type"] == "CAP"
+
+
+def test_apply_clean_preview_snapshot_dirty(tmp_path: Path) -> None:
+    import working_copy
+
+    bom = pd.DataFrame({"Comment": ["RES 10K 0402"]})
+    preview = [(1, "RES 10K 0402", "0402_10K", "RESISTOR", "regex")]
+    out = apply_clean_preview_to_bom(bom, preview, [0], "Comment")
+    assert out.at[0, "comment"] == "0402_10K"
+    src = tmp_path / "bom.csv"
+    src.write_text("x\n", encoding="utf-8")
+    autosave = tmp_path / "autosave"
+    autosave.mkdir()
+    working_copy.save_snapshot(out, str(src), "bom", autosave, dirty=True)
+    snap = working_copy.find_snapshot(str(src), "bom", autosave)
+    assert snap is not None
+    assert snap.meta["dirty"] is True
 
 
 def test_find_replace_table_state_helpers_exist() -> None:

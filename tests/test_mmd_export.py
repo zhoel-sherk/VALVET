@@ -17,7 +17,7 @@ from mmd_export import (
     mm_to_mmd_coord,
     pnp_raw_xy_to_board_mm,
 )  # noqa: E402
-from pnp_coord import convert_xy_mm_to_mil_row, convert_xy_mil_to_mm_row  # noqa: E402
+from pnp_coord import convert_xy_mil_to_mm_row, convert_xy_mm_to_mil_row  # noqa: E402
 
 EXAMPLES = boomer_dir / "examples" / "mmd"
 

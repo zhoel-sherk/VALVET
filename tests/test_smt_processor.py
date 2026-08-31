@@ -1,12 +1,12 @@
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(os.path.dirname(tests_path), "src"))
 
 import smt_processor
-
 
 # ==============================================================================
 # Test read_file - all formats
@@ -18,6 +18,26 @@ def test_read_file_no_file():
         smt_processor.read_file("/nonexistent/file.xlsx")
 
 
+def test_read_file_empty_path():
+    with pytest.raises(smt_processor.SMTFileNotFoundError, match="Empty file path"):
+        smt_processor.read_file("")
+    with pytest.raises(smt_processor.SMTFileNotFoundError, match="Empty file path"):
+        smt_processor.read_file("   ")
+
+
+def test_read_file_corrupt_xlsx(tmp_path):
+    bad = tmp_path / "bad.xlsx"
+    bad.write_bytes(b"not a zip archive")
+    with pytest.raises(smt_processor.SMTEmptyDataError):
+        smt_processor.read_file(str(bad))
+
+
+def test_read_pnp_whitespace_missing_file(tmp_path):
+    missing = tmp_path / "missing.txt"
+    with pytest.raises(smt_processor.SMTFileNotFoundError):
+        smt_processor.read_pnp_whitespace(str(missing))
+
+
 def test_read_file_xlsx():
     path = os.path.join(tests_path, "assets", "bom.xlsx")
     df = smt_processor.read_file(path)
@@ -25,7 +45,6 @@ def test_read_file_xlsx():
     assert len(df.columns) > 0
 
 
-@pytest.mark.skip(reason="xlrd doesn't support xlsx in Python 3.14")
 def test_read_file_xls():
     path = os.path.join(tests_path, "assets", "bom.xls")
     df = smt_processor.read_file(path)

@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+import logger
 from parsers.regex_api import I, compile
 
 _CAP_FILMS = (
@@ -76,7 +77,10 @@ def _best_film_hint(tokens: Iterable[str]) -> str:
         return ""
     try:
         from rapidfuzz import fuzz
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "rapidfuzz unavailable for film hint; skipping fuzzy match: %s", exc
+        )
         return ""
     best_token = ""
     best_target = ""

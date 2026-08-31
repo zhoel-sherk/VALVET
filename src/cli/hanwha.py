@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from machine_library.hanwha_mdbtools import (
-    HanwhaMdbToolsError,
-    list_mdb_tables,
-    load_part_det_from_mdb,
-)
+import machine_library.hanwha_mdbtools as mdbtools
+
+HanwhaMdbToolsError = mdbtools.HanwhaMdbToolsError
+list_mdb_tables = mdbtools.list_mdb_tables
+load_part_det_from_mdb = mdbtools.load_part_det_from_mdb
 
 
 def format_tables(mdb_path: str) -> str:

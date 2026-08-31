@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import pn_original
 import pytest
+from tools.clean_corpus_lib import load_corpus_profile
 
 import clean_component
-from tools.clean_corpus_lib import load_corpus_profile
+import pn_original
 
 
 @pytest.fixture(scope="module")

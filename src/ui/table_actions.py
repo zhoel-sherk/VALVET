@@ -7,8 +7,8 @@ from typing import Any
 
 from PySide6 import QtCore, QtWidgets
 
-from settings_paths import path_settings_hash
 from services.find_replace import find_and_replace
+from settings_paths import path_settings_hash
 
 
 class TableActionsMixin:

@@ -1,17 +1,15 @@
 """
 PandasTableModel — bridge between a pandas DataFrame and PySide6 QTableView.
 
-Subclass of QAbstractTableModel; handles pandas NaN/NaT safely.
+Subclass of QtCore.QAbstractTableModel; handles pandas NaN/NaT safely.
 """
 
-import pandas as pd
-import numpy as np
 from typing import Any, Callable, Optional
 
-from PySide6 import QtCore
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PySide6 import QtGui
-from PySide6.QtGui import QUndoCommand, QUndoStack
+import numpy as np
+import pandas as pd
+from PySide6 import QtCore, QtGui
+
 import logger
 
 
@@ -103,7 +101,7 @@ def _cell_values_equal(a: Any, b: Any) -> bool:
     return a == b
 
 
-class DataFrameCellEditCommand(QUndoCommand):
+class DataFrameCellEditCommand(QtGui.QUndoCommand):
     """Undo one cell edit on a PandasTableModel."""
 
     def __init__(
@@ -129,7 +127,7 @@ class DataFrameCellEditCommand(QUndoCommand):
         self._model._write_cell(self._row, self._col, self._old, emit_change=True)
 
 
-class PandasTableModel(QAbstractTableModel):
+class PandasTableModel(QtCore.QAbstractTableModel):
     """
     Generic Qt model backed by a pandas DataFrame.
 
@@ -151,7 +149,7 @@ class PandasTableModel(QAbstractTableModel):
         self._editable = editable
         self._column_display_names: dict[str, str] = {}
         self._column_tooltips: dict[str, str] = {}
-        self._undo_stack: Optional[QUndoStack] = None
+        self._undo_stack: Optional[QtGui.QUndoStack] = None
         self._audit_table_id: str = ""
         self._audit_callback: Optional[Callable[[dict[str, Any]], None]] = None
         self._read_only_guard: bool = False
@@ -160,17 +158,17 @@ class PandasTableModel(QAbstractTableModel):
     # Required Abstract Methods
     # =========================================================================
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
         if parent.isValid():
             return 0
         return len(self._df)
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
+    def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
         if parent.isValid():
             return 0
         return len(self._df.columns)
 
-    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
 
@@ -182,22 +180,22 @@ class PandasTableModel(QAbstractTableModel):
 
         value = self._df.iloc[row, col]
 
-        if role == Qt.ItemDataRole.DisplayRole:
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return self._format_value(value)
 
-        elif role == Qt.ItemDataRole.EditRole:
+        elif role == QtCore.Qt.ItemDataRole.EditRole:
             return self._format_value(value, for_edit=True)
 
-        elif role == Qt.ItemDataRole.TextAlignmentRole:
-            return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
+            return QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
 
-        elif role == Qt.ItemDataRole.ToolTipRole:
+        elif role == QtCore.Qt.ItemDataRole.ToolTipRole:
             return self._format_value(value, for_edit=True)
 
-        elif role == Qt.ItemDataRole.BackgroundRole:
+        elif role == QtCore.Qt.ItemDataRole.BackgroundRole:
             return self._get_background(row, col, value)
 
-        elif role == Qt.ItemDataRole.ForegroundRole:
+        elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
             return self._get_foreground(row, col, value)
 
         return None
@@ -205,21 +203,21 @@ class PandasTableModel(QAbstractTableModel):
     def headerData(
         self,
         section: int,
-        orientation: Qt.Orientation,
-        role: int = Qt.ItemDataRole.DisplayRole,
+        orientation: QtCore.Qt.Orientation,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
     ) -> Any:
-        if orientation == Qt.Orientation.Horizontal:
+        if orientation == QtCore.Qt.Orientation.Horizontal:
             if section >= len(self._df.columns):
                 return None
             col_name = str(self._df.columns[section])
-            if role == Qt.ItemDataRole.DisplayRole:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return self._column_display_names.get(col_name, col_name)
-            if role == Qt.ItemDataRole.ToolTipRole:
+            if role == QtCore.Qt.ItemDataRole.ToolTipRole:
                 return self._column_tooltips.get(col_name) or col_name
             return None
 
-        elif orientation == Qt.Orientation.Vertical:
-            if role == Qt.ItemDataRole.DisplayRole:
+        elif orientation == QtCore.Qt.Orientation.Vertical:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return str(section + 1)
 
         return None
@@ -228,17 +226,17 @@ class PandasTableModel(QAbstractTableModel):
     # Optional: Flags
     # =========================================================================
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
+    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlag:
         if not index.isValid():
-            return Qt.ItemFlag.NoItemFlags
-        flags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+            return QtCore.Qt.ItemFlag.NoItemFlags
+        flags = QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
         if self._editable:
-            flags |= Qt.ItemFlag.ItemIsEditable
+            flags |= QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
     def set_undo_stack(
         self,
-        stack: Optional[QUndoStack],
+        stack: Optional[QtGui.QUndoStack],
         *,
         table_id: str = "",
         audit_callback: Optional[Callable[[dict[str, Any]], None]] = None,
@@ -258,7 +256,7 @@ class PandasTableModel(QAbstractTableModel):
     def _emit_cell_changed(self, row: int, col: int) -> None:
         idx = self.index(row, col)
         self.dataChanged.emit(
-            idx, idx, [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole]
+            idx, idx, [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole]
         )
 
     def _write_cell(self, row: int, col: int, value: Any, *, emit_change: bool) -> None:
@@ -274,11 +272,11 @@ class PandasTableModel(QAbstractTableModel):
         self._audit_callback(payload)
 
     def setData(
-        self, index: QModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole
+        self, index: QtCore.QModelIndex, value: Any, role: int = QtCore.Qt.ItemDataRole.EditRole
     ) -> bool:
         if (
             not self._editable
-            or role != Qt.ItemDataRole.EditRole
+            or role != QtCore.Qt.ItemDataRole.EditRole
             or not index.isValid()
         ):
             return False
@@ -322,7 +320,7 @@ class PandasTableModel(QAbstractTableModel):
             }
         )
         self.dataChanged.emit(
-            index, index, [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole]
+            index, index, [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole]
         )
         return True
 
@@ -355,7 +353,7 @@ class PandasTableModel(QAbstractTableModel):
         self._column_tooltips = dict(tooltips)
         if len(self._df.columns):
             self.headerDataChanged.emit(
-                Qt.Orientation.Horizontal, 0, len(self._df.columns) - 1
+                QtCore.Qt.Orientation.Horizontal, 0, len(self._df.columns) - 1
             )
 
     def apply_row_patch(self, row: int, patch: dict[str, Any]) -> bool:
@@ -396,7 +394,7 @@ class PandasTableModel(QAbstractTableModel):
         tl = self.index(row, lo)
         br = self.index(row, hi)
         self.dataChanged.emit(
-            tl, br, [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole]
+            tl, br, [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole]
         )
         return True
 
@@ -461,10 +459,10 @@ class SortableTableModel(PandasTableModel):
     ):
         super().__init__(dataframe, parent, editable=editable)
         self._sort_column = -1
-        self._sort_order = Qt.SortOrder.AscendingOrder
+        self._sort_order = QtCore.Qt.SortOrder.AscendingOrder
 
     def sort(
-        self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
+        self, column: int, order: QtCore.Qt.SortOrder = QtCore.Qt.SortOrder.AscendingOrder
     ) -> None:
         if column < 0 or column >= len(self._df.columns):
             return
@@ -474,7 +472,7 @@ class SortableTableModel(PandasTableModel):
         self._sort_order = order
 
         col_name = self._df.columns[column]
-        ascending = order == Qt.SortOrder.AscendingOrder
+        ascending = order == QtCore.Qt.SortOrder.AscendingOrder
 
         self.clear_undo_stack()
         try:
@@ -487,17 +485,17 @@ class SortableTableModel(PandasTableModel):
     def headerData(
         self,
         section: int,
-        orientation: Qt.Orientation,
-        role: int = Qt.ItemDataRole.DisplayRole,
+        orientation: QtCore.Qt.Orientation,
+        role: int = QtCore.Qt.ItemDataRole.DisplayRole,
     ) -> Any:
         result = super().headerData(section, orientation, role)
 
         if (
-            role == Qt.ItemDataRole.DisplayRole
-            and orientation == Qt.Orientation.Horizontal
+            role == QtCore.Qt.ItemDataRole.DisplayRole
+            and orientation == QtCore.Qt.Orientation.Horizontal
         ):
             if section == self._sort_column:
-                arrow = "▲" if self._sort_order == Qt.SortOrder.AscendingOrder else "▼"
+                arrow = "▲" if self._sort_order == QtCore.Qt.SortOrder.AscendingOrder else "▼"
                 return f"{result} {arrow}"
 
         return result
@@ -535,7 +533,7 @@ class CleanPreviewTableModel(SortableTableModel):
             self.dataChanged.emit(
                 tl,
                 br,
-                [QtCore.Qt.ItemDataRole.BackgroundRole],
+                [QtCore.QtCore.Qt.ItemDataRole.BackgroundRole],
             )
 
     def _get_background(self, row: int, col: int, value: Any) -> Any:

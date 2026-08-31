@@ -12,14 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from machine_library.hanwha_mdbtools import (
-    HanwhaMdbToolsError,
-    export_table_csv,
-    list_mdb_tables,
-    load_part_det_from_mdb,
-    parse_part_det_csv,
-    part_det_rows_to_dataframe,
-)
+import machine_library.hanwha_mdbtools as mdbtools
 from mdb_paths import resolve_upd_mdb, skip_if_mdb_unreadable
 
 _FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -31,7 +24,7 @@ _UPD_MDB = resolve_upd_mdb()
 
 def test_parse_part_det_fixture() -> None:
     text = _SAMPLE_CSV.read_text(encoding="utf-8")
-    rows = parse_part_det_csv(text)
+    rows = mdbtools.parse_part_det_csv(text)
     assert len(rows) == 20
     assert rows[0].partname == "_NewC0201"
     assert rows[0].profilename == "_NewC0201"
@@ -45,7 +38,7 @@ def test_parse_part_det_fixture() -> None:
 
 def test_part_det_rows_to_dataframe() -> None:
     text = _SAMPLE_CSV.read_text(encoding="utf-8")
-    df = part_det_rows_to_dataframe(parse_part_det_csv(text))
+    df = mdbtools.part_det_rows_to_dataframe(mdbtools.parse_part_det_csv(text))
     assert list(df.columns) == [
         "PARTNAME",
         "PROFILENAME",
@@ -60,7 +53,7 @@ def test_part_det_rows_to_dataframe() -> None:
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_list_tables_on_sample_upd_mdb() -> None:
     skip_if_mdb_unreadable(_UPD_MDB)
-    names = list_mdb_tables(_UPD_MDB)
+    names = mdbtools.list_mdb_tables(_UPD_MDB)
     assert "PART_Det" in names
     assert "PARTGROUP_Map" in names
     assert "FEEDERTYPE_Map" in names
@@ -69,7 +62,7 @@ def test_list_tables_on_sample_upd_mdb() -> None:
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_load_part_det_from_sample_upd_mdb() -> None:
     skip_if_mdb_unreadable(_UPD_MDB)
-    rows = load_part_det_from_mdb(_UPD_MDB)
+    rows = mdbtools.load_part_det_from_mdb(_UPD_MDB)
     assert len(rows) >= 2
     names = {r.partname for r in rows}
     assert "_NewC0201" in names
@@ -78,12 +71,15 @@ def test_load_part_det_from_sample_upd_mdb() -> None:
 
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
 def test_export_table_rejects_bad_name() -> None:
-    with pytest.raises(HanwhaMdbToolsError, match="unsafe"):
-        export_table_csv(_UPD_MDB, "PART_Det;DROP")
+    with pytest.raises(mdbtools.HanwhaMdbToolsError, match="unsafe"):
+        mdbtools.export_table_csv(_UPD_MDB, "PART_Det;DROP")
 
 
 def test_mdb_export_matches_fixture_snapshot() -> None:
-    from machine_library.hanwha_partnames import export_partnames_snapshot, load_partnames_snapshot
+    from machine_library.hanwha_partnames import (
+        export_partnames_snapshot,
+        load_partnames_snapshot,
+    )
 
     fixture = _REPO_ROOT / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
     if _UPD_MDB is None or not fixture.is_file():

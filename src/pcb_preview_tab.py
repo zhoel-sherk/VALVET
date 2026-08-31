@@ -8,14 +8,15 @@ from typing import Any, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import pcb_preview_bridge
 from pcb_preview.alignment import Similarity2D
-from pcb_preview.footprint_db import FootprintStore
 from pcb_preview.engine.identify import (
     guess_layer_kind,
     layer_default_opacity,
     layer_default_rgb,
     layer_default_z,
 )
+from pcb_preview.footprint_db import FootprintStore
 from pcb_preview.gerber_io import (
     GerberUnitMode,
     gerber_to_scene_mm_scale,
@@ -28,10 +29,8 @@ from pcb_preview.types import (
     GerberSvgPayload,
     PlacementRecord,
 )
-
-import pcb_preview_bridge
 from pcb_preview_load_thread import GerberLoadThread
-
+from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
 _CENTROID_RADIUS_MM = 0.45
@@ -42,37 +41,6 @@ _LABEL_SCENE_SCALE = 0.12
 _CROSS_HALF_MM = 0.9
 # Gerber raster: pixels per mm of SVG viewBox (higher = sharper, more memory).
 _GERBER_PX_PER_MM = 14.0
-
-
-def _outline_to_path(
-    outline: FootprintOutlineMM, y_flip: bool = True
-) -> QtGui.QPainterPath:
-    path = QtGui.QPainterPath()
-    fy = -1.0 if y_flip else 1.0
-
-    def qy(y: float) -> float:
-        return y * fy
-
-    for ln in outline.lines:
-        path.moveTo(ln.x1, qy(ln.y1))
-        path.lineTo(ln.x2, qy(ln.y2))
-    for c in outline.circles:
-        cy = qy(c.cy)
-        path.addEllipse(
-            QtCore.QRectF(
-                c.cx - c.radius_mm, cy - c.radius_mm, 2 * c.radius_mm, 2 * c.radius_mm
-            )
-        )
-    for p in outline.pads:
-        w, h = p.width_mm, p.height_mm
-        rect = QtCore.QRectF(-w / 2, -h / 2, w, h)
-        poly = QtGui.QPolygonF(rect)
-        tr = QtGui.QTransform()
-        tr.rotate(-p.rotation_deg if y_flip else p.rotation_deg)
-        poly = tr.map(poly)
-        poly.translate(p.cx, qy(p.cy))
-        path.addPolygon(poly)
-    return path
 
 
 def _similarity_to_qtransform(sim: Similarity2D) -> QtGui.QTransform:
@@ -463,6 +431,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_mils, self._rb_g_in):
             self._bg_gunit.addButton(rb)
             lu.addWidget(rb)
+        self._bg_gunit.buttonToggled.connect(self._on_gerber_unit_toggled)
         self._rb_g_auto.setToolTip(
             "Backends already convert Gerber to millimetres; scene grid is mm (same as PnP)."
         )
@@ -866,8 +835,14 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._btn_gerber.setEnabled(False)
         self._append_log(self._tr("pcb.gerber_loading"))
         thread = GerberLoadThread(path, self._px_per_mm, self)
-        thread.result_ready.connect(self._on_gerber_loaded)
-        thread.finished.connect(self._on_gerber_thread_finished)
+        thread.result_ready.connect(
+            self._on_gerber_loaded,
+            QtCore.Qt.ConnectionType.QueuedConnection,
+        )
+        thread.finished.connect(
+            self._on_gerber_thread_finished,
+            QtCore.Qt.ConnectionType.QueuedConnection,
+        )
         self._gerber_thread = thread
         thread.start()
 
@@ -876,6 +851,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         t = self._gerber_thread
         self._gerber_thread = None
         if t is not None:
+            t.wait(5000)
             t.deleteLater()
 
     def _on_gerber_loaded(self, packed: object) -> None:

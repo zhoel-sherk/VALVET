@@ -11,10 +11,10 @@ from pcb_preview.footprint_db import (
     normalize_footprint_key,
 )
 from pcb_preview.gerber_io import (
+    gerber_to_scene_mm_scale,
     load_gerber_svg,
     peek_rs274x_linear_unit,
     scale_bbox_mm,
-    gerber_to_scene_mm_scale,
 )
 from pcb_preview.types import (
     BBoxMM,

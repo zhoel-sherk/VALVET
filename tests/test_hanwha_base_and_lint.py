@@ -11,7 +11,12 @@ from hanwha_mdb_edit.core.column_labels import label_and_tooltip_for_column
 from hanwha_mdb_edit.core.part_group import join_part_group_names
 from services.clean_preview_filter import filter_clean_preview, unresolved_preview_rows
 from services.hanwha_match_status import hanwha_match_status, strict_export_blocked
-from services.project_file import load_project_file, project_payload, push_mru, save_project_file
+from services.project_file import (
+    load_project_file,
+    project_payload,
+    push_mru,
+    save_project_file,
+)
 
 
 def test_join_part_group_names_maps_id_to_chip_class() -> None:
