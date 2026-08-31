@@ -29,9 +29,10 @@ _KICAD_B = """
 """
 
 
-def test_tree_has_seven_classes() -> None:
+def test_tree_has_eight_classes() -> None:
     classes = load_tree()["classes"]
-    assert len(classes) == 7
+    assert len(classes) == 8
+    assert "HARDWARE" in classes
 
 
 def test_parse_package_goldens() -> None:
@@ -54,7 +55,18 @@ def test_parse_package_goldens() -> None:
     assert parse_package("Chip-R1005(0402)").vspd_id == "CHIP-0402"
     assert parse_package("Chip-R0603(0201)").vspd_id == "CHIP-0201"
     assert parse_package("Chip-Tantal").vspd_id == "TANT-A"
+    assert parse_package("CHIP-Circle").vspd_id == "CIRCLE-GENERIC"
     assert parse_package("TR2").vspd_id == "SOT-23"
+    assert parse_package("SC-70").vspd_id == "SOT-323"
+    assert parse_package("SOT-723").vspd_id == "SOT-723"
+    assert parse_package("SOD-923").vspd_id == "SOD-923"
+    assert parse_package("SOT-23-8").vspd_id == "SOT-23-8"
+    assert parse_package("WSON-8").vspd_id == "WSON-8"
+    assert parse_package("QFN-16(3mmx3mm)").vspd_id == "QFN-16_3x3"
+    assert parse_package("POSCAP 100uF (3528/B)").vspd_id == "TANT-B"
+    assert parse_package("Copper Nut M2.0x4.6x2.8").vspd_id == "CIRCLE-D4.6"
+    assert parse_package("XTAL 25MHZ 3.2*2.5").vspd_id == "XTAL-3225"
+    assert parse_package("MELF").vspd_id == "MELF"
     assert parse_package("SOP").vspd_id == "OTHER"
     assert parse_package("103020015").vspd_id == "OTHER"
     assert parse_package("CAPC1005").vspd_id == "CHIP-0402"
@@ -152,3 +164,47 @@ def test_sod523_heuristic_has_two_pads() -> None:
     assert result.error == ""
     assert len(result.outline.pads) == 2
     assert result.outline.lines
+
+
+def test_circle_heuristic_is_circular_no_pads() -> None:
+    result = build_result_for_package("CIRCLE-D4.6")
+    assert result.error == ""
+    assert result.outline.circles
+    assert not result.outline.lines
+    assert not result.outline.pads
+
+
+def test_cap_alu_heuristic_is_circular() -> None:
+    result = build_result_for_package("CAP-ALU-D6.3x5.4")
+    assert result.error == ""
+    assert result.outline.circles
+    assert not result.outline.lines
+    assert len(result.outline.pads) == 2
+
+
+def test_melf_not_chip_rectangle_pads() -> None:
+    result = build_result_for_package("MELF")
+    assert result.error == ""
+    assert len(result.outline.circles) == 2
+    assert not result.outline.lines
+    assert len(result.outline.pads) == 2
+    assert result.outline.pads[0].width_mm < result.size_x_mm * 0.2
+
+
+def test_sot23_has_three_pads() -> None:
+    result = build_result_for_package("SOT-23")
+    assert result.error == ""
+    assert len(result.outline.pads) == 3
+
+
+def test_soic8_has_eight_pads() -> None:
+    result = build_result_for_package("SOIC-8")
+    assert result.error == ""
+    assert len(result.outline.pads) == 8
+
+
+def test_qfn32_has_many_pads_not_two() -> None:
+    result = build_result_for_package("QFN-32_5x5")
+    assert result.error == ""
+    assert len(result.outline.pads) == 32
+    assert len(result.outline.pads) > 2

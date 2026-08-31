@@ -30,8 +30,28 @@ _KLC = re.compile(
     r"(?:_P(?:itch)?[0-9.]+mm)?(?:_[NL])?\b"
 )
 _KLC_QFN_SIZE = re.compile(
-    r"(?i)\b(QFN|DFN)-(\d+)_(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)\b"
+    r"(?i)\b(QFN|DFN|WQFN)-(\d+)_(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)\b"
 )
+_QFN_PAREN = re.compile(
+    r"(?i)\b(?:W)?QFN-?(\d+)\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:mm)?\s*[xX×]\s*(\d+(?:\.\d+)?)"
+)
+_DFN_LOOSE = re.compile(
+    r"(?i)\b(?:DFN|PDFN|UTDFN|TDFN)(\d+)?[\s_-]*(?:\d+)?[xX×](\d+(?:\.\d+)?)"
+    r"[\s_-]*(?:\d+)?[xX×](\d+(?:\.\d+)?)"
+)
+_QFN_LOOSE = re.compile(
+    r"(?i)\b(?:W)?QFN-?(\d+)(?:[\s_]+(\d+(?:\.\d+)?)[xX×](\d+(?:\.\d+)?))?"
+)
+_WSON = re.compile(r"(?i)\bWSON-?(\d+)\b")
+_XTAL_CODE = re.compile(r"(?i)\b(?:XTAL|CRYSTAL|CRY)[\s_-]*(\d{4})\b")
+_XTAL_MM = re.compile(
+    r"(?i)(?:\bXTAL\b|\bCRYSTAL\b|\bCRY\b|MHZ|KHZ).{0,40}?"
+    r"(\d(?:\.\d+)?)\s*[*×xX]\s*(\d(?:\.\d+)?)"
+)
+_CIRCLE_D = re.compile(r"(?i)(?:CIRCLE|NUT|WASHER).{0,30}?[dD](?:=|ia\.?)?\s*(\d+(?:\.\d+)?)")
+_CIRCLE_NUT_DIM = re.compile(r"(?i)\bM\d+(?:\.\d+)?[xX](\d+(?:\.\d+)?)")
+_CIRCLE_CHIP = re.compile(r"(?i)\bCHIP[\s_-]*CIRCLE\b")
+_POSCAP_CASE = re.compile(r"(?i)(?:3528|7343)[/\(]")
 _HANWHA_CHIP = re.compile(r"(?i)\bChip-[RCL](\d{4,5})\b")
 _HANWHA_PAREN = re.compile(r"(?i)Chip-[RCL]\d+\((\d{4,5})\)")
 _PLCC = re.compile(r"(?i)(?<![A-Z0-9])PLCC[\s_-]*(\d{2,3})(?![0-9])")
@@ -69,6 +89,51 @@ def classify_electrical(text: str) -> str:
     if _RES.search(t):
         return "res"
     return "other"
+
+
+def _catalog_ids() -> set[str]:
+    from package_vspd.catalog import iter_seed_packages
+
+    return {r["vspd_id"] for r in iter_seed_packages()}
+
+
+def _best_qfn(pins: int, lx: float, ly: float) -> str | None:
+    ids = _catalog_ids()
+    lx_s, ly_s = f"{lx:g}", f"{ly:g}"
+    for cand in (
+        f"QFN-{pins}_{lx_s}x{ly_s}",
+        f"QFN-{pins}_{int(lx)}x{int(ly)}",
+        f"QFN-{pins}_{int(lx)}x{int(ly)}" if lx == ly else "",
+    ):
+        if cand and cand in ids:
+            return cand
+    for vid in ids:
+        if not vid.startswith("QFN-"):
+            continue
+        head = vid.split("-", 1)[1]
+        pin_s = ""
+        for ch in head:
+            if ch.isdigit():
+                pin_s += ch
+            else:
+                break
+        if pin_s and int(pin_s) == pins:
+            return vid
+    return None
+
+
+def _best_dfn(pins: int, lx: float, ly: float) -> str | None:
+    ids = _catalog_ids()
+    lx_s, ly_s = f"{lx:g}", f"{ly:g}"
+    for cand in (
+        f"DFN-{pins}_{lx_s}x{ly_s}",
+        f"DFN-{pins}_{int(lx)}x{int(ly)}",
+    ):
+        if cand in ids:
+            return cand
+    if pins == 56 and "DFN-56_5x6" in ids:
+        return "DFN-56_5x6"
+    return None
 
 
 def _alias_hit(key: str) -> VspdHit | None:
@@ -182,18 +247,26 @@ def _sot_sod_hit(text: str) -> VspdHit | None:
             cand = "SOT-353"
         elif n == 523:
             cand = "SOT-523"
+        elif n == 723:
+            cand = "SOT-723"
         elif n == 143:
             cand = "SOT-143"
         elif n == 89:
             cand = "SOT-89"
         else:
             cand = ""
-        if cand:
-            from package_vspd.catalog import iter_seed_packages
-
-            ids = {r["vspd_id"] for r in iter_seed_packages()}
-            if cand in ids:
-                return VspdHit(cand, "loose", (), "jedec")
+        if cand and cand in _catalog_ids():
+            return VspdHit(cand, "loose", (), "jedec")
+    ts = re.search(r"(?i)\bTSOT[\s_-]*23[\s_-]*([5-8])\b", text)
+    if ts:
+        cand = f"TSOT-23-{ts.group(1)}"
+        if cand in _catalog_ids():
+            return VspdHit(cand, "loose", (), "jedec")
+    sc = re.search(r"(?i)\bSC[\s_-]*70(?:[\s_-]*([5-8]))?\b", text)
+    if sc:
+        cand = "SOT-323"
+        if cand in _catalog_ids():
+            return VspdHit(cand, "loose", (), "jedec")
     d = _SOD_LOOSE.search(text)
     if d:
         cand = f"SOD-{d.group(1)}"
@@ -244,6 +317,141 @@ def _chip_hit(text: str) -> VspdHit | None:
             continue
         if code in compact:
             return VspdHit(f"CHIP-{code}", "imperial", (), "imperial")
+    return None
+
+
+def _xtal_code_to_id(code: str) -> str | None:
+    mapping = {
+        "1612": "XTAL-1612",
+        "2016": "XTAL-2016",
+        "2520": "XTAL-2520",
+        "3215": "XTAL-3215",
+        "3225": "XTAL-3225",
+        "5032": "XTAL-5032",
+    }
+    vid = mapping.get(code)
+    return vid if vid in _catalog_ids() else None
+
+
+def _xtal_hit(text: str) -> VspdHit | None:
+    c = _XTAL_CODE.search(text)
+    if c:
+        vid = _xtal_code_to_id(c.group(1))
+        if vid:
+            return VspdHit(vid, "xtal", (), "jedec")
+    m = _XTAL_MM.search(text)
+    if m:
+        a, b = float(m.group(1)), float(m.group(2))
+        lx, wy = max(a, b), min(a, b)
+        vid = None
+        if abs(lx - 3.2) < 0.2 and abs(wy - 2.5) < 0.2:
+            vid = "XTAL-3225"
+        elif abs(lx - 3.2) < 0.2 and abs(wy - 1.5) < 0.2:
+            vid = "XTAL-3215"
+        elif abs(lx - 2.5) < 0.2 and abs(wy - 2.0) < 0.2:
+            vid = "XTAL-2520"
+        elif abs(lx - 2.0) < 0.2 and abs(wy - 1.6) < 0.2:
+            vid = "XTAL-2016"
+        else:
+            vid = None
+        if vid and vid in _catalog_ids():
+            return VspdHit(vid, "xtal-mm", (), "jedec")
+    return None
+
+
+def _circle_hit(text: str) -> VspdHit | None:
+    if _CIRCLE_CHIP.search(text):
+        return VspdHit("CIRCLE-GENERIC", "hanwha", (), "hanwha")
+
+    def _match_dia(dia: float) -> VspdHit | None:
+        ids = _catalog_ids()
+        best = ""
+        best_delta = 999.0
+        for vid in ids:
+            if not vid.startswith("CIRCLE-D"):
+                continue
+            try:
+                catalog_d = float(vid.split("D", 1)[1])
+            except ValueError:
+                continue
+            delta = abs(catalog_d - dia)
+            if delta < best_delta:
+                best_delta = delta
+                best = vid
+        if best and best_delta < 0.25:
+            return VspdHit(best, "circle", (), "catalog")
+        if "CIRCLE-GENERIC" in ids:
+            return VspdHit("CIRCLE-GENERIC", "circle", (), "catalog")
+        return None
+
+    nd = _CIRCLE_NUT_DIM.search(text)
+    if nd:
+        hit = _match_dia(float(nd.group(1)))
+        if hit:
+            return hit
+    d = _CIRCLE_D.search(text)
+    if d:
+        hit = _match_dia(float(d.group(1)))
+        if hit:
+            return hit
+    if re.search(r"(?i)\b(?:copper\s+)?nut\b", text):
+        if "CIRCLE-GENERIC" in _catalog_ids():
+            return VspdHit("CIRCLE-GENERIC", "circle", (), "catalog")
+    return None
+
+
+def _leadless_hit(text: str) -> VspdHit | None:
+    w = _WSON.search(text)
+    if w:
+        cand = f"WSON-{w.group(1)}"
+        if cand in _catalog_ids():
+            return VspdHit(cand, "loose", (), "jedec")
+    qp = _QFN_PAREN.search(text)
+    if qp:
+        pins, lx, ly = int(qp.group(1)), float(qp.group(2)), float(qp.group(3))
+        vid = _best_qfn(pins, lx, ly)
+        if vid:
+            return VspdHit(vid, "loose", (), "jedec")
+    q = _KLC_QFN_SIZE.search(text)
+    if q:
+        fam, pins, lx, ly = q.group(1).upper(), int(q.group(2)), float(q.group(3)), float(q.group(4))
+        if fam in {"QFN", "WQFN"}:
+            vid = _best_qfn(pins, lx, ly)
+        else:
+            vid = _best_dfn(pins, lx, ly)
+        if vid:
+            return VspdHit(vid, "loose", (), "jedec")
+    ql = _QFN_LOOSE.search(text)
+    if ql:
+        pins = int(ql.group(1))
+        lx = float(ql.group(2)) if ql.group(2) else 0.0
+        ly = float(ql.group(3)) if ql.group(3) else lx
+        vid = _best_qfn(pins, lx, ly) if lx else _best_qfn(pins, 3.0, 3.0)
+        if vid:
+            return VspdHit(vid, "loose", (), "jedec")
+    dl = _DFN_LOOSE.search(text)
+    if dl:
+        pins = int(dl.group(1) or 8)
+        lx, ly = float(dl.group(2)), float(dl.group(3))
+        vid = _best_dfn(pins, lx, ly)
+        if vid:
+            return VspdHit(vid, "loose", (), "jedec")
+    if re.search(r"(?i)\bDFN[\s_-]*56\b", text) and "DFN-56_5x6" in _catalog_ids():
+        return VspdHit("DFN-56_5x6", "loose", (), "jedec")
+    return None
+
+
+def _poscap_hit(text: str) -> VspdHit | None:
+    if _POSCAP_CASE.search(text):
+        if "7343" in text.upper() and "TANT-D" in _catalog_ids():
+            return VspdHit("TANT-D", "poscap", (), "vendor")
+        if "3528" in text.upper() and "TANT-B" in _catalog_ids():
+            return VspdHit("TANT-B", "poscap", (), "vendor")
+    if re.search(r"(?i)\bPOSCAP\b", text):
+        if "TANT-B" in _catalog_ids():
+            return VspdHit("TANT-B", "poscap", (), "vendor")
+    if re.search(r"(?i)\bSP[\s_-]*CAP\b", text) and "TANT-E" in _catalog_ids():
+        return VspdHit("TANT-E", "poscap", (), "vendor")
     return None
 
 
@@ -314,7 +522,11 @@ def parse_package(text: str) -> VspdHit:
     for fn in (
         _ipc_hit,
         _klc_hit,
+        _leadless_hit,
         _sot_sod_hit,
+        _xtal_hit,
+        _circle_hit,
+        _poscap_hit,
         _lead_family_hit,
         _chip_hit,
         _vendor_hit,
