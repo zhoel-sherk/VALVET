@@ -73,3 +73,11 @@ def hanwha_lib_cache_dir(profile_id: str) -> Path:
     d = user_state_dir() / "profiles" / pid / "hanwha_lib"
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def package_vspd_dir(profile_id: str) -> Path:
+    """Per-profile VSPD package catalog SQLite."""
+    pid = (profile_id or "default").strip() or "default"
+    d = user_state_dir() / "profiles" / pid / "package_vspd"
+    d.mkdir(parents=True, exist_ok=True)
+    return d

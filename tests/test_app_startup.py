@@ -43,7 +43,13 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
     try:
         assert win.windowTitle()
         assert win.tabs.count() == len(win._tab_keys_in_order)
-        assert win.tabs.count() == 8
+        assert win.tabs.count() == 9
+        assert "package" in win._tab_keys_in_order
+        assert hasattr(win, "_package_tab")
+        assert hasattr(win, "btn_find_package")
+        assert not hasattr(win, "btn_apply_package_table_merge")
+        assert hasattr(win, "btn_apply_package_table")
+        assert hasattr(win._package_tab, "_fp_preview")
         assert "pcb_preview" in win._tab_keys_in_order
         assert "step_3d" not in win._tab_keys_in_order
         assert hasattr(win._machine_library_tab, "_fp_preview")
@@ -54,8 +60,8 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
 @pytest.mark.parametrize(
     "experimental_on,expected_tabs",
     [
-        (False, 8),
-        (True, 9),
+        (False, 9),
+        (True, 10),
     ],
 )
 def test_main_window_each_tab_switchable(
@@ -259,6 +265,45 @@ def test_clean_pipeline_debug_dialog_opens(import_parsers, qapp, tmp_path) -> No
         assert dlg.isVisible()
     finally:
         dlg.close()
+
+
+def test_clean_bom_primary_buttons_are_large_and_import_is_active(
+    import_parsers, qapp, tmp_path
+) -> None:
+    from app.window import MainWindow
+    from ui.chrome import CLEAN_PRIMARY_BTN_MIN_H, CLEAN_PRIMARY_BTN_MIN_W
+
+    settings = _ini_settings(tmp_path)
+    _set_experimental(settings, enabled=False)
+    win = MainWindow(settings=settings)
+    try:
+        idx = win._tab_index("clean_bom")
+        win.tabs.setCurrentIndex(idx)
+        qapp.processEvents()
+        toolbar = (
+            win.btn_clean_import,
+            win.btn_clean_convert,
+            win.btn_clean_apply,
+            win.btn_clean_learn_other,
+            win.btn_clean_save,
+        )
+        heights = {b.minimumHeight() for b in toolbar}
+        widths = {b.minimumWidth() for b in toolbar}
+        assert len(heights) == 1
+        assert next(iter(heights)) >= CLEAN_PRIMARY_BTN_MIN_H
+        assert next(iter(heights)) <= 48
+        assert len(widths) == 1
+        assert next(iter(widths)) >= CLEAN_PRIMARY_BTN_MIN_W
+        assert not win.btn_clean_convert.isEnabled()
+        assert win.btn_clean_import.property("cleanStep") == "active"
+        assert win.btn_clean_convert.property("cleanStep") == "idle"
+        assert win.btn_clean_apply.property("cleanStep") == "idle"
+        win.btn_clean_convert.setEnabled(True)
+        win._sync_clean_primary_buttons()
+        assert win.btn_clean_convert.property("cleanStep") == "active"
+        assert win.btn_clean_import.property("cleanStep") == "idle"
+    finally:
+        win.close()
 
 
 def test_pcb_preview_canvas_first(import_parsers, qapp, tmp_path) -> None:

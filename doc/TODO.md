@@ -23,6 +23,7 @@ ALPHA **v0.2.0** — [TESTING.md](info/TESTING.md). This file is the live backlo
 - **First/Last row in GUI:** removed; do not restore. `read_file(..., first_row, last_row)` remains for tests/API only.
 - **CSV column presets / vendor export profiles:** not needed for current machine CSV/XLSX/MMD.
 - **2-point Gerber align:** nudge is the shipped path.
+- **Apply package table** — DATA · Package → mapped PnP/Merge Footprint column → PCB Preview overlay by `vspd_id` (catalog is isolated; Apply is a stub). See [VSPD.md](info/VSPD.md).
 
 ## Tests
 

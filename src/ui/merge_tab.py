@@ -96,6 +96,10 @@ class MergeTabMixin:
         )
         self.btn_replace_pnp_from_merge.clicked.connect(self._replace_pnp_from_merge)
         left_l.addWidget(self.btn_replace_pnp_from_merge)
+        self.btn_find_package = action_button(self.ui_tr("package.find"))
+        self.btn_find_package.setToolTip(self.ui_tr("package.find_tip"))
+        self.btn_find_package.clicked.connect(self._find_package)
+        left_l.addWidget(self.btn_find_package)
 
         files_group = QtWidgets.QGroupBox(self.ui_tr("merge.files_group"))
         files_l = QtWidgets.QVBoxLayout(files_group)
@@ -144,6 +148,7 @@ class MergeTabMixin:
             (
                 self.btn_merge,
                 self.btn_replace_pnp_from_merge,
+                self.btn_find_package,
                 self.btn_save_merge_csv,
                 self.btn_save_merge_excel,
                 self.btn_export_top,
@@ -445,6 +450,99 @@ class MergeTabMixin:
             "info",
         )
         self._hide_merge_cross_check_ok_banner()
+
+    def _find_package(self) -> None:
+        if self._last_merge_df is None or self._last_merge_df.empty:
+            self._log(self.ui_tr("package.find_need_merge"), "warning")
+            QtWidgets.QMessageBox.warning(
+                self,
+                self.ui_tr("package.find"),
+                self.ui_tr("package.find_need_merge"),
+            )
+            return
+        from package_vspd.resolve import (
+            apply_hits_to_dataframe,
+            count_sources,
+            machine_lookup_from_part_rows,
+            resolve_unique_packages,
+        )
+
+        df = self._last_merge_df
+        store = None
+        pkg = getattr(self, "_package_tab", None)
+        if pkg is not None:
+            store = getattr(pkg, "_store", None)
+        machine_lookup = None
+        ml = getattr(self, "_machine_library_tab", None)
+        hdf = getattr(ml, "_hanwha_df", None) if ml is not None else None
+        if ml is not None and hdf is not None and not hdf.empty:
+            records = hdf.to_dict("records")
+            machine_lookup = machine_lookup_from_part_rows(
+                records, ml.hanwha_partname_set()
+            )
+        bom_by_ref = self._bom_comments_by_ref()
+        rows = df.to_dict("records")
+        hits = resolve_unique_packages(
+            rows,
+            store=store,
+            machine_lookup=machine_lookup,
+            bom_by_ref=bom_by_ref or None,
+        )
+        n_write = apply_hits_to_dataframe(df, hits)
+        self.merge_model.update_dataframe(df)
+        c = count_sources(hits)
+        msg = self.ui_tr(
+            "package.find_status",
+            n=c["parts"],
+            k=c["store"] + c["machine"],
+            p=c["pnp"],
+            b=c["bom"],
+            u=c["unmatched"],
+        )
+        self._log(f"{msg} ({n_write} rows)", "info")
+
+    def _bom_comments_by_ref(self) -> dict[str, str]:
+        self._sync_bom_df_from_model()
+        bom = self._bom_df
+        if bom is None or bom.empty:
+            return {}
+        if not getattr(self, "bom_col_combos", None):
+            return {}
+        bom_cols = list(bom.columns)
+        ref_col = None
+        comment_cols: list[str] = []
+        for i, combo in enumerate(self.bom_col_combos):
+            if i >= len(bom_cols):
+                break
+            role = self._mapping_combo_role(combo)
+            if role == "REF":
+                ref_col = bom_cols[i]
+            elif role == "Comment":
+                comment_cols.append(bom_cols[i])
+        if ref_col is None:
+            return {}
+        if not comment_cols:
+            for name in bom_cols:
+                low = str(name).strip().lower()
+                if low in {"comment", "value", "part", "pn"}:
+                    comment_cols.append(name)
+        out: dict[str, str] = {}
+        for _, rec in bom.iterrows():
+            ref = str(rec.get(ref_col, "") or "").strip()
+            if not ref:
+                continue
+            parts: list[str] = []
+            for col in comment_cols:
+                val = rec.get(col, "")
+                if pd.isna(val):
+                    continue
+                s = str(val).strip()
+                if s and s.lower() not in {"nan", "none"}:
+                    parts.append(s)
+            if parts:
+                out[ref] = " ".join(parts)
+                out[ref.upper()] = out[ref]
+        return out
 
     def _merge_layer_column(self) -> Optional[str]:
         if self._last_merge_df is None:

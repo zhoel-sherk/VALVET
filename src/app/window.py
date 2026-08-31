@@ -43,6 +43,7 @@ _TAB_GROUP_KEY = {
     "project": "data",
     "bom": "data",
     "pnp": "data",
+    "package": "data",
     "clean_bom": "transform",
     "merge": "transform",
     "report": "output",
@@ -173,6 +174,7 @@ class MainWindow(
         self._create_project_tab()
         self._create_bom_tab()
         self._create_pnp_tab()
+        self._create_package_tab()
         self._create_clean_tab()
         self._create_merge_tab()
         self._create_report_tab()
@@ -355,6 +357,14 @@ class MainWindow(
             self.btn_bom_pn_join_help.setToolTip(
                 self.ui_tr("mapping.pn_join_help_title")
             )
+        if hasattr(self, "btn_find_package"):
+            self.btn_find_package.setText(self.ui_tr("package.find"))
+            self.btn_find_package.setToolTip(self.ui_tr("package.find_tip"))
+        if hasattr(self, "btn_apply_package_table"):
+            self.btn_apply_package_table.setText(self.ui_tr("package.apply_table"))
+            self.btn_apply_package_table.setToolTip(
+                self.ui_tr("package.apply_table_tip")
+            )
         if hasattr(self, "btn_pnp_undo"):
             self.btn_pnp_undo.setText(self.ui_tr("pnp.undo"))
             self.btn_pnp_redo.setText(self.ui_tr("pnp.redo"))
@@ -415,6 +425,12 @@ class MainWindow(
             self, settings=self._settings, ui_tr=self.ui_tr
         )
         self._register_main_tab("step_3d", self._step_3d_tab)
+
+    def _create_package_tab(self) -> None:
+        from ui.package_tab import PackageTab
+
+        self._package_tab = PackageTab(self, settings=self._settings)
+        self._register_main_tab("package", self._package_tab)
 
     def _create_machine_library_tab(self) -> None:
         self._machine_library_tab = MachineLibraryTab(self, settings=self._settings)

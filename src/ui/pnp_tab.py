@@ -120,6 +120,14 @@ class PnpTabMixin:
         self.btn_pnp_find = action_button(self.ui_tr("pnp.find_replace"))
         self.btn_pnp_find.clicked.connect(lambda: self._find_replace_table("pnp"))
         edit_l.addWidget(self.btn_pnp_find)
+        self.btn_apply_package_table = action_button(
+            self.ui_tr("package.apply_table")
+        )
+        self.btn_apply_package_table.setToolTip(
+            self.ui_tr("package.apply_table_tip")
+        )
+        self.btn_apply_package_table.clicked.connect(self._apply_package_table_placeholder)
+        edit_l.addWidget(self.btn_apply_package_table)
         left_l.addWidget(self.gb_pnp_edit)
 
         self.gb_pnp_workspace = QtWidgets.QGroupBox(self.ui_tr("pnp.group_workspace"))
@@ -140,6 +148,7 @@ class PnpTabMixin:
                 self.btn_pnp_undo,
                 self.btn_pnp_redo,
                 self.btn_pnp_find,
+                self.btn_apply_package_table,
                 self.btn_clear_pnp,
             )
         )
@@ -368,3 +377,10 @@ class PnpTabMixin:
         self._autoresize_pnp_columns()
         self._mark_working_dirty("pnp")
         self._refresh_pcb_preview_from_ui()
+
+    def _apply_package_table_placeholder(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            self.ui_tr("package.apply_table"),
+            self.ui_tr("package.apply_table_stub"),
+        )

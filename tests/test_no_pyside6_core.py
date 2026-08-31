@@ -12,6 +12,7 @@ _CORE_GLOBS = (
     "clean_component.py",
     "clean_alerts.py",
     "hanwha_case_lint.py",
+    "package_vspd/**/*.py",
     "pcb_preview/**/*.py",
     "machine_library/**/*.py",
     "step_3d/occ_load.py",
