@@ -45,7 +45,6 @@ def test_read_file_xlsx():
     assert len(df.columns) > 0
 
 
-@pytest.mark.skip(reason="xlrd doesn't support xlsx in Python 3.14")
 def test_read_file_xls():
     path = os.path.join(tests_path, "assets", "bom.xls")
     df = smt_processor.read_file(path)

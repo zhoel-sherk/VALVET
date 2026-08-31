@@ -12,7 +12,7 @@ import smt_processor
 
 
 def test_whitespace_sp_like_classic_boomer():
-    """SPACES/*sp: same filters as csv_reader; optional ``apply_row_as_column_header`` for scripts."""
+    """SPACES/*sp: same filters as read_text_whitespace_sp; optional ``apply_row_as_column_header`` for scripts."""
     content = (
         "DESIGNATOR FOOTPRINT MID-X MID-Y REF-X REF-Y PAD-X PAD-Y LAYER ROTATION COMMENT\n"
         "C167 FPC_2P 100 200 10 20 30 40 N 0 cap\n"

@@ -268,6 +268,42 @@ def _drop_fully_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df[keep].copy()
 
 
+def _excel_engine_candidates(suffix: str) -> tuple[str, ...]:
+    if suffix == ".xls":
+        return ("calamine", "xlrd")
+    return ("calamine", "openpyxl")
+
+
+def _ods_engine_candidates() -> tuple[str, ...]:
+    return ("calamine", "odf")
+
+
+def _header_looks_datetime(val: object) -> bool:
+    if isinstance(val, datetime.datetime):
+        return True
+    if isinstance(val, pd.Timestamp):
+        return True
+    return isinstance(val, np.datetime64)
+
+
+def _read_excel_with_engine(
+    path: str,
+    sheet_name: Optional[str],
+    column_headers_from_file: bool,
+    engine: str,
+) -> pd.DataFrame:
+    xls = pd.ExcelFile(path, engine=engine)
+    sheet = sheet_name if sheet_name else xls.sheet_names[0]
+    if not column_headers_from_file:
+        df = pd.read_excel(xls, sheet_name=sheet, header=None)
+        return _drop_fully_empty_columns(df)
+    df = pd.read_excel(xls, sheet_name=sheet)
+    if len(df.columns) > 1 and _header_looks_datetime(df.columns[1]):
+        df = pd.read_excel(xls, sheet_name=sheet, header=3)
+        return _drop_fully_empty_columns(df)
+    return df
+
+
 def _read_excel(
     path: str,
     sheet_name: Optional[str] = None,
@@ -275,47 +311,27 @@ def _read_excel(
     column_headers_from_file: bool = True,
 ) -> pd.DataFrame:
     """Read Excel with extra handling for some Chinese BOM layouts."""
-    try:
-        suffix = Path(path).suffix.lower()
-        engine = "xlrd" if suffix == ".xls" else "openpyxl"
-        # Open file and get first sheet
-        xls = pd.ExcelFile(path, engine=engine)
-        sheet = sheet_name if sheet_name else xls.sheet_names[0]
-
-        if not column_headers_from_file:
-            df = pd.read_excel(xls, sheet_name=sheet, header=None)
-            df = _drop_fully_empty_columns(df)
-            return df
-
-        # First read to check structure
-        df = pd.read_excel(xls, sheet_name=sheet)
-
-        # Check if column 1 (second column) is datetime - indicates Chinese BOM with merged cells
-        if len(df.columns) > 1:
-            col1 = df.columns[1]
-            # If second column header is datetime, use row 3 as header
-            if isinstance(col1, datetime.datetime):
-                # This is a Chinese BOM - read with header at row 3
-                df = pd.read_excel(xls, sheet_name=sheet, header=3)
-                df = _drop_fully_empty_columns(df)
-                return df
-
-        return df
-
-    except Exception as e:
-        # Some vendor exports are plain text/CSV with a misleading Excel extension.
-        # Try the robust text reader before giving up, so users can still import data.
+    suffix = Path(path).suffix.lower()
+    last_err: Optional[Exception] = None
+    for eng in _excel_engine_candidates(suffix):
         try:
-            df = _read_csv(
-                path, separator=None, column_headers_from_file=column_headers_from_file
+            return _read_excel_with_engine(
+                path, sheet_name, column_headers_from_file, eng
             )
-            logger.info("Excel read failed (%s); loaded as CSV: %s", e, path)
-            return df
-        except Exception:
-            raise SMTProcessorError(
-                f"Cannot read Excel file: {e}. "
-                "If this is a text placement file, rename it to .txt/.csv or open it as a text file."
-            )
+        except Exception as e:
+            last_err = e
+            continue
+    try:
+        df = _read_csv(
+            path, separator=None, column_headers_from_file=column_headers_from_file
+        )
+        logger.info("Excel read failed (%s); loaded as CSV: %s", last_err, path)
+        return df
+    except Exception:
+        raise SMTProcessorError(
+            f"Cannot read Excel file: {last_err}. "
+            "If this is a text placement file, rename it to .txt/.csv or open it as a text file."
+        )
 
 
 EAGLE_CMP_9_COLS: list[str] = [
@@ -332,7 +348,7 @@ EAGLE_CMP_9_COLS: list[str] = [
 
 
 def _check_row_valid_whitespace_sp(row_cells: list[str]) -> bool:
-    """Same rules as csv_reader.__check_row_valid for SPACES / *sp."""
+    """Same rules as classic SPACES / *sp: enough columns, not a ___ separator row."""
     if len(row_cells) <= 3:
         return False
     if not (row_cells[0] or row_cells[1] or row_cells[2]):
@@ -343,7 +359,7 @@ def _check_row_valid_whitespace_sp(row_cells: list[str]) -> bool:
 
 
 def _read_sp_quoted_row(row_cells: list[str]) -> list[str]:
-    """Merge double-quoted runs like csv_reader.__read_sp."""
+    """Merge double-quoted runs for SPACES / *sp rows."""
     row_out: list[str] = []
     quoted_cell = ""
     for cell in row_cells:
@@ -379,7 +395,7 @@ def _unique_dataframe_column_names(raw: list[str]) -> list[str]:
 def read_text_whitespace_sp(path: str) -> pd.DataFrame:
     """
     Classic Boomer SPACES (Profile SPACES / *sp): use str.split() on each line.
-    Same validation and quoting as csv_reader for delim '*sp'. Column names are numeric strings
+    Same validation and quoting as classic '*sp'. Column names are numeric strings
     (0, 1, …). The GUI loads the full grid and trims with First/Last row like ``read_file``;
     it does not promote a row into headers (preview keeps every data row).
     """
@@ -723,15 +739,19 @@ def _read_ods(
     column_headers_from_file: bool = True,
 ) -> pd.DataFrame:
     """Read OpenDocument Spreadsheet (.ods)."""
-    try:
-        hdr = 0 if column_headers_from_file else None
-        if sheet_name:
-            df = pd.read_excel(path, sheet_name=sheet_name, engine="odf", header=hdr)
-        else:
-            df = pd.read_excel(path, engine="odf", header=hdr)
-    except Exception as e:
-        raise SMTProcessorError(f"Cannot read ODS file: {e}")
-    return df
+    hdr = 0 if column_headers_from_file else None
+    last_err: Optional[Exception] = None
+    for eng in _ods_engine_candidates():
+        try:
+            if sheet_name:
+                return pd.read_excel(
+                    path, sheet_name=sheet_name, engine=eng, header=hdr
+                )
+            return pd.read_excel(path, engine=eng, header=hdr)
+        except Exception as e:
+            last_err = e
+            continue
+    raise SMTProcessorError(f"Cannot read ODS file: {last_err}")
 
 
 def _clean_empty_rows(df: pd.DataFrame) -> pd.DataFrame:
