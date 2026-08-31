@@ -80,20 +80,7 @@ def expand_compact_rkm(token: str) -> str | None:
         out = _format_decimal_prefix(left, right, "M")
     else:
         return None
-    _confirm_rkm_codes(compact, out)
     return out
-
-
-def _confirm_rkm_codes(raw: str, expanded: str) -> None:
-    """Best-effort check against ``rkm-codes``; ignore if the library disagrees on display."""
-    try:
-        from rkm_codes import from_rkm
-    except Exception:
-        return
-    try:
-        from_rkm(raw)
-    except Exception:
-        return
 
 
 def canonical_voltage_token(num: str, unit: str) -> str:

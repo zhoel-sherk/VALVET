@@ -95,7 +95,12 @@ jobs:
           PYTHONPATH: src
         run: python -m pytest tests/test_pcb_preview_gerber.py -q
 
+      - name: pip-audit (non-blocking)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: python -m pip_audit -r requirements.txt
+
       - name: Vulture (non-blocking)
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         continue-on-error: true
         run: python -m vulture

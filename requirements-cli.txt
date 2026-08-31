@@ -1,4 +1,4 @@
 # Optional Qt-free CLI / Textual TUI (not required for the desktop app).
 # Install with: pip install -r requirements-cli.txt
 # Core pandas/openpyxl stack still comes from requirements.txt.
-textual>=1.0.0
+textual>=1.0.0,<9

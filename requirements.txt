@@ -1,22 +1,15 @@
 # Runtime dependencies for the PySide6 desktop app
-PySide6
+PySide6>=6.7,<6.12
 qdarkstyle>=3.2.3
-vcolorpicker>=1.4
-platformdirs
-pandas
-pyodbc
-numpy
-xlrd
-openpyxl
-odfpy
-natsort
+platformdirs>=4.2,<5
+pandas>=2.2,<3
+pyodbc>=5.2,<6
+numpy>=1.26,<2.3
+xlrd>=2.0.1,<3
+openpyxl>=3.1.5,<4
+odfpy==1.4.1
+python-calamine>=0.3.0
 gerbonara
-pygerber[svg]
+pygerber[svg]>=2.4.3,<3
 regex
-rapidfuzz>=3.0.0
-pint>=0.24
-rkm-codes>=1.0
-
-# Test / developer tooling
-pytest
-coverage
+rapidfuzz>=3.0.0,<4

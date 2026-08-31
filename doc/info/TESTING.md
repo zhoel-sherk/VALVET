@@ -11,7 +11,7 @@ Canonical commands below assume repository root `VALVET/` (the folder containing
 1. Create a venv at repo root: **Windows** `python -m venv .venv` (or `py -3 -m venv .venv`); **Fedora** `python3 -m venv .venv`.
 2. Upgrade pip: `python -m pip install -U pip` (use the venv’s `python`).
 3. Install deps: `python -m pip install -r requirements.txt`
-   Dev lint/coverage: `python -m pip install -r requirements-dev.txt` (`pytest-cov`, `pytest-mock`, `ruff`, `vulture`).
+   Dev lint/coverage: `python -m pip install -r requirements-dev.txt` (`pytest-cov`, `pytest-mock`, `pytest-qt`, `pip-audit`, `ruff`, `vulture`).
   Optional Step 3D viewer tests: `python -m pip install -r requirements-step3d.txt`.
 4. `**PYTHONPATH=src`** is required so tests resolve `smt_processor`, `pcb_preview`, etc.
 
@@ -75,11 +75,11 @@ A `Signal` payload, a preview tuple, or a return value is one contract: either a
 
 ### Pint: `Quantity` vs `float`
 
-[`src/parsers/si_units.py`](../../src/parsers/si_units.py) returns pint `Quantity` (`quantity_farads`, `quantity_ohms`, `quantity_volts`). Callers that do arithmetic must not add a raw `float` to a `Quantity` (and must not pass a `Quantity` into millimetre geometry). Geometry (`um_to_mm`) stays **floats**. Tests: invalid tokens return `None`; successful parses compare `.to("nanofarad").magnitude` (etc.), not `== 22` on the Quantity itself. Existing: `test_pint_*` in [`tests/test_parser_p0_vendor_off.py`](../../tests/test_parser_p0_vendor_off.py).
+[`src/parsers/si_units.py`](../../src/parsers/si_units.py) returns `SiQuantity` (`quantity_farads`, `quantity_ohms`, `quantity_volts`). Callers that do arithmetic must not add a raw `float` to a `SiQuantity` (and must not pass a quantity into millimetre geometry). Geometry (`um_to_mm`) stays **floats**. Tests: invalid tokens return `None`; successful parses compare `.to("nanofarad").magnitude` (etc.). Existing: `test_si_*` in [`tests/test_parser_p0_vendor_off.py`](../../tests/test_parser_p0_vendor_off.py).
 
 ### natsort on dirty data
 
-Natural sort of designators / filenames must not raise on empty strings, mixed types, NaN, or junk (`R1`, `R10`, `""`, `None`, `12`). If `natsort` (or a local natsort helper) is used, tests feed a dirty list and expect a stable list out — never an uncaught `TypeError`. Until a dedicated module exists, any new natsort call needs that fixture in the same PR.
+Natural sort is not in the runtime stack (`natsort` was unused and removed). If a local natsort helper is added later, tests must feed a dirty list (`R1`, `R10`, `""`, `None`, `12`) and expect a stable list — never an uncaught `TypeError`.
 
 ### File import validation
 
@@ -206,7 +206,7 @@ When you touch an area listed in [LLM.md](LLM.md) **Important Files**, run the m
 | App startup / tabs (headless Qt)     | `tests/test_app_startup.py`                                                                                       |
 | Silent fallback logging              | `tests/test_logger_fallbacks.py`                                                                                  |
 | Access ODBC (no timeout / close)     | `tests/test_access_odbc.py`                                                                                       |
-| Pint SI helpers                      | `tests/test_parser_p0_vendor_off.py` (`test_pint_*`)                                                               |
+| SI helpers                           | `tests/test_parser_p0_vendor_off.py` (`test_si_*`)                                                               |
 | BOM/PnP load via MainWindow          | `tests/test_bom_pnp_window_load.py`, `tests/test_cli_pipeline.py`                                                  |
 | PCB Preview tab Gerber layer         | `tests/test_pcb_preview_tab_gerber.py`                                                                            |
 
@@ -245,7 +245,7 @@ Tracked in [TODO.md](../TODO.md) in more detail:
 
 - **Invariant gaps:** natsort dirty-input fixture (when natural sort is added); `pyodbc` connection mock asserting `.close()` on failure paths in `hanwha_mdb_edit` saves; missing-file / corrupt import tests for BOM/PnP/Gerber beyond happy path.
 - **Machine library / Yamaha:** Qt-free services + fixtures before large UI wiring (Phase 5).
-- `**app_pyside6.py`:** BOM/PnP load, language, and file dialogs still need manual smoke; main tabs and debug dialogs are covered by `tests/test_app_startup.py` (Level 1b). Headless load-by-path: `tests/test_bom_pnp_window_load.py`. Optional future `pytest-qt` for modal file/recovery flows (not in `requirements-dev.txt` yet). `pytest-mock` is in `requirements-dev.txt` for spies; keep `monkeypatch.setenv` for env vars.
+- `**app_pyside6.py`:** BOM/PnP load, language, and file dialogs still need manual smoke; main tabs and debug dialogs are covered by `tests/test_app_startup.py` (Level 1b). Headless load-by-path: `tests/test_bom_pnp_window_load.py`. Optional future `pytest-qt` for modal file/recovery flows (`pytest-qt` is in `requirements-dev.txt`). `pytest-mock` is in `requirements-dev.txt` for spies; keep `monkeypatch.setenv` for env vars.
 
 ---
 

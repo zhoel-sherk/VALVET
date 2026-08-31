@@ -2,5 +2,9 @@
 pyinstaller>=6.0
 ruff>=0.4
 vulture>=2.11
+pytest
+coverage
 pytest-cov>=5.0
 pytest-mock>=3.14
+pytest-qt>=4.4
+pip-audit>=2.7

@@ -14,7 +14,6 @@ from parsers.si_units import (
     quantity_farads,
     quantity_ohms,
     quantity_volts,
-    unit_registry,
 )
 
 
@@ -136,7 +135,7 @@ def test_expand_compact_rkm_samples():
     assert match_package_token("C0603") == "0603"
 
 
-def test_pint_nf_and_voltage():
+def test_si_quantity_nf_and_voltage():
     assert convert_nf_token_to_uf("1000NF") == "1UF"
     q = quantity_farads("22nF")
     assert q is not None
@@ -146,11 +145,7 @@ def test_pint_nf_and_voltage():
     assert abs(v.to("volt").magnitude - 3000) < 1e-6
 
 
-def test_pint_registry_lazy_load():
-    assert unit_registry() is unit_registry()
-
-
-def test_pint_capacitor_invalid_returns_none():
+def test_si_quantity_invalid_returns_none():
     assert quantity_farads("22") is None
     assert quantity_farads("22X") is None
     assert quantity_farads("") is None
@@ -163,7 +158,7 @@ def test_convert_nf_to_uf_matrix():
     assert convert_nf_token_to_uf("not_a_value") == "not_a_value"
 
 
-def test_pint_ohm_prefixes():
+def test_si_ohm_prefixes():
     q = quantity_ohms("10R")
     assert q is not None
     assert abs(q.to("ohm").magnitude - 10) < 1e-9

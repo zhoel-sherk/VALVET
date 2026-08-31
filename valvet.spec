@@ -123,22 +123,6 @@ binaries += tmp_qd[1]
 hiddenimports += tmp_qd[2]
 
 try:
-    tmp_vc = collect_all("vcolorpicker")
-    datas += tmp_vc[0]
-    binaries += tmp_vc[1]
-    hiddenimports += tmp_vc[2]
-except Exception:
-    hiddenimports += [
-        "vcolorpicker",
-        "vcolorpicker.vcolorpicker",
-        "vcolorpicker.ui_dark",
-        "qtpy",
-        "qtpy.QtCore",
-        "qtpy.QtGui",
-        "qtpy.QtWidgets",
-    ]
-
-try:
     tmp_po = collect_all("pyodbc")
     datas += tmp_po[0]
     binaries += tmp_po[1]
@@ -153,6 +137,14 @@ try:
     hiddenimports += tmp_rf[2]
 except Exception:
     hiddenimports += ["rapidfuzz", "rapidfuzz.fuzz", "rapidfuzz.utils"]
+
+try:
+    tmp_cal = collect_all("python_calamine")
+    datas += tmp_cal[0]
+    binaries += tmp_cal[1]
+    hiddenimports += tmp_cal[2]
+except Exception:
+    hiddenimports += ["python_calamine"]
 
 # Optional Step 3D tab (install requirements-step3d.txt before building with 3D).
 for _pkg in ("pyvista", "pyvistaqt"):
