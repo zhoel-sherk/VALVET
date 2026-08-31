@@ -20,6 +20,7 @@ PCB Preview is **unchanged** in Wave 1 (Gerber + heuristic PnP outlines only).
 | Family | VISIONTYPE | Canvas |
 | --- | --- | --- |
 | Chip 0402 / 0603 / 0805 | 3 | Body rectangle; **two heuristic pads** (lands are not in the MDB) |
+| CHIP-Circle | 3 | **Circle** body from TYPSIZE (no chip pads) |
 | TR / TR2 / SOT-23 | 3 | Same chip-lead slots: `EXPARAM15`/`16` left/right counts (0 = unused). Thickness `11`/`12`, length `13`/`14`. `EXPARAM18`/`19` is **first-to-last span** (µm), not adjacent pitch when there are 3+ leads. SOT-223 is 1+3 (tab+row); SOD923 1+1; SOT-23 1+2. |
 | SOIC / SOP | 1 | Body + reconstructed leads |
 | QFP | 1 | Four lead rows |

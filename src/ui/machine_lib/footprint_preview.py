@@ -112,29 +112,46 @@ class FootprintPreviewWidget(QtWidgets.QWidget):
         pads = FootprintOutlineMM(pads=outline.pads, source=outline.source)
         circ = FootprintOutlineMM(circles=outline.circles, source=outline.source)
         y_flip = True
+        circle_is_body = bool(outline.circles) and not outline.lines
         sx, sy = result.size_x_mm, result.size_y_mm
-        if sx > 0 and sy > 0:
+        if circle_is_body:
             fy = -1.0
-            body_rect = QtCore.QRectF(-sx / 2.0, fy * (sy / 2.0), sx, sy)
-            fill = self._scene.addRect(body_rect)
-            fill.setPen(QtGui.QPen(QtCore.Qt.PenStyle.NoPen))
-            fill.setBrush(QtGui.QBrush(QtGui.QColor(80, 160, 255, 45)))
-        body_item = self._scene.addPath(outline_to_path(body, y_flip))
-        bp = QtGui.QPen(QtGui.QColor(80, 160, 255))
-        bp.setCosmetic(True)
-        bp.setWidthF(2.0)
-        body_item.setPen(bp)
+            for c in outline.circles:
+                cy = fy * c.cy
+                d = 2.0 * c.radius_mm
+                fill = self._scene.addEllipse(
+                    c.cx - c.radius_mm, cy - c.radius_mm, d, d
+                )
+                fill.setPen(QtGui.QPen(QtCore.Qt.PenStyle.NoPen))
+                fill.setBrush(QtGui.QBrush(QtGui.QColor(80, 160, 255, 45)))
+            body_item = self._scene.addPath(outline_to_path(circ, y_flip))
+            bp = QtGui.QPen(QtGui.QColor(80, 160, 255))
+            bp.setCosmetic(True)
+            bp.setWidthF(2.0)
+            body_item.setPen(bp)
+        else:
+            if sx > 0 and sy > 0:
+                fy = -1.0
+                body_rect = QtCore.QRectF(-sx / 2.0, fy * (sy / 2.0), sx, sy)
+                fill = self._scene.addRect(body_rect)
+                fill.setPen(QtGui.QPen(QtCore.Qt.PenStyle.NoPen))
+                fill.setBrush(QtGui.QBrush(QtGui.QColor(80, 160, 255, 45)))
+            body_item = self._scene.addPath(outline_to_path(body, y_flip))
+            bp = QtGui.QPen(QtGui.QColor(80, 160, 255))
+            bp.setCosmetic(True)
+            bp.setWidthF(2.0)
+            body_item.setPen(bp)
+            circ_item = self._scene.addPath(outline_to_path(circ, y_flip))
+            cp = QtGui.QPen(QtGui.QColor(255, 150, 60))
+            cp.setCosmetic(True)
+            cp.setWidthF(1.5)
+            circ_item.setPen(cp)
         pad_item = self._scene.addPath(outline_to_path(pads, y_flip))
         pp = QtGui.QPen(QtGui.QColor(70, 200, 110))
         pp.setCosmetic(True)
         pp.setWidthF(2.0)
         pad_item.setPen(pp)
         pad_item.setBrush(QtGui.QBrush(QtGui.QColor(70, 200, 110, 90)))
-        circ_item = self._scene.addPath(outline_to_path(circ, y_flip))
-        cp = QtGui.QPen(QtGui.QColor(255, 150, 60))
-        cp.setCosmetic(True)
-        cp.setWidthF(1.5)
-        circ_item.setPen(cp)
         bb = outline.bbox
         if bb.width > 0 or bb.height > 0:
             fy = -1.0
