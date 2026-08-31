@@ -1,5 +1,5 @@
 {
-  "app.window_title": "VALVET — ALPHA v0.2.0",
+  "app.window_title": "VALVET — BETA v0.5.0",
   "tab.group.data": "Dane",
   "tab.group.transform": "Przekształcenie",
   "tab.group.output": "Wyjście",
@@ -84,7 +84,7 @@
   "status.comment_unmapped": "(nie zmapowano)",
   "status.clean_stale": " · podgląd Clean nieaktualny",
   "status.rows_all": "all",
-  "wip.banner": "<b>Praca w toku (ALPHA).</b> Edytor Hanwha MDB i podgląd PCB są eksperymentalne; licz się z niedociągnięciami, dopóki podstawowe funkcje BOM/PnP się ustabilizują.",
+  "wip.banner": "<b>Praca w toku (BETA).</b> Edytor Hanwha MDB i podgląd PCB są eksperymentalne; licz się z niedociągnięciami, dopóki podstawowe funkcje BOM/PnP się ustabilizują.",
   "msg.app_ready": "Aplikacja gotowa",
   "bom.clear_workspace": "Wyczyść",
   "bom.clear_workspace_tip": "Usuń BOM z obszaru roboczego (tabela i mapowanie kolumn). Ścieżki wczytanych plików nie są zapisywane w profilach.",

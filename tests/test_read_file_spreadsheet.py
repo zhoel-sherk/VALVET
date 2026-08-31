@@ -118,7 +118,10 @@ def test_read_file_xls_asset() -> None:
 
 
 def test_calamine_matches_legacy_on_bom_xlsx() -> None:
-    path = str(_ASSETS / "bom.xlsx")
+    path = _ASSETS / "bom.xlsx"
+    if not path.is_file():
+        pytest.skip("bom.xlsx missing")
+    path = str(path)
     via_cal = pd.read_excel(path, engine="calamine")
     via_opy = pd.read_excel(path, engine="openpyxl")
     a = via_cal.astype(str).fillna("")

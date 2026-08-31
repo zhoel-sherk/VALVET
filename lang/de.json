@@ -1,5 +1,5 @@
 {
-  "app.window_title": "VALVET — ALPHA v0.2.0",
+  "app.window_title": "VALVET — BETA v0.5.0",
   "tab.group.data": "Daten",
   "tab.group.transform": "Umwandlung",
   "tab.group.output": "Ausgabe",
@@ -84,7 +84,7 @@
   "status.comment_unmapped": "(nicht zugeordnet)",
   "status.clean_stale": " · Clean-Vorschau veraltet",
   "status.rows_all": "all",
-  "wip.banner": "<b>In Arbeit (ALPHA).</b> Hanwha-MDB-Editor und PCB-Vorschau sind experimentell; bis die Kernfunktionen BOM/PnP stabil sind, sind Ecken und Kanten zu erwarten.",
+  "wip.banner": "<b>In Arbeit (BETA).</b> Hanwha-MDB-Editor und PCB-Vorschau sind experimentell; bis die Kernfunktionen BOM/PnP stabil sind, sind Ecken und Kanten zu erwarten.",
   "msg.app_ready": "Anwendung bereit",
   "bom.clear_workspace": "Leeren",
   "bom.clear_workspace_tip": "BOM aus dem Arbeitsbereich entfernen (Tabelle und Spaltenzuordnung). Pfade geladener Dateien werden nicht in Profilen gespeichert.",

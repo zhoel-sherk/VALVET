@@ -3,7 +3,7 @@
 Fixture ``fixtures/hanwha_PART_Det_sample.csv`` is a 20-row excerpt from ``PART_Det``
 (``mdb-export`` on ``UPD.MDB``): template rows ``_NewC0201`` / ``_NewR0201``, mixed
 ``CONFIDENCE_LEVEL`` / ``VENDORID``, and typical ``PARTDESC`` text. Regenerate when
-the production library schema changes (requires mdbtools + ``UPD.MDB`` beside ``boomer/``).
+the production library schema changes (requires mdbtools + ``examples/UPD.MDB``, or ``UPD.MDB`` next to the repo).
 """
 
 from __future__ import annotations

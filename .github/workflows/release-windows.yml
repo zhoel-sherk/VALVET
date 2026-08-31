@@ -6,7 +6,7 @@ on:
       version:
         description: Version without leading v (must match APP_VERSION for About)
         required: false
-        default: "0.2.0"
+        default: "0.5.0"
       create_release:
         description: Attach zip to a GitHub Release (tag v<version>)
         type: boolean
@@ -78,16 +78,16 @@ jobs:
         run: |
           zip="VALVET-${VERSION}-windows-x64.zip"
           tag="v${VERSION}"
-          notes="ALPHA v${VERSION} Windows onedir zip (PyInstaller). Qt DLLs live next to VALVET.exe. ACE ODBC and pythonocc are not bundled. SHA256 is in the job log. Optional: gh attestation verify ${zip} --repo ${GITHUB_REPOSITORY}"
+          notes="BETA v${VERSION} Windows onedir zip (PyInstaller). Qt DLLs live next to VALVET.exe. ACE ODBC and pythonocc are not bundled. SHA256 is in the job log. Optional: gh attestation verify ${zip} --repo ${GITHUB_REPOSITORY}"
           if gh release view "${tag}" >/dev/null 2>&1; then
             gh release upload "${tag}" "${zip}" --clobber
           elif [ "${DRAFT}" = "true" ]; then
             gh release create "${tag}" "${zip}" \
-              --title "ALPHA v${VERSION}" \
+              --title "BETA v${VERSION}" \
               --notes "${notes}" \
               --draft
           else
             gh release create "${tag}" "${zip}" \
-              --title "ALPHA v${VERSION}" \
+              --title "BETA v${VERSION}" \
               --notes "${notes}"
           fi

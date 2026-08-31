@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 
 tests_dir = Path(__file__).resolve().parent
-_boomer_root = tests_dir.parent
-sys.path.insert(0, str(_boomer_root / "src"))
+_repo_root = tests_dir.parent
+sys.path.insert(0, str(_repo_root / "src"))
 
 from machine_library.hanwha_mdbtools import part_det_rows_to_dataframe  # noqa: E402
 from machine_library.hanwha_partnames import (  # noqa: E402
@@ -22,7 +22,7 @@ from machine_library.hanwha_partnames import (  # noqa: E402
     resolve_upd_mdb_path,
 )
 
-_FIXTURE = _boomer_root / "tests" / "fixtures" / "hanwha_PART_Det_sample.csv"
+_FIXTURE = _repo_root / "tests" / "fixtures" / "hanwha_PART_Det_sample.csv"
 
 
 def _sample_df():
@@ -109,21 +109,21 @@ def test_partnames_for_clean_excludes_passive_rc_by_default() -> None:
 
 
 @pytest.mark.skipif(
-    not (_boomer_root / "examples" / "UPD.MDB").is_file()
-    and not (_boomer_root.parent / "UPD.MDB").is_file(),
+    not (_repo_root / "examples" / "UPD.MDB").is_file()
+    and not (_repo_root.parent / "UPD.MDB").is_file(),
     reason="UPD.MDB not present",
 )
 def test_resolve_upd_mdb_path() -> None:
-    p = resolve_upd_mdb_path(boomer_root=_boomer_root)
+    p = resolve_upd_mdb_path(boomer_root=_repo_root)
     assert p.is_file()
 
 
 @pytest.mark.skipif(
-    not (_boomer_root / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json").is_file(),
+    not (_repo_root / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json").is_file(),
     reason="hanwha_partnames_cl40.json not generated yet",
 )
 def test_load_partnames_snapshot() -> None:
-    path = _boomer_root / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
+    path = _repo_root / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
     names = load_partnames_snapshot(path)
     assert len(names) > 0
     assert "0603" not in names

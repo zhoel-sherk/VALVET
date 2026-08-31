@@ -1,5 +1,5 @@
 {
-  "app.window_title": "VALVET — ALPHA v0.2.0",
+  "app.window_title": "VALVET — BETA v0.5.0",
   "tab.group.data": "Data",
   "tab.group.transform": "Transform",
   "tab.group.output": "Output",
@@ -84,7 +84,7 @@
   "status.comment_unmapped": "(not mapped)",
   "status.clean_stale": " · Clean preview stale",
   "status.rows_all": "all",
-  "wip.banner": "<b>Work in progress (ALPHA).</b> Hanwha MDB editor and PCB Preview are experimental; expect rough edges while core BOM/PnP features stabilize.",
+  "wip.banner": "<b>Work in progress (BETA).</b> Hanwha MDB editor and PCB Preview are experimental; expect rough edges while core BOM/PnP features stabilize.",
   "msg.app_ready": "Application ready",
   "bom.clear_workspace": "Clear",
   "bom.clear_workspace_tip": "Unload BOM from the workspace (table and column mapping). Loaded file paths are not stored in profiles.",

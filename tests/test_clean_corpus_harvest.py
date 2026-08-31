@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 tests_dir = Path(__file__).resolve().parent
-_boomer_root = tests_dir.parent
-sys.path.insert(0, str(_boomer_root / "tools"))
+_repo_root = tests_dir.parent
+sys.path.insert(0, str(_repo_root / "tools"))
 
 from clean_corpus_lib import (  # noqa: E402
     harvest_curated_xlsx,
@@ -45,7 +45,7 @@ def test_sample_stratified_by_file_round_robin() -> None:
 
 
 def test_harvest_allegro_html_device_type() -> None:
-    htm = _boomer_root / "user_temp" / "WXH510M1RG6-BOT(1).htm"
+    htm = _repo_root / "user_temp" / "WXH510M1RG6-BOT(1).htm"
     if not htm.is_file():
         pytest.skip("user_temp HTM not present")
     rows = list(harvest_from_allegro_html(htm, "user_temp/WXH510M1RG6-BOT(1).htm"))
@@ -100,7 +100,7 @@ def test_harvest_tabular_comment_columns() -> None:
 
 
 def test_harvest_bom_check_skips_part_reference() -> None:
-    xlsx = _boomer_root / "user_temp" / "BOM check.xlsx"
+    xlsx = _repo_root / "user_temp" / "BOM check.xlsx"
     if not xlsx.is_file():
         pytest.skip("BOM check.xlsx not present")
     rows = list(harvest_from_tabular(xlsx, "user_temp/BOM check.xlsx"))
@@ -111,7 +111,7 @@ def test_harvest_bom_check_skips_part_reference() -> None:
 
 
 def test_harvest_curated_component_test_xlsx() -> None:
-    xlsx = _boomer_root / "user_temp" / "component_test.xlsx"
+    xlsx = _repo_root / "user_temp" / "component_test.xlsx"
     if not xlsx.is_file():
         pytest.skip("component_test.xlsx not present")
     rows, stats = harvest_curated_xlsx(xlsx, join_mode=True, join_columns=3)
@@ -136,7 +136,7 @@ def test_harvest_curated_single_column_mode() -> None:
 
 
 def test_harvest_cmp_report_example6() -> None:
-    cmp = _boomer_root / "examples" / "example6" / "cmp.txt"
+    cmp = _repo_root / "examples" / "example6" / "cmp.txt"
     if not cmp.is_file():
         pytest.skip("example6 cmp.txt missing")
     rows = list(harvest_from_cmp_report(cmp, "examples/example6/cmp.txt"))

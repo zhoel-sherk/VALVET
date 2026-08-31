@@ -9,8 +9,8 @@ import pandas as pd
 import pytest
 
 tests_dir = Path(__file__).resolve().parent
-boomer_dir = tests_dir.parent
-sys.path.insert(0, str(boomer_dir / "src"))
+_repo_root = tests_dir.parent
+sys.path.insert(0, str(_repo_root / "src"))
 
 from mmd_export import (
     merge_dataframe_to_mmd_mercury,
@@ -19,7 +19,7 @@ from mmd_export import (
 )  # noqa: E402
 from pnp_coord import convert_xy_mil_to_mm_row, convert_xy_mm_to_mil_row  # noqa: E402
 
-EXAMPLES = boomer_dir / "examples" / "mmd"
+EXAMPLES = _repo_root / "examples" / "mmd"
 
 
 def _norm_mmd(text: str) -> str:

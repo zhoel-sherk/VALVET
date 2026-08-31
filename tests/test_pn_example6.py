@@ -9,8 +9,8 @@ import sys
 import pytest
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
-_boomer_root = os.path.dirname(tests_path)
-sys.path.insert(0, os.path.join(_boomer_root, "src"))
+_repo_root = os.path.dirname(tests_path)
+sys.path.insert(0, os.path.join(_repo_root, "src"))
 
 import clean_component
 import pn_original
@@ -58,14 +58,14 @@ def test_golden_tai_walsin_taiyo_parsing():
 
 @pytest.mark.skipif(
     not os.path.isfile(
-        os.path.join(_boomer_root, "examples", "example6", "original_gen3_bom.xlsx")
+        os.path.join(_repo_root, "examples", "example6", "original_gen3_bom.xlsx")
     ),
     reason="example6 xlsx not in tree",
 )
 def test_example6_parse_rate_rm_wr_emk_umk():
     pd = pytest.importorskip("pandas")
     pytest.importorskip("openpyxl")
-    path = os.path.join(_boomer_root, "examples", "example6", "original_gen3_bom.xlsx")
+    path = os.path.join(_repo_root, "examples", "example6", "original_gen3_bom.xlsx")
     df = pd.read_excel(path, sheet_name="abmq601", header=None, engine="openpyxl")
     pn_original.CONVERTERS.clear()
     cfg = clean_component.CleanConfig()

@@ -6,8 +6,8 @@ import sys
 import pandas as pd
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
-_boomer_root = os.path.dirname(tests_path)
-sys.path.append(os.path.join(_boomer_root, "src"))
+_repo_root = os.path.dirname(tests_path)
+sys.path.append(os.path.join(_repo_root, "src"))
 
 import working_copy
 
