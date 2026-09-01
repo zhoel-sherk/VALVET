@@ -68,8 +68,61 @@ def switch_checkbox(
     parent: QtWidgets.QWidget | None = None,
 ) -> QtWidgets.QCheckBox:
     chk = QtWidgets.QCheckBox(text, parent)
-    chk.setObjectName("valvetSwitch")
     return chk
+
+
+def segmented_control(
+    labels: Sequence[str],
+    *,
+    parent: QtWidgets.QWidget | None = None,
+    ids: Sequence[int] | None = None,
+) -> tuple[
+    QtWidgets.QFrame,
+    QtWidgets.QButtonGroup,
+    tuple[QtWidgets.QPushButton, ...],
+]:
+    """Exclusive checkable buttons in a row (iOS segmented control)."""
+    texts = [str(x) for x in labels]
+    if not texts:
+        raise ValueError("segmented_control requires at least one label")
+    if ids is not None and len(ids) != len(texts):
+        raise ValueError("ids length must match labels")
+    frame = QtWidgets.QFrame(parent)
+    frame.setObjectName("segmented")
+    frame.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Expanding,
+        QtWidgets.QSizePolicy.Policy.Fixed,
+    )
+    row = QtWidgets.QHBoxLayout(frame)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(0)
+    group = QtWidgets.QButtonGroup(frame)
+    group.setExclusive(True)
+    buttons: list[QtWidgets.QPushButton] = []
+    n = len(texts)
+    for i, text in enumerate(texts):
+        btn = QtWidgets.QPushButton(text, frame)
+        btn.setCheckable(True)
+        btn.setAutoExclusive(True)
+        btn.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Fixed,
+        )
+        btn.setMinimumWidth(0)
+        if i == 0:
+            role = "first"
+        elif i == n - 1:
+            role = "last"
+        else:
+            role = "mid"
+        btn.setProperty("seg", role)
+        if ids is not None:
+            group.addButton(btn, int(ids[i]))
+        else:
+            group.addButton(btn)
+        row.addWidget(btn, 1)
+        buttons.append(btn)
+    return frame, group, tuple(buttons)
 
 
 def help_button(
