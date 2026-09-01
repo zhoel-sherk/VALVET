@@ -23,6 +23,7 @@ from pcb_preview.gerber_io import (
     peek_rs274x_linear_unit,
     scale_bbox_mm,
 )
+from pcb_preview.outline_resolve import footprint_name_keys
 from pcb_preview.types import (
     BBoxMM,
     FootprintOutlineMM,
@@ -31,7 +32,7 @@ from pcb_preview.types import (
 )
 from pcb_preview_load_thread import GerberLoadThread
 from pcb_preview_outline_thread import PackageOutlineThread
-from ui.chrome import size_toolbar_button, toolbar_button
+from ui.chrome import segmented_control, size_toolbar_button, toolbar_button
 from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
@@ -410,6 +411,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._gerber_thread: Any = None
         self._outline_thread: Any = None
         self._outline_restart = False
+        self._outline_epoch = 0
         self._outline_cache: dict[str, FootprintOutlineMM] = {}
 
         root = QtWidgets.QVBoxLayout(self)
@@ -476,16 +478,20 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
         grp_u = QtWidgets.QGroupBox("Gerber units")
         self._grp_gunit = grp_u
-        lu = QtWidgets.QVBoxLayout(grp_u)
-        self._rb_g_auto = QtWidgets.QRadioButton("Auto")
-        self._rb_g_mm = QtWidgets.QRadioButton("mm")
-        self._rb_g_mils = QtWidgets.QRadioButton("mils → mm")
-        self._rb_g_in = QtWidgets.QRadioButton("inch → mm")
+        lu = QtWidgets.QHBoxLayout(grp_u)
+        lu.setContentsMargins(4, 4, 4, 4)
+        lu.setSpacing(0)
+        g_seg, self._bg_gunit, g_btns = segmented_control(
+            ("Auto", "mm", "mil", "inch"), parent=grp_u
+        )
+        (
+            self._rb_g_auto,
+            self._rb_g_mm,
+            self._rb_g_mils,
+            self._rb_g_in,
+        ) = g_btns
         self._rb_g_auto.setChecked(True)
-        self._bg_gunit = QtWidgets.QButtonGroup(self)
-        for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_mils, self._rb_g_in):
-            self._bg_gunit.addButton(rb)
-            lu.addWidget(rb)
+        lu.addWidget(g_seg, 1)
         self._bg_gunit.buttonToggled.connect(self._on_gerber_unit_toggled)
         self._rb_g_auto.setToolTip(
             "Backends already convert Gerber to millimetres; scene grid is mm (same as PnP)."
@@ -501,8 +507,8 @@ class PcbPreviewTab(QtWidgets.QWidget):
         grp_pnp_xy = QtWidgets.QGroupBox("PnP coordinates")
         self._grp_pnp_xy = grp_pnp_xy
         lpxy = QtWidgets.QHBoxLayout(grp_pnp_xy)
-        self._rb_pnp_xy_mm = QtWidgets.QRadioButton("mm")
-        self._rb_pnp_xy_mils = QtWidgets.QRadioButton("mils")
+        pxy_seg, _, pxy_btns = segmented_control(("mm", "mil"), parent=grp_pnp_xy)
+        self._rb_pnp_xy_mm, self._rb_pnp_xy_mils = pxy_btns
         self._rb_pnp_xy_mm.setChecked(True)
         self._rb_pnp_xy_mm.toggled.connect(
             lambda on: on and self.pnp_xy_unit_mm_selected.emit(True)
@@ -510,8 +516,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._rb_pnp_xy_mils.toggled.connect(
             lambda on: on and self.pnp_xy_unit_mm_selected.emit(False)
         )
-        lpxy.addWidget(self._rb_pnp_xy_mm)
-        lpxy.addWidget(self._rb_pnp_xy_mils)
+        lpxy.addWidget(pxy_seg, 1)
 
         grp_nudge = QtWidgets.QGroupBox("PnP nudge (mm)")
         self._grp_nudge = grp_nudge
@@ -648,6 +653,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
             )
         )
 
+    def append_log(self, msg: str) -> None:
+        self._append_log(msg)
+
     def _append_log(self, msg: str) -> None:
         self._log.appendPlainText(msg)
 
@@ -762,7 +770,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         )
 
     def sync_pnp_xy_units_ui(self, *, mm: bool) -> None:
-        """Keep mm/mils radios aligned with the main window (does not emit signals)."""
+        """Keep mm/mil segments aligned with the main window (does not emit signals)."""
         self._rb_pnp_xy_mm.blockSignals(True)
         self._rb_pnp_xy_mils.blockSignals(True)
         self._rb_pnp_xy_mm.setChecked(mm)
@@ -1205,9 +1213,8 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._scene.removeItem(it)
         self._items.clear()
         self._list.clear()
-        empty = FootprintOutlineMM(source="none")
         for pl in self._placements:
-            outline = self._outline_cache.get(pl.footprint_name, empty)
+            outline = self._outline_for_name(pl.footprint_name)
             item = PlacementGroupItem(pl, outline)
             item.set_label_scale(self._label_scale)
             item.set_labels_visible(self._show_labels)
@@ -1228,35 +1235,65 @@ class PcbPreviewTab(QtWidgets.QWidget):
     def _on_list_selection(self) -> None:
         self._sync_all_placement_styles()
 
+    def _outline_cached(self, name: str) -> bool:
+        return any(k in self._outline_cache for k in footprint_name_keys(name))
+
+    def _outline_for_name(self, name: str) -> FootprintOutlineMM:
+        empty = FootprintOutlineMM(source="none")
+        for k in footprint_name_keys(name):
+            hit = self._outline_cache.get(k)
+            if hit is not None:
+                return hit
+        return empty
+
     def _start_outline_thread(self) -> None:
         if not self._show_footprints or not self._placements:
             return
         names = [pl.footprint_name for pl in self._placements if pl.footprint_name]
-        pending = [n for n in names if n not in self._outline_cache]
+        pending = [n for n in names if not self._outline_cached(n)]
         if not pending:
             self._apply_outline_cache()
             return
         t = self._outline_thread
-        if t is not None and t.isRunning():
+        running = False
+        if t is not None:
+            try:
+                running = t.isRunning()
+            except RuntimeError:
+                self._outline_thread = None
+                t = None
+        if running:
+            self._outline_epoch += 1
+            t.requestInterruption()
             self._outline_restart = True
             return
-        thread = PackageOutlineThread(pending, self)
+        self._outline_epoch += 1
+        thread = PackageOutlineThread(pending, self._outline_epoch, self)
         thread.result_ready.connect(self._on_outlines_ready)
         thread.finished.connect(self._on_outline_thread_finished)
-        thread.finished.connect(thread.deleteLater)
         self._outline_thread = thread
         thread.start()
 
     def _on_outline_thread_finished(self) -> None:
+        t = self._outline_thread
         self._outline_thread = None
+        if t is not None:
+            try:
+                t.wait(500)
+            except RuntimeError:
+                pass
+            t.deleteLater()
         if self._outline_restart:
             self._outline_restart = False
             self._start_outline_thread()
 
     def _on_outlines_ready(self, packed: object) -> None:
-        if not isinstance(packed, dict):
+        if not isinstance(packed, tuple) or len(packed) != 2:
             return
-        for k, v in packed.items():
+        epoch, data = packed
+        if epoch != self._outline_epoch or not isinstance(data, dict):
+            return
+        for k, v in data.items():
             if isinstance(k, str) and isinstance(v, FootprintOutlineMM):
                 self._outline_cache[k] = v
         self._apply_outline_cache()
@@ -1264,11 +1301,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
     def _apply_outline_cache(self) -> None:
         if not self._show_footprints:
             return
-        empty = FootprintOutlineMM(source="none")
         for it in self._items.values():
             name = it._placement.footprint_name
-            outline = self._outline_cache.get(name, empty)
-            it.set_outline(outline)
+            it.set_outline(self._outline_for_name(name))
             it.set_footprint_visible(True)
         self._update_scene_rect_from_content()
 
@@ -1359,9 +1394,15 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self._outline_restart = False
+        self._outline_epoch += 1
         t = self._outline_thread
+        self._outline_thread = None
         if t is not None:
-            t.requestInterruption()
-            t.wait(500)
+            try:
+                t.requestInterruption()
+                t.wait(500)
+            except RuntimeError:
+                pass
+            t.deleteLater()
         self._store.close()
         super().closeEvent(event)

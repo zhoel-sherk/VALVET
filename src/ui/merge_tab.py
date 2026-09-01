@@ -58,6 +58,7 @@ class MergeTabMixin:
             action_button,
             apply_equal_widths,
             left_rail_widget,
+            segmented_control,
             switch_checkbox,
         )
 
@@ -122,8 +123,8 @@ class MergeTabMixin:
         left_l.addWidget(self.merge_delete_dnp)
         xy_row = QtWidgets.QHBoxLayout()
         xy_row.addWidget(QtWidgets.QLabel("PnP XY:"))
-        self.merge_pnp_units_mm = QtWidgets.QRadioButton("mm")
-        self.merge_pnp_units_mils = QtWidgets.QRadioButton("mils")
+        merge_seg, _, merge_btns = segmented_control(("mm", "mil"), parent=tab)
+        self.merge_pnp_units_mm, self.merge_pnp_units_mils = merge_btns
         self.merge_pnp_units_mm.setChecked(True)
         self.merge_pnp_units_mm.setToolTip(self.pnp_units_mm.toolTip())
         self.merge_pnp_units_mils.setToolTip(self.pnp_units_mils.toolTip())
@@ -133,9 +134,7 @@ class MergeTabMixin:
         self.merge_pnp_units_mils.toggled.connect(
             lambda on: on and self._on_user_pnp_xy_unit_choice(False)
         )
-        xy_row.addWidget(self.merge_pnp_units_mm)
-        xy_row.addWidget(self.merge_pnp_units_mils)
-        xy_row.addStretch(1)
+        xy_row.addWidget(merge_seg, 1)
         left_l.addLayout(xy_row)
 
         self.btn_merge = action_button("Merge")
@@ -619,7 +618,10 @@ class MergeTabMixin:
             self._last_merge_df = merged
             self.merge_model.update_dataframe(merged)
             self._update_merge_layer_export_controls()
-            self._log(f"Merge complete: {len(merged)} rows", "info")
+            self._log(
+                f"Merge complete: {len(merged)} rows (Merge → dataframe)",
+                "info",
+            )
             self._refresh_pcb_preview_from_ui(force=False)
         except SMTProcessorError as e:
             self._log(f"Merge error: {e}", "error")
@@ -658,7 +660,8 @@ class MergeTabMixin:
         self._autoresize_pnp_columns()
         self._mark_working_dirty("pnp")
         self._log(
-            f"PnP replaced from Merge: {len(self._pnp_df)} rows, {len(self._pnp_df.columns)} cols",
+            f"Merge → PnP: replaced {len(self._pnp_df)} rows, "
+            f"{len(self._pnp_df.columns)} cols",
             "info",
         )
         self._hide_merge_cross_check_ok_banner()
@@ -711,7 +714,7 @@ class MergeTabMixin:
             b=c["bom"],
             u=c["unmatched"],
         )
-        self._log(f"{msg} ({n_write} rows)", "info")
+        self._log(f"Find package → Merge: {msg} ({n_write} rows)", "info")
 
     def _bom_comments_by_ref(self) -> dict[str, str]:
         self._sync_bom_df_from_model()

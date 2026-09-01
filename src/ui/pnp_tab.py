@@ -25,6 +25,7 @@ class PnpTabMixin:
             apply_equal_widths,
             help_button,
             left_rail_widget,
+            segmented_control,
         )
 
         root = QtWidgets.QHBoxLayout(tab)
@@ -65,8 +66,10 @@ class PnpTabMixin:
         units_row = QtWidgets.QHBoxLayout()
         self.lbl_pnp_xy_units = QtWidgets.QLabel(self.ui_tr("pnp.xy_units"))
         units_row.addWidget(self.lbl_pnp_xy_units)
-        self.pnp_units_mm = QtWidgets.QRadioButton("mm")
-        self.pnp_units_mils = QtWidgets.QRadioButton("mils")
+        pnp_seg, _, pnp_btns = segmented_control(
+            ("mm", "mil"), parent=self.gb_pnp_coords
+        )
+        self.pnp_units_mm, self.pnp_units_mils = pnp_btns
         self.pnp_units_mm.setChecked(True)
         self.pnp_units_mm.setToolTip(
             "PnP X/Y cells are millimetres. Same choice on Merge, Report, and PCB Preview tabs "
@@ -82,9 +85,7 @@ class PnpTabMixin:
         self.pnp_units_mils.toggled.connect(
             lambda on: on and self._on_user_pnp_xy_unit_choice(False)
         )
-        units_row.addWidget(self.pnp_units_mm)
-        units_row.addWidget(self.pnp_units_mils)
-        units_row.addStretch(1)
+        units_row.addWidget(pnp_seg, 1)
         coord_l.addLayout(units_row)
         self.btn_pnp_clean_xyr = action_button("Clean X/Y/R")
         self.btn_pnp_clean_xyr.setToolTip(
