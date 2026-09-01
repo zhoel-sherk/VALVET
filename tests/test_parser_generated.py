@@ -42,7 +42,7 @@ assert SAMPLES, "datasheet/*.md has no ## samples tables"
 @pytest.mark.parametrize(
     "rec",
     SAMPLES,
-    ids=[f"{r.get('file','')}:{r.get('mpn_or_bom','')[:40]}" for r in SAMPLES],
+    ids=[f"{r.get('file', '')}:{r.get('mpn_or_bom', '')[:40]}" for r in SAMPLES],
 )
 def test_datasheet_sample_row(rec: dict[str, str]) -> None:
     raw = rec["mpn_or_bom"]
@@ -57,7 +57,13 @@ def test_datasheet_sample_row(rec: dict[str, str]) -> None:
             cleaned, typ, _c, _src = clean_component.clean_one(raw, cfg)
             assert expected in cleaned or cleaned == expected
         else:
-            ct = "RES" if ctype.startswith("RES") else "CAP" if ctype.startswith("CAP") else ctype
+            ct = (
+                "RES"
+                if ctype.startswith("RES")
+                else "CAP"
+                if ctype.startswith("CAP")
+                else ctype
+            )
             out = pn_original.parse_pn(raw, ct, cfg)
             assert out, f"vendor parse failed for {raw!r}"
             assert out == expected or expected in out

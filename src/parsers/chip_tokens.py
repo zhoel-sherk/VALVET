@@ -18,9 +18,7 @@ PACKAGE_DEFAULT_WATT: dict[str, str] = {
 }
 
 _PACK_EXACT = rf"^([RC])?({PACKAGE_PATTERN})$"
-_PACK_COMPOUND = (
-    rf"^([RC])?({PACKAGE_PATTERN})-(?:8P4R|\d+P\d+R|[A-Za-z0-9]+)$"
-)
+_PACK_COMPOUND = rf"^([RC])?({PACKAGE_PATTERN})-(?:8P4R|\d+P\d+R|[A-Za-z0-9]+)$"
 _PACK_IN_STRING = rf"(?<![A-Za-z0-9])[RC]?({PACKAGE_PATTERN})(?![A-Za-z0-9])"
 
 

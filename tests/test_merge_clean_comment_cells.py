@@ -9,7 +9,10 @@ from parsers.bom_text_utils import (
 
 
 def test_merge_empty_sep_raw_uses_default_pipe() -> None:
-    assert merge_clean_comment_cell_parts(["a", "b"], "") == f"a{DEFAULT_DOUBLE_COMMENT_JOIN}b"
+    assert (
+        merge_clean_comment_cell_parts(["a", "b"], "")
+        == f"a{DEFAULT_DOUBLE_COMMENT_JOIN}b"
+    )
 
 
 def test_merge_single_space_separator() -> None:
@@ -26,7 +29,9 @@ def test_merge_pipe_default_explicit() -> None:
 
 
 def test_merge_skips_nan_none_empty() -> None:
-    assert merge_clean_comment_cell_parts(["a", None, "", "nan", float("nan")], " ") == "a"
+    assert (
+        merge_clean_comment_cell_parts(["a", None, "", "nan", float("nan")], " ") == "a"
+    )
     assert merge_clean_comment_cell_parts([float("nan")], "|") == ""
 
 

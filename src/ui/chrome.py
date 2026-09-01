@@ -42,6 +42,36 @@ def action_button(
     return btn
 
 
+def size_toolbar_button(btn: QtWidgets.QPushButton) -> None:
+    hint_w = int(btn.sizeHint().width())
+    btn.setMinimumWidth(max(ACTION_BTN_MIN_W, hint_w))
+
+
+def toolbar_button(
+    text: str = "",
+    *,
+    parent: QtWidgets.QWidget | None = None,
+) -> QtWidgets.QPushButton:
+    btn = QtWidgets.QPushButton(text, parent)
+    btn.setMinimumHeight(ACTION_BTN_MIN_H)
+    btn.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Minimum,
+        QtWidgets.QSizePolicy.Policy.Fixed,
+    )
+    size_toolbar_button(btn)
+    return btn
+
+
+def switch_checkbox(
+    text: str = "",
+    *,
+    parent: QtWidgets.QWidget | None = None,
+) -> QtWidgets.QCheckBox:
+    chk = QtWidgets.QCheckBox(text, parent)
+    chk.setObjectName("valvetSwitch")
+    return chk
+
+
 def help_button(
     slot: object,
     *,

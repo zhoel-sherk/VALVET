@@ -5,9 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 
-def join_part_group_names(
-    parts: pd.DataFrame, group_map: pd.DataFrame
-) -> pd.DataFrame:
+def join_part_group_names(parts: pd.DataFrame, group_map: pd.DataFrame) -> pd.DataFrame:
     """Left-join ``UPDPARTGROUPNAME`` on ``UPDPARTGROUPID`` (id may be int or str)."""
     out = parts.copy()
     if out.empty or "UPDPARTGROUPID" not in out.columns:

@@ -134,7 +134,9 @@ def set_debug_mode(enabled: bool, *, use_color_logs: bool = True) -> None:
     _disable_file_logging()
 
 
-def configure_if_debug(*, argv_debug: bool = False, use_color_logs: bool = True) -> bool:
+def configure_if_debug(
+    *, argv_debug: bool = False, use_color_logs: bool = True
+) -> bool:
     """Enable file + stderr logging when ``--debug`` or ``VALVET_DEBUG`` is set."""
     if not (argv_debug or env_debug_enabled()):
         return False

@@ -132,11 +132,15 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
         b1.clicked.connect(self._bulk_base)
         brow.addWidget(b1)
         b2 = QtWidgets.QPushButton("Feeding speed…")
-        b2.setToolTip("FEEDINGSPEEDLEVEL for one profile or all rows with same parent profile")
+        b2.setToolTip(
+            "FEEDINGSPEEDLEVEL for one profile or all rows with same parent profile"
+        )
         b2.clicked.connect(self._bulk_feed_speed)
         brow.addWidget(b2)
         b3 = QtWidgets.QPushButton("Q speed…")
-        b3.setToolTip("OVERALL_SPEED_LEVEL for one profile or all rows with same parent profile")
+        b3.setToolTip(
+            "OVERALL_SPEED_LEVEL for one profile or all rows with same parent profile"
+        )
         b3.clicked.connect(self._bulk_q_speed)
         brow.addWidget(b3)
         left_l.addWidget(bulk)

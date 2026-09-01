@@ -144,9 +144,7 @@ def test_machine_lookup_beats_footprint(tmp_path: Path) -> None:
                 "Footprint": "SOIC-8_3.9x4.9mm_P1.27mm",
             }
         ]
-        hits = resolve_unique_packages(
-            rows, store=store, machine_lookup=lookup
-        )
+        hits = resolve_unique_packages(rows, store=store, machine_lookup=lookup)
         assert hits["TR2_USER"].vspd_id == "SOT-23"
         assert hits["TR2_USER"].source == "machine"
     finally:

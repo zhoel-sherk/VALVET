@@ -20,7 +20,6 @@ from ui_i18n import SUPPORTED_UI_LOCALES
 
 
 class ProfilesMixin:
-
     @staticmethod
     def _sanitize_profile_id(name: str) -> str:
         t = (name or "").strip().replace(" ", "_")
@@ -202,6 +201,8 @@ class ProfilesMixin:
         if hasattr(self, "_save_clean_mpn_lookup_settings"):
             self._save_clean_mpn_lookup_settings()
         self._save_report_overlap_settings()
+        if hasattr(self, "_save_report_filter_settings"):
+            self._save_report_filter_settings()
         if hasattr(self, "chk_critical"):
             self._settings.setValue(
                 "report/show_critical", self.chk_critical.isChecked()
@@ -363,9 +364,7 @@ class ProfilesMixin:
             )
             if hasattr(self, "clean_res_watt_from_pack"):
                 self.clean_res_watt_from_pack.setChecked(
-                    s.value(
-                        "clean/infer_resistor_watt_from_package", False, type=bool
-                    )
+                    s.value("clean/infer_resistor_watt_from_package", False, type=bool)
                 )
             self.clean_use_vendor.setChecked(
                 s.value("clean/use_vendor", False, type=bool)
@@ -387,9 +386,7 @@ class ProfilesMixin:
                 self.clean_regex_master_scores.blockSignals(True)
                 self.clean_regex_master_scores.setChecked(
                     bool(rm)
-                    and s.value(
-                        "clean/regex_master_preview_scores", False, type=bool
-                    )
+                    and s.value("clean/regex_master_preview_scores", False, type=bool)
                 )
                 self.clean_regex_master_scores.blockSignals(False)
             self.clean_prefix_use_separator.setChecked(

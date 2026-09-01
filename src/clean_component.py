@@ -267,10 +267,10 @@ def classify_component_type(orig: str) -> str:
             return "INDUCTOR"
     if re.search(r"\bSMD-INDUCTORS?\b", t, re.I):
         return "INDUCTOR"
-    if re.search(r"\bWIRE-WOUND\b|\bINDUCTOR\b", t) or re.search(
-        r"[\d.]+\s*(?:UH|NH|MH|H)(?![A-Z0-9])", t
-    ) or re.search(
-        r"(?<![A-Z0-9])(?:UH|NH|MH)(?![A-Z0-9])", t
+    if (
+        re.search(r"\bWIRE-WOUND\b|\bINDUCTOR\b", t)
+        or re.search(r"[\d.]+\s*(?:UH|NH|MH|H)(?![A-Z0-9])", t)
+        or re.search(r"(?<![A-Z0-9])(?:UH|NH|MH)(?![A-Z0-9])", t)
     ):
         return "INDUCTOR"
     if re.search(r"\b(?:POSCAP|POS)\b", t) and re.search(
@@ -320,9 +320,7 @@ def classify_component_type(orig: str) -> str:
         "MLCC" not in t
         and not re.search(r"[\d.]+\s*(?:uH|nH|mH|H)(?![A-Za-z0-9])", t_mix, re.I)
         and not re.search(r"\b(?:SCCT|SCCB|STPI|SWAI|MCW|CCCA)[-\w]*\d", t_mix, re.I)
-        and re.search(
-            r"[-/][0-9]+(?:\.[0-9]+)?R[0-9](?:<|[A-Z]|[LJ]|$)", t, re.I
-        )
+        and re.search(r"[-/][0-9]+(?:\.[0-9]+)?R[0-9](?:<|[A-Z]|[LJ]|$)", t, re.I)
     ):
         return "RESISTOR"
     if re.search(r"\bTHERMISTOR\b", t):
@@ -332,9 +330,7 @@ def classify_component_type(orig: str) -> str:
     ):
         return "OTHER"
     if re.match(r"^RES[_ ]", t) or re.search(r"\bCHIP\s+RES", t, re.I):
-        if has_strict_chip_case_size(t) or re.search(
-            r"\d+[RKM](?!\w)|OHM|1/\d+W", t
-        ):
+        if has_strict_chip_case_size(t) or re.search(r"\d+[RKM](?!\w)|OHM|1/\d+W", t):
             return "RESISTOR"
     has_wattage = bool(re.search(r"1/\d+W", t))
     has_resistor_value = (
@@ -640,7 +636,9 @@ def _collect_ferrite_bead_arbiter_candidates(s: str) -> List[ParserCandidate]:
 
 
 def _collect_special_other_arbiter_candidates(s: str) -> List[ParserCandidate]:
-    return _collect_ferrite_bead_arbiter_candidates(s) + _collect_thermistor_arbiter_candidates(s)
+    return _collect_ferrite_bead_arbiter_candidates(
+        s
+    ) + _collect_thermistor_arbiter_candidates(s)
 
 
 def _collect_hanwha_partial_arbiter_candidate(

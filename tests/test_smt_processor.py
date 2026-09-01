@@ -202,14 +202,10 @@ def test_find_column_index():
     with pytest.raises(smt_processor.SMTColumnNotFoundError):
         proc.find_column_index(test_df, "sign", True)
 
-    both = __import__("pandas").DataFrame(
-        {"comment_orig": ["a"], "comment": ["b"]}
-    )
+    both = __import__("pandas").DataFrame({"comment_orig": ["a"], "comment": ["b"]})
     assert proc.find_column_index(both, "comment", True) == 1
 
-    numbered = __import__("pandas").DataFrame(
-        {"2": ["ref"], "0": ["a"], "1": ["b"]}
-    )
+    numbered = __import__("pandas").DataFrame({"2": ["ref"], "0": ["a"], "1": ["b"]})
     assert proc.find_column_index(numbered, "2", True) == 0
 
     # Test with "_skip_" (should return -1)
@@ -328,12 +324,74 @@ def test_cross_check_designator_casefold() -> None:
     assert df[df["IssueType"] == "missing_in_bom"].empty
 
 
+def test_cross_check_missing_severity_bom_vs_pnp() -> None:
+    pd = __import__("pandas")
+    bom_df = pd.DataFrame({"Designator": ["R1", "C1"], "Value": ["100R", "10n"]})
+    pnp_df = pd.DataFrame({"Designator": ["R1", "U1"], "Comment": ["100R", "MCU"]})
+    proc = smt_processor.SMTDataProcessor().set_dataframes(
+        bom_df,
+        pnp_df,
+        smt_processor.ColumnConfig(designator="Designator", comment="Value"),
+        smt_processor.ColumnConfig(designator="Designator", comment="Comment"),
+    )
+    df = proc.cross_check()
+    miss_pnp = df[df["IssueType"] == "missing_in_pnp"]
+    miss_bom = df[df["IssueType"] == "missing_in_bom"]
+    assert list(miss_pnp["Designator"]) == ["C1"]
+    assert list(miss_pnp["Severity"]) == ["critical"]
+    assert list(miss_bom["Designator"]) == ["U1"]
+    assert list(miss_bom["Severity"]) == ["warning"]
+
+
+def test_cross_check_duplicate_coord_severity_critical() -> None:
+    pd = __import__("pandas")
+    bom_df = pd.DataFrame({"Designator": ["A", "B"], "Value": ["x", "y"]})
+    pnp_df = pd.DataFrame(
+        {
+            "Designator": ["A", "B"],
+            "Comment": ["", ""],
+            "X": [10.0, 10.0],
+            "Y": [20.0, 20.0],
+            "Layer": ["TOP", "TOP"],
+        }
+    )
+    proc = smt_processor.SMTDataProcessor().set_dataframes(
+        bom_df,
+        pnp_df,
+        smt_processor.ColumnConfig(designator="Designator", comment="Value"),
+        smt_processor.ColumnConfig(
+            designator="Designator",
+            comment="Comment",
+            coord_x="X",
+            coord_y="Y",
+            layer="Layer",
+        ),
+    )
+    df = proc.cross_check()
+    dup = df[df["IssueType"] == "duplicate_coord"]
+    assert not dup.empty
+    assert list(dup["Severity"].unique()) == ["critical"]
+
+
+def test_cross_check_mismatch_severity_warning() -> None:
+    pd = __import__("pandas")
+    bom_df = pd.DataFrame({"Designator": ["R1"], "Value": ["100R"]})
+    pnp_df = pd.DataFrame({"Designator": ["R1"], "Comment": ["10k"]})
+    proc = smt_processor.SMTDataProcessor().set_dataframes(
+        bom_df,
+        pnp_df,
+        smt_processor.ColumnConfig(designator="Designator", comment="Value"),
+        smt_processor.ColumnConfig(designator="Designator", comment="Comment"),
+    )
+    df = proc.cross_check()
+    mismatch = df[df["IssueType"] == "mismatch"]
+    assert list(mismatch["Severity"]) == ["warning"]
+
+
 def test_cross_check_pnp_skip_comment_does_not_use_last_column() -> None:
     pd = __import__("pandas")
     bom_df = pd.DataFrame({"Designator": ["R1"], "Value": ["100R"]})
-    pnp_df = pd.DataFrame(
-        {"Designator": ["R1"], "X": [1.0], "Trap": ["NOT_A_COMMENT"]}
-    )
+    pnp_df = pd.DataFrame({"Designator": ["R1"], "X": [1.0], "Trap": ["NOT_A_COMMENT"]})
     proc = smt_processor.SMTDataProcessor().set_dataframes(
         bom_df,
         pnp_df,

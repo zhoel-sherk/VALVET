@@ -30,9 +30,7 @@ def lint_cleaned_case(cleaned: str, type_tag: str) -> tuple[CaseLintHit, ...]:
     if kind in {"CAP", "CAPACITOR"} and _CAP_UF_WRONG.search(s):
         hits.append(CaseLintHit("cap_uf", "use Uf (not UF/uF)"))
     if kind in {"RES", "RESISTOR"} and _RES_MIXED_OHM.search(s):
-        hits.append(
-            CaseLintHit("res_m_vs_M", "milliohm is m, megaohm is M")
-        )
+        hits.append(CaseLintHit("res_m_vs_M", "milliohm is m, megaohm is M"))
     return tuple(hits)
 
 

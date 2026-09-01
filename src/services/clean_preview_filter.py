@@ -43,5 +43,7 @@ def unresolved_preview_rows(df: pd.DataFrame) -> pd.DataFrame:
         mask = mask | match.isin({"none", "", "nan"})
     elif src is not None:
         mask = mask | ~src.str.casefold().str.contains("hanwha", na=False)
-    cols = [c for c in ("Original", "Cleaned", "Type", "Source", "Match") if c in df.columns]
+    cols = [
+        c for c in ("Original", "Cleaned", "Type", "Source", "Match") if c in df.columns
+    ]
     return df.loc[mask, cols].copy() if cols else df.loc[mask].copy()

@@ -39,7 +39,9 @@ def parse(pn: str, component_type: str) -> str | None:
     cap = pf_eia_3_to_str(c3)
     if not cap:
         return None
-    film = "C0G" if film_raw.upper() in ("C0G", "COG", "NP0", "NPO") else film_raw.upper()
+    film = (
+        "C0G" if film_raw.upper() in ("C0G", "COG", "NP0", "NPO") else film_raw.upper()
+    )
     tol = _TOL.get(tch.upper(), "")
     vol = china_mlcc_vol_token(vtok)
     parts = [size, cap, film]

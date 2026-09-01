@@ -118,6 +118,44 @@ def test_side_filter_hides_bottom(tmp_path: Path) -> None:
         tab.close()
 
 
+def test_side_filter_m_is_bottom_empty_is_top(tmp_path: Path) -> None:
+    _qapp()
+    tab = _tab(tmp_path)
+    try:
+        df = pd.DataFrame(
+            {
+                "REF": ["T1", "B1", "U0"],
+                "X": [0.0, 1.0, 2.0],
+                "Y": [0.0, 0.0, 0.0],
+                "Layer": ["t", "m", ""],
+            }
+        )
+        tab.set_placements_from_dataframe(
+            df,
+            force=True,
+            designator_col="REF",
+            x_col="X",
+            y_col="Y",
+            rot_col=None,
+            layer_col="Layer",
+            coord_unit_mm=True,
+        )
+        assert tab._items["T1"]._placement.side == "top"
+        assert tab._items["B1"]._placement.side == "bottom"
+        assert tab._items["U0"]._placement.side == "top"
+        tab._chk_show_bot.setChecked(False)
+        assert tab._items["T1"].isVisible()
+        assert not tab._items["B1"].isVisible()
+        assert tab._items["U0"].isVisible()
+        tab._chk_show_bot.setChecked(True)
+        tab._chk_show_top.setChecked(False)
+        assert not tab._items["T1"].isVisible()
+        assert tab._items["B1"].isVisible()
+        assert not tab._items["U0"].isVisible()
+    finally:
+        tab.close()
+
+
 def test_centroid_translates_overlay(tmp_path: Path) -> None:
     _qapp()
     from PySide6 import QtGui, QtWidgets

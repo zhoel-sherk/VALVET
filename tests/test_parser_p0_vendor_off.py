@@ -20,9 +20,7 @@ from parsers.si_units import (
 @pytest.fixture
 def vendor_off_cfg():
     base = load_corpus_profile()
-    disabled = tuple(
-        sorted(set(base.clean_pipeline_disabled) | {"hanwha", "vendor"})
-    )
+    disabled = tuple(sorted(set(base.clean_pipeline_disabled) | {"hanwha", "vendor"}))
     return replace(
         base,
         use_hanwha_mdb=False,

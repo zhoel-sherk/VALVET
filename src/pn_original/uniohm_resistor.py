@@ -126,7 +126,11 @@ def parse(pn: str, component_type: str) -> str | None:
                 "2010": ("3/4W", ""),
                 "2512": ("1W", ""),
             }
-            if remaining and remaining[0] in ("F", "J", "K", "G") and size in _size_default_watt:
+            if (
+                remaining
+                and remaining[0] in ("F", "J", "K", "G")
+                and size in _size_default_watt
+            ):
                 wattage, default_tolerance = _size_default_watt[size]
                 remaining2 = remaining
             else:

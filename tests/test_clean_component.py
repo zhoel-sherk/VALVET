@@ -335,9 +335,9 @@ def test_mlcc_one_line_various_spacing():
 
 
 def test_normalize_for_regex_keeps_cap_voltage_slash():
-    assert normalize_for_regex_parsing(
+    assert normalize_for_regex_parsing("MLCC 15PF/50V (0402) NPO 5%") == (
         "MLCC 15PF/50V (0402) NPO 5%"
-    ) == ("MLCC 15PF/50V (0402) NPO 5%")
+    )
     assert normalize_for_regex_parsing("MFR/RC0603JR-1KL") == "RC0603JR-1KL"
 
 
@@ -630,9 +630,7 @@ def test_ferrite_bead_extract_and_clean_pass_through():
         == "HCB1608KF-800T30"
     )
     assert (
-        extract_ferrite_bead_mpn(
-            "FERRITE BEAD(0603)120OHM/2A | MURATA/BLM18PG121SN1D"
-        )
+        extract_ferrite_bead_mpn("FERRITE BEAD(0603)120OHM/2A | MURATA/BLM18PG121SN1D")
         == "BLM18PG121SN1D"
     )
     assert (
@@ -850,9 +848,7 @@ def test_milliohm_not_mega_on_sense_resistor_prose():
     )
     assert "0.001R" in row[0] or "0.001" in row[0]
     assert "1M" not in row[0]
-    row2 = clean_component.clean_one(
-        "RES 2m OHM 2W (2512) 1% | TA-I/RLM25FEER002", cfg
-    )
+    row2 = clean_component.clean_one("RES 2m OHM 2W (2512) 1% | TA-I/RLM25FEER002", cfg)
     assert "0.002R" in row2[0] or "0.002" in row2[0]
     mega = clean_component.clean_one("RES 0402 1M +/-1%", cfg)
     assert "1M" in mega[0]

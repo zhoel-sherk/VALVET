@@ -34,7 +34,9 @@ class PackageTab(QtWidgets.QWidget):
             from app.constants import PROFILE_LAST_ACTIVE_KEY
 
             pid = str(settings.value(PROFILE_LAST_ACTIVE_KEY, "default") or "default")
-        store_path = db_path if db_path is not None else package_vspd_dir(pid) / "vspd.sqlite"
+        store_path = (
+            db_path if db_path is not None else package_vspd_dir(pid) / "vspd.sqlite"
+        )
         self._store = PackageStore(store_path)
 
         root = QtWidgets.QHBoxLayout(self)
@@ -135,7 +137,9 @@ class PackageTab(QtWidgets.QWidget):
         )
 
     def _reload_table(self) -> None:
-        needle = (self._filter.text() if hasattr(self, "_filter") else "").strip().lower()
+        needle = (
+            (self._filter.text() if hasattr(self, "_filter") else "").strip().lower()
+        )
         rows = []
         for r in self._store.list_packages():
             if needle:
@@ -151,8 +155,10 @@ class PackageTab(QtWidgets.QWidget):
                     "Links": int(r["link_n"]),
                 }
             )
-        df = pd.DataFrame(rows) if rows else pd.DataFrame(
-            columns=["VSPD", "Class", "Family", "Aliases", "Links"]
+        df = (
+            pd.DataFrame(rows)
+            if rows
+            else pd.DataFrame(columns=["VSPD", "Class", "Family", "Aliases", "Links"])
         )
         self._model.update_dataframe(df)
 
@@ -188,9 +194,7 @@ class PackageTab(QtWidgets.QWidget):
             oj = pkg["outline_json"]
             fam = str(pkg["family"] or "")
             notes = str(pkg["notes"] or "")
-        result = build_result_for_package(
-            vid, outline_json=oj, family=fam, notes=notes
-        )
+        result = build_result_for_package(vid, outline_json=oj, family=fam, notes=notes)
         if result.outline.source in ("none", "vspd_heuristic") and not oj:
             live = self._hanwha_outline_for(vid)
             if live is not None:

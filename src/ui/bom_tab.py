@@ -27,7 +27,9 @@ class BomTabMixin:
         )
 
         root = QtWidgets.QHBoxLayout(tab)
-        root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)
+        root.setContentsMargins(
+            CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN
+        )
         root.setSpacing(CHROME_SPACING)
 
         left = left_rail_widget()
@@ -128,12 +130,14 @@ class BomTabMixin:
         self.bom_separator.currentTextChanged.connect(
             lambda *_: self._schedule_save_bom_tab_settings()
         )
+
     def _sync_bom_df_from_model(self) -> None:
         if not hasattr(self, "bom_model"):
             return
         df = self.bom_model.get_dataframe()
         if df is not None:
             self._bom_df = df
+
     def _confirm_clear_bom_workspace(self) -> None:
         if self._bom_df is None or self._bom_df.empty:
             self._clear_bom_workspace()
@@ -148,6 +152,7 @@ class BomTabMixin:
         )
         if res == QtWidgets.QMessageBox.StandardButton.Yes:
             self._clear_bom_workspace()
+
     def _clear_bom_workspace(self) -> None:
         self._prune_session_links_for_bom(self._bom_session_key())
         self._bom_df = None
@@ -166,6 +171,7 @@ class BomTabMixin:
         self._hide_merge_cross_check_ok_banner()
         self._profile_restore_bom_mappings = None
         self._log(self.ui_tr("msg.bom_cleared"), "info")
+
     def _apply_pending_profile_bom_mappings(self) -> None:
         pm = getattr(self, "_profile_restore_bom_mappings", None)
         if not pm or not getattr(self, "bom_col_combos", None):

@@ -79,9 +79,7 @@ _VOLT = {
     "J": "100V",
 }
 
-_RE_R71C = compile(
-    r"^GRM(155|188)R(71|72)C(10[0-9]|[0-1][0-9]{2})([A-Z0-9]+)$", I
-)
+_RE_R71C = compile(r"^GRM(155|188)R(71|72)C(10[0-9]|[0-1][0-9]{2})([A-Z0-9]+)$", I)
 _RE_R7V = compile(
     r"^GRM(155|188|21A|21B|216|31M|32E)R(71|72)([CDEFGHJ])([0-9]{3})(J|K|M|Z)([A-Z0-9]+)$",
     I,
@@ -175,9 +173,7 @@ def parse(pn: str, component_type: str) -> str | None:
             return "_".join(p for p in ("0402", cap, "50V", "C0G", tol) if p)
 
     # GRM1555C1H270JA01D, GRM1885C1H104KA… — C0G/NP0, C1H 50V, J=5% / K=10% in PN
-    m1h = match(
-        r"^GRM(1555|1885|2160|1632)C1H([0-9]{3})(J|K)([A-Z0-9]+)$", pn0, I
-    )
+    m1h = match(r"^GRM(1555|1885|2160|1632)C1H([0-9]{3})(J|K)([A-Z0-9]+)$", pn0, I)
     if m1h:
         skey, c3, tj, _tail = m1h.group(1), m1h.group(2), m1h.group(3), m1h.group(4)
         size = {"1555": "0402", "1885": "0603", "2160": "0805", "1632": "1210"}.get(

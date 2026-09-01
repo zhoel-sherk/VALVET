@@ -128,9 +128,7 @@ def tou_files_in_dir(folder: PathLike) -> list[Path]:
     d = Path(folder)
     if not d.is_dir():
         return []
-    return sorted(
-        p for p in d.iterdir() if p.is_file() and p.suffix.lower() == ".tou"
-    )
+    return sorted(p for p in d.iterdir() if p.is_file() and p.suffix.lower() == ".tou")
 
 
 def load_tou_items(path: PathLike) -> dict[str, list[str]]:

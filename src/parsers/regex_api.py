@@ -58,7 +58,9 @@ def fullmatch(pattern, string, flags: int = 0, pos: int = 0, endpos=None, **kwar
         return pattern.fullmatch(string, pos, endpos)
     if endpos is None:
         return _r.fullmatch(pattern, string, pos=pos, flags=_f(flags), **kwargs)
-    return _r.fullmatch(pattern, string, pos=pos, endpos=endpos, flags=_f(flags), **kwargs)
+    return _r.fullmatch(
+        pattern, string, pos=pos, endpos=endpos, flags=_f(flags), **kwargs
+    )
 
 
 def sub(pattern, repl, string, count=0, flags: int = 0, **kwargs):
@@ -84,7 +86,9 @@ def findall(pattern, string, flags: int = 0, pos: int = 0, endpos=None, **kwargs
         return pattern.findall(string, pos, endpos, **kwargs)
     if endpos is None:
         return _r.findall(pattern, string, pos=pos, flags=_f(flags), **kwargs)
-    return _r.findall(pattern, string, pos=pos, endpos=endpos, flags=_f(flags), **kwargs)
+    return _r.findall(
+        pattern, string, pos=pos, endpos=endpos, flags=_f(flags), **kwargs
+    )
 
 
 def finditer(pattern, string, flags: int = 0, pos: int = 0, endpos=None, **kwargs):
@@ -92,7 +96,9 @@ def finditer(pattern, string, flags: int = 0, pos: int = 0, endpos=None, **kwarg
         return pattern.finditer(string, pos, endpos, **kwargs)
     if endpos is None:
         return _r.finditer(pattern, string, pos=pos, flags=_f(flags), **kwargs)
-    return _r.finditer(pattern, string, pos=pos, endpos=endpos, flags=_f(flags), **kwargs)
+    return _r.finditer(
+        pattern, string, pos=pos, endpos=endpos, flags=_f(flags), **kwargs
+    )
 
 
 def escape(pattern):

@@ -97,7 +97,11 @@ def default_user_parsers_dir() -> Path:
             Path.home() / ".local/share/BoomerTools/user_parsers",
         ]
     for legacy in legacy_paths:
-        if legacy.is_dir() and not any(canonical.glob("*.py")) and any(legacy.glob("*.py")):
+        if (
+            legacy.is_dir()
+            and not any(canonical.glob("*.py"))
+            and any(legacy.glob("*.py"))
+        ):
             return legacy
     return canonical
 

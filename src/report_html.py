@@ -236,7 +236,7 @@ def result_dataframe_to_html(
     out: list[str] = [
         '<div class="valvet-report">',
         "<h2>Cross-check report</h2>",
-        "<p class=\"meta\">",
+        '<p class="meta">',
         f"BOM: <b>{html_mod.escape(bom_name)}</b><br/>",
         f"PnP: <b>{html_mod.escape(pnp_name)}</b><br/>",
         f"Generated: <b>{time.strftime('%Y-%m-%d %H:%M:%S')}</b>",
@@ -262,7 +262,9 @@ def result_dataframe_to_html(
 
     for _, row in df.iterrows():
         sev = _severity_key(row["Severity"]) if has_sev else ""
-        row_cls = f' class="sev-{html_mod.escape(sev)}"' if sev in SEVERITY_COLORS else ""
+        row_cls = (
+            f' class="sev-{html_mod.escape(sev)}"' if sev in SEVERITY_COLORS else ""
+        )
         out.append(f"<tr{row_cls}>")
         bom_txt = _cell_text(row["BOM_Value"]) if has_bom else ""
         pnp_txt = _cell_text(row["PnP_Value"]) if has_pnp else ""

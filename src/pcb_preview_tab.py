@@ -31,6 +31,7 @@ from pcb_preview.types import (
 )
 from pcb_preview_load_thread import GerberLoadThread
 from pcb_preview_outline_thread import PackageOutlineThread
+from ui.chrome import size_toolbar_button, toolbar_button
 from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
@@ -432,10 +433,10 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._btn_center = QtWidgets.QPushButton("Center on selection")
         self._btn_center.clicked.connect(self._center_selection)
         top.addWidget(self._btn_center)
-        self._btn_show_pnp = QtWidgets.QPushButton("Show from PnP")
+        self._btn_show_pnp = toolbar_button("Show from PnP")
         self._btn_show_pnp.clicked.connect(self.showFromPnpRequested.emit)
         top.addWidget(self._btn_show_pnp)
-        self._btn_show_merge = QtWidgets.QPushButton("Show from Merge")
+        self._btn_show_merge = toolbar_button("Show from Merge")
         self._btn_show_merge.clicked.connect(self.showFromMergeRequested.emit)
         top.addWidget(self._btn_show_merge)
         self._btn_show_pnp.setEnabled(False)
@@ -670,6 +671,8 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._btn_center.setText(self._tr("pcb.center_sel"))
         self._btn_show_pnp.setText(self._tr("pcb.show_from_pnp"))
         self._btn_show_merge.setText(self._tr("pcb.show_from_merge"))
+        size_toolbar_button(self._btn_show_pnp)
+        size_toolbar_button(self._btn_show_merge)
         self._btn_centroid.setText(self._tr("pcb.centroid"))
         self._chk_show_top.setText(self._tr("pcb.layer_top"))
         self._chk_show_bot.setText(self._tr("pcb.layer_bot"))
@@ -1177,6 +1180,17 @@ class PcbPreviewTab(QtWidgets.QWidget):
         fp = self._placements_fingerprint(df, kwargs)
         if not force and fp == self._placements_fp:
             return
+        if force:
+            self._placements_fp = None
+            self._preview_sim = Similarity2D.identity()
+            self._pnp_mirror_x = 1
+            self._pnp_mirror_y = 1
+            self._chk_mirror_x.blockSignals(True)
+            self._chk_mirror_y.blockSignals(True)
+            self._chk_mirror_x.setChecked(False)
+            self._chk_mirror_y.setChecked(False)
+            self._chk_mirror_x.blockSignals(False)
+            self._chk_mirror_y.blockSignals(False)
         self._placements_fp = fp
         self._placements, warns = pcb_preview_bridge.placements_from_pnp_dataframe(
             df, **kwargs

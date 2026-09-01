@@ -96,7 +96,9 @@ class PackageStore:
         return n
 
     def _compact_alias_keys(self) -> None:
-        rows = list(self._conn.execute("SELECT raw, standard, vspd_id, norm_key FROM alias"))
+        rows = list(
+            self._conn.execute("SELECT raw, standard, vspd_id, norm_key FROM alias")
+        )
         if not rows:
             return
         if all(str(r["norm_key"]) == normalize_package_key(r["raw"]) for r in rows):
@@ -158,9 +160,7 @@ class PackageStore:
         vid = vspd_id.strip()
         if not vid:
             return
-        cur = self._conn.execute(
-            "SELECT 1 FROM package WHERE vspd_id = ?", (vid,)
-        )
+        cur = self._conn.execute("SELECT 1 FROM package WHERE vspd_id = ?", (vid,))
         if cur.fetchone() is None:
             self._conn.execute(
                 """INSERT INTO package (vspd_id, class, family, display_name, notes)
@@ -242,9 +242,7 @@ class PackageStore:
             )
         )
 
-    def import_name(
-        self, raw: str, *, kind: str, standard: str
-    ) -> str:
+    def import_name(self, raw: str, *, kind: str, standard: str) -> str:
         hit = parse_package(raw)
         vid = hit.vspd_id or "OTHER"
         self.add_alias(raw, vid, standard)

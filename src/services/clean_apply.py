@@ -63,11 +63,7 @@ def apply_clean_preview_to_bom(
         if df_i < 0 or df_i >= len(df):
             continue
         cleaned, typ, source = _preview_row_fields(row)
-        part_code = (
-            "RES" if typ == "RESISTOR"
-            else "IND" if typ == "INDUCTOR"
-            else typ
-        )
+        part_code = "RES" if typ == "RESISTOR" else "IND" if typ == "INDUCTOR" else typ
         df.at[df.index[df_i], target_col] = cleaned
         if not replace_source:
             df.at[df.index[df_i], "clean_type"] = typ

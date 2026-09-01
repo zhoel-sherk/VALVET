@@ -42,7 +42,9 @@ def test_pick_prefers_first_preferred_driver(monkeypatch: pytest.MonkeyPatch) ->
     assert pick_access_odbc_driver() == "Microsoft Access Driver (*.mdb, *.accdb)"
 
 
-def test_pick_second_preferred_when_first_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pick_second_preferred_when_first_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pytest.importorskip("pyodbc")
     import pyodbc
 
@@ -54,7 +56,9 @@ def test_pick_second_preferred_when_first_absent(monkeypatch: pytest.MonkeyPatch
     assert pick_access_odbc_driver() == "Microsoft Access Driver (*.mdb)"
 
 
-def test_pick_fuzzy_match_localized_access_driver(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pick_fuzzy_match_localized_access_driver(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pytest.importorskip("pyodbc")
     import pyodbc
 
@@ -63,7 +67,9 @@ def test_pick_fuzzy_match_localized_access_driver(monkeypatch: pytest.MonkeyPatc
     assert pick_access_odbc_driver() == localized
 
 
-def test_pick_returns_none_without_access_driver(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_pick_returns_none_without_access_driver(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pytest.importorskip("pyodbc")
     import pyodbc
 
@@ -71,7 +77,9 @@ def test_pick_returns_none_without_access_driver(monkeypatch: pytest.MonkeyPatch
     assert pick_access_odbc_driver() is None
 
 
-def test_odbc_connection_string_readonly(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_odbc_connection_string_readonly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from machine_library.access_odbc import format_access_odbc_connection_string
 
     mdb = tmp_path / "lib.mdb"
@@ -117,9 +125,7 @@ def test_part_det_select_is_narrow() -> None:
     assert len(PART_DET_SELECT_COLS) == 6
 
 
-def test_load_part_det_dataframe_odbc_closes_on_success(
-    mocker, tmp_path: Path
-) -> None:
+def test_load_part_det_dataframe_odbc_closes_on_success(mocker, tmp_path: Path) -> None:
     from machine_library.access_odbc import load_part_det_dataframe_odbc
 
     mdb = tmp_path / "lib.mdb"

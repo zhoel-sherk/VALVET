@@ -50,7 +50,7 @@ def _tokenize(src: str) -> list[str]:
             i += 1
             continue
         j = i
-        while j < n and src[j] not in "()\" \t\r\n":
+        while j < n and src[j] not in '()" \t\r\n':
             j += 1
         out.append(src[i:j])
         i = j

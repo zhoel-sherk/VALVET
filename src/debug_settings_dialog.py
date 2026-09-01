@@ -523,7 +523,9 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         for cb, key, default in ((self._cb_exp_step, "step_3d", False),):
             cb.blockSignals(True)
             cb.setChecked(
-                _prefs_profile_bool(s.value(f"experimental/enable_{key}", default), default)
+                _prefs_profile_bool(
+                    s.value(f"experimental/enable_{key}", default), default
+                )
             )
             cb.blockSignals(False)
 

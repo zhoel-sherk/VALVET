@@ -62,8 +62,11 @@ jobs:
           PYTHONPATH: src
         run: python -m compileall -q src
 
-      - name: Ruff (E/F)
+      - name: Ruff check
         run: python -m ruff check src tests
+
+      - name: Ruff format
+        run: python -m ruff format --check src tests
 
       - name: Core has no PySide6 (pytest)
         env:

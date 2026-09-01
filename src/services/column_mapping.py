@@ -21,14 +21,7 @@ PN_CLEAN_ROLES = ("Comment", "PnJoin")
 
 
 def _compact(name: str) -> str:
-    return (
-        str(name)
-        .strip()
-        .upper()
-        .replace(" ", "")
-        .replace("_", "")
-        .replace("-", "")
-    )
+    return str(name).strip().upper().replace(" ", "").replace("_", "").replace("-", "")
 
 
 def is_designator_header(name: str) -> bool:
@@ -73,11 +66,7 @@ def guess_pnp_role(col_name: str) -> str:
         return "Y"
     if "MID-X" in col_upper or "MID-Y" in col_upper:
         return "-"
-    if (
-        "FOOTPRINT" in col_upper
-        or "PATTERN" in col_upper
-        or "PACKAGE" in col_upper
-    ):
+    if "FOOTPRINT" in col_upper or "PATTERN" in col_upper or "PACKAGE" in col_upper:
         return "Footprint"
     if col_upper.strip() == "X" and "MIL" not in col_upper and "PAD" not in col_upper:
         return "X"
@@ -127,9 +116,7 @@ def uniquify_roles(
     return out
 
 
-def pn_columns_in_order(
-    columns: Sequence[object], roles: Sequence[str]
-) -> list[str]:
+def pn_columns_in_order(columns: Sequence[object], roles: Sequence[str]) -> list[str]:
     """BOM columns mapped to PN name or PN join, left-to-right."""
     out: list[str] = []
     for col, role in zip(columns, roles, strict=False):
@@ -138,9 +125,7 @@ def pn_columns_in_order(
     return out
 
 
-def pick_merge_pn_column(
-    columns: Sequence[object], roles: Sequence[str]
-) -> str | None:
+def pick_merge_pn_column(columns: Sequence[object], roles: Sequence[str]) -> str | None:
     """Merge/cross-check Value: PN name, else first PN name/join column."""
     for col, role in zip(columns, roles, strict=False):
         if role == "Comment":
@@ -162,9 +147,7 @@ def roles_after_clean_apply(
     while len(roles) < len(columns):
         roles.append("-")
     roles = roles[: len(columns)]
-    roles = uniquify_roles(
-        roles, exclusive=BOM_EXCLUSIVE_ROLES, last_wins=()
-    )
+    roles = uniquify_roles(roles, exclusive=BOM_EXCLUSIVE_ROLES, last_wins=())
     for i, _name in enumerate(roles):
         if roles[i] == "Comment":
             roles[i] = "-"
@@ -173,9 +156,7 @@ def roles_after_clean_apply(
         if str(name) == target:
             roles[i] = "Comment"
             break
-    return uniquify_roles(
-        roles, exclusive=BOM_EXCLUSIVE_ROLES, last_wins=()
-    )
+    return uniquify_roles(roles, exclusive=BOM_EXCLUSIVE_ROLES, last_wins=())
 
 
 def merge_result_pnp_roles(columns: Sequence[str]) -> list[str]:

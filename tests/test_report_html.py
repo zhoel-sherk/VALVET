@@ -48,7 +48,7 @@ def test_result_dataframe_to_html_wraps_highlight_columns():
     assert '<span class="ch-letter">ABC</span>' in html
     assert '<span class="ch-num">123</span>' in html
     assert "Missing in PnP" in html
-    assert "class=\"sev-warning\"" in html or "class='sev-warning'" in html
+    assert 'class="sev-warning"' in html or "class='sev-warning'" in html
     assert "badge-warning" in html
     assert "1 issue" in html
     assert "1 warning" in html
@@ -73,9 +73,11 @@ def test_result_dataframe_to_html_mismatch_and_critical():
             }
         ]
     )
-    html = result_dataframe_to_html(df, bom_path=r"C:\boards\bom.csv", pnp_path="pnp.txt")
+    html = result_dataframe_to_html(
+        df, bom_path=r"C:\boards\bom.csv", pnp_path="pnp.txt"
+    )
     assert "Value mismatch" in html
-    assert "class=\"sev-critical\"" in html or "class='sev-critical'" in html
+    assert 'class="sev-critical"' in html or "class='sev-critical'" in html
     assert "badge-critical" in html
     assert "cell-mismatch" in html
     assert '<mark class="diff">' in html

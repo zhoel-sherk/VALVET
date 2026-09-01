@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from parsers import regex_api as re
+from parsers import regex_api
 
 _CATALOG = Path(__file__).resolve().parent / "catalog"
 
@@ -16,7 +16,7 @@ _CATALOG = Path(__file__).resolve().parent / "catalog"
 def normalize_package_key(name: str) -> str:
     """Collapse punctuation so SOT23, SOT_23, and SOT-23 share one alias key."""
     s = (name or "").strip().lower().replace("\\", "/")
-    return re.sub(r"[^a-z0-9.]+", "", s)
+    return regex_api.sub(r"[^a-z0-9.]+", "", s)
 
 
 @lru_cache(maxsize=1)

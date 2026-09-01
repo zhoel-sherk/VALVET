@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from package_vspd.catalog import load_aliases, normalize_package_key
-from parsers import regex_api as re
+from parsers import regex_api
 
 _CHIP_IMPERIAL = (
     "01005",
@@ -21,55 +21,57 @@ _CHIP_IMPERIAL = (
     "1812",
 )
 
-_IPC = re.compile(
+_IPC = regex_api.compile(
     r"(?i)\b([A-Z]+?)(\d{2,4})P(\d{2,4})X(\d{2,4})-(\d{1,3})([NLM])?\b"
 )
-_KLC = re.compile(
+_KLC = regex_api.compile(
     r"(?i)\b(SOIC|SSOP|TSSOP|MSOP|LQFP|TQFP|QFN|DFN|LGA|SOT|BGA|WLCSP)"
     r"-(\d+)(W)?(?:_EP)?(?:_[0-9.]+x[0-9.]+mm)?"
     r"(?:_P(?:itch)?[0-9.]+mm)?(?:_[NL])?\b"
 )
-_KLC_QFN_SIZE = re.compile(
+_KLC_QFN_SIZE = regex_api.compile(
     r"(?i)\b(QFN|DFN|WQFN)-(\d+)_(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)\b"
 )
-_QFN_PAREN = re.compile(
+_QFN_PAREN = regex_api.compile(
     r"(?i)\b(?:W)?QFN-?(\d+)\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:mm)?\s*[xX×]\s*(\d+(?:\.\d+)?)"
 )
-_DFN_LOOSE = re.compile(
+_DFN_LOOSE = regex_api.compile(
     r"(?i)\b(?:DFN|PDFN|UTDFN|TDFN)(\d+)?[\s_-]*(?:\d+)?[xX×](\d+(?:\.\d+)?)"
     r"[\s_-]*(?:\d+)?[xX×](\d+(?:\.\d+)?)"
 )
-_QFN_LOOSE = re.compile(
+_QFN_LOOSE = regex_api.compile(
     r"(?i)\b(?:W)?QFN-?(\d+)(?:[\s_]+(\d+(?:\.\d+)?)[xX×](\d+(?:\.\d+)?))?"
 )
-_WSON = re.compile(r"(?i)\bWSON-?(\d+)\b")
-_XTAL_CODE = re.compile(r"(?i)\b(?:XTAL|CRYSTAL|CRY)[\s_-]*(\d{4})\b")
-_XTAL_MM = re.compile(
+_WSON = regex_api.compile(r"(?i)\bWSON-?(\d+)\b")
+_XTAL_CODE = regex_api.compile(r"(?i)\b(?:XTAL|CRYSTAL|CRY)[\s_-]*(\d{4})\b")
+_XTAL_MM = regex_api.compile(
     r"(?i)(?:\bXTAL\b|\bCRYSTAL\b|\bCRY\b|MHZ|KHZ).{0,40}?"
     r"(\d(?:\.\d+)?)\s*[*×xX]\s*(\d(?:\.\d+)?)"
 )
-_CIRCLE_D = re.compile(r"(?i)(?:CIRCLE|NUT|WASHER).{0,30}?[dD](?:=|ia\.?)?\s*(\d+(?:\.\d+)?)")
-_CIRCLE_NUT_DIM = re.compile(r"(?i)\bM\d+(?:\.\d+)?[xX](\d+(?:\.\d+)?)")
-_CIRCLE_CHIP = re.compile(r"(?i)\bCHIP[\s_-]*CIRCLE\b")
-_POSCAP_CASE = re.compile(r"(?i)(?:3528|7343)[/\(]")
-_HANWHA_CHIP = re.compile(r"(?i)\bChip-[RCL](\d{4,5})\b")
-_HANWHA_PAREN = re.compile(r"(?i)Chip-[RCL]\d+\((\d{4,5})\)")
-_PLCC = re.compile(r"(?i)(?<![A-Z0-9])PLCC[\s_-]*(\d{2,3})(?![0-9])")
-_LQFP = re.compile(r"(?i)(?<![A-Z0-9])(?:L|T)?QFP[\s_-]*(\d{2,3})(?![0-9])")
-_SOT_LOOSE = re.compile(
+_CIRCLE_D = regex_api.compile(
+    r"(?i)(?:CIRCLE|NUT|WASHER).{0,30}?[dD](?:=|ia\.?)?\s*(\d+(?:\.\d+)?)"
+)
+_CIRCLE_NUT_DIM = regex_api.compile(r"(?i)\bM\d+(?:\.\d+)?[xX](\d+(?:\.\d+)?)")
+_CIRCLE_CHIP = regex_api.compile(r"(?i)\bCHIP[\s_-]*CIRCLE\b")
+_POSCAP_CASE = regex_api.compile(r"(?i)(?:3528|7343)[/\(]")
+_HANWHA_CHIP = regex_api.compile(r"(?i)\bChip-[RCL](\d{4,5})\b")
+_HANWHA_PAREN = regex_api.compile(r"(?i)Chip-[RCL]\d+\((\d{4,5})\)")
+_PLCC = regex_api.compile(r"(?i)(?<![A-Z0-9])PLCC[\s_-]*(\d{2,3})(?![0-9])")
+_LQFP = regex_api.compile(r"(?i)(?<![A-Z0-9])(?:L|T)?QFP[\s_-]*(\d{2,3})(?![0-9])")
+_SOT_LOOSE = regex_api.compile(
     r"(?i)(?<![A-Z0-9])SOT[\s_-]*(\d{2,3})(?:[\s_-]*([5-8]))?(?![0-9A-Z])"
 )
-_SOD_LOOSE = re.compile(r"(?i)(?<![A-Z0-9])SOD[\s_-]*(\d{3})(?![0-9])")
-_METRIC_EIA = re.compile(r"(?i)\b(?:CAPC|RESC|INDC)(\d{4})\b")
-_BGA = re.compile(r"(?i)\bBGA[_-]?(\d+(?:\.\d+)?)[_-](\d{2,4})\b")
-_TI_D0008A = re.compile(r"(?i)\bD0008A\b")
-_MC_SN = re.compile(r"(?i)(?:^|[^A-Z])SN(?:$|[^A-Z0-9])")
-_MC_SM = re.compile(r"(?i)(?:^|[^A-Z])SM(?:$|[^A-Z0-9])")
-_RES = re.compile(
+_SOD_LOOSE = regex_api.compile(r"(?i)(?<![A-Z0-9])SOD[\s_-]*(\d{3})(?![0-9])")
+_METRIC_EIA = regex_api.compile(r"(?i)\b(?:CAPC|RESC|INDC)(\d{4})\b")
+_BGA = regex_api.compile(r"(?i)\bBGA[_-]?(\d+(?:\.\d+)?)[_-](\d{2,4})\b")
+_TI_D0008A = regex_api.compile(r"(?i)\bD0008A\b")
+_MC_SN = regex_api.compile(r"(?i)(?:^|[^A-Z])SN(?:$|[^A-Z0-9])")
+_MC_SM = regex_api.compile(r"(?i)(?:^|[^A-Z])SM(?:$|[^A-Z0-9])")
+_RES = regex_api.compile(
     r"(?i)\b(resistor|res\b|ohm|\d+\s*[kKmM]?[oO]hm|chip-r|r\d{3,4})\b"
 )
-_CAP = re.compile(r"(?i)\b(capacitor|cap\b|mlcc|nf\b|uf\b|pf\b|chip-c)\b")
-_IND = re.compile(r"(?i)\b(inductor|bead|ferrite|chip-l|\bL\d{3,4}\b)\b")
+_CAP = regex_api.compile(r"(?i)\b(capacitor|cap\b|mlcc|nf\b|uf\b|pf\b|chip-c)\b")
+_IND = regex_api.compile(r"(?i)\b(inductor|bead|ferrite|chip-l|\bL\d{3,4}\b)\b")
 
 
 @dataclass(frozen=True)
@@ -170,7 +172,9 @@ def _ipc_hit(text: str) -> VspdHit | None:
         return VspdHit("SOIC-14", "ipc", tuple(warn), "ipc")
     if fam == "QFN" and pins == 32:
         return VspdHit("QFN-32_5x5", "ipc", tuple(warn), "ipc")
-    return VspdHit("OTHER", "ipc-weak", tuple(warn) + (f"unmapped IPC {fam}-{pins}",), "ipc")
+    return VspdHit(
+        "OTHER", "ipc-weak", tuple(warn) + (f"unmapped IPC {fam}-{pins}",), "ipc"
+    )
 
 
 def _klc_hit(text: str) -> VspdHit | None:
@@ -257,12 +261,12 @@ def _sot_sod_hit(text: str) -> VspdHit | None:
             cand = ""
         if cand and cand in _catalog_ids():
             return VspdHit(cand, "loose", (), "jedec")
-    ts = re.search(r"(?i)\bTSOT[\s_-]*23[\s_-]*([5-8])\b", text)
+    ts = regex_api.search(r"(?i)\bTSOT[\s_-]*23[\s_-]*([5-8])\b", text)
     if ts:
         cand = f"TSOT-23-{ts.group(1)}"
         if cand in _catalog_ids():
             return VspdHit(cand, "loose", (), "jedec")
-    sc = re.search(r"(?i)\bSC[\s_-]*70(?:[\s_-]*([5-8]))?\b", text)
+    sc = regex_api.search(r"(?i)\bSC[\s_-]*70(?:[\s_-]*([5-8]))?\b", text)
     if sc:
         cand = "SOT-323"
         if cand in _catalog_ids():
@@ -297,7 +301,7 @@ def _chip_hit(text: str) -> VspdHit | None:
         mapped = _imperial_code(h.group(1))
         if mapped:
             return VspdHit(f"CHIP-{mapped}", "hanwha", (), "hanwha")
-    compact = re.sub(r"[^A-Za-z0-9]", "", text).upper()
+    compact = regex_api.sub(r"[^A-Za-z0-9]", "", text).upper()
     if compact.isdigit() and len(compact) >= 6:
         return None
     met = _METRIC_EIA.search(text)
@@ -394,7 +398,7 @@ def _circle_hit(text: str) -> VspdHit | None:
         hit = _match_dia(float(d.group(1)))
         if hit:
             return hit
-    if re.search(r"(?i)\b(?:copper\s+)?nut\b", text):
+    if regex_api.search(r"(?i)\b(?:copper\s+)?nut\b", text):
         if "CIRCLE-GENERIC" in _catalog_ids():
             return VspdHit("CIRCLE-GENERIC", "circle", (), "catalog")
     return None
@@ -414,7 +418,12 @@ def _leadless_hit(text: str) -> VspdHit | None:
             return VspdHit(vid, "loose", (), "jedec")
     q = _KLC_QFN_SIZE.search(text)
     if q:
-        fam, pins, lx, ly = q.group(1).upper(), int(q.group(2)), float(q.group(3)), float(q.group(4))
+        fam, pins, lx, ly = (
+            q.group(1).upper(),
+            int(q.group(2)),
+            float(q.group(3)),
+            float(q.group(4)),
+        )
         if fam in {"QFN", "WQFN"}:
             vid = _best_qfn(pins, lx, ly)
         else:
@@ -436,7 +445,10 @@ def _leadless_hit(text: str) -> VspdHit | None:
         vid = _best_dfn(pins, lx, ly)
         if vid:
             return VspdHit(vid, "loose", (), "jedec")
-    if re.search(r"(?i)\bDFN[\s_-]*56\b", text) and "DFN-56_5x6" in _catalog_ids():
+    if (
+        regex_api.search(r"(?i)\bDFN[\s_-]*56\b", text)
+        and "DFN-56_5x6" in _catalog_ids()
+    ):
         return VspdHit("DFN-56_5x6", "loose", (), "jedec")
     return None
 
@@ -447,10 +459,10 @@ def _poscap_hit(text: str) -> VspdHit | None:
             return VspdHit("TANT-D", "poscap", (), "vendor")
         if "3528" in text.upper() and "TANT-B" in _catalog_ids():
             return VspdHit("TANT-B", "poscap", (), "vendor")
-    if re.search(r"(?i)\bPOSCAP\b", text):
+    if regex_api.search(r"(?i)\bPOSCAP\b", text):
         if "TANT-B" in _catalog_ids():
             return VspdHit("TANT-B", "poscap", (), "vendor")
-    if re.search(r"(?i)\bSP[\s_-]*CAP\b", text) and "TANT-E" in _catalog_ids():
+    if regex_api.search(r"(?i)\bSP[\s_-]*CAP\b", text) and "TANT-E" in _catalog_ids():
         return VspdHit("TANT-E", "poscap", (), "vendor")
     return None
 
@@ -462,7 +474,10 @@ def _lead_family_hit(text: str) -> VspdHit | None:
     p = _PLCC.search(text)
     if p:
         n = int(p.group(1))
-        for cand in (f"PLCC-{n}", "PLCC-44" if n >= 32 else "PLCC-28" if n >= 24 else "PLCC-20"):
+        for cand in (
+            f"PLCC-{n}",
+            "PLCC-44" if n >= 32 else "PLCC-28" if n >= 24 else "PLCC-20",
+        ):
             if cand in ids:
                 return VspdHit(cand, "loose", (), "jedec")
     q = _LQFP.search(text)
@@ -478,9 +493,13 @@ def _vendor_hit(text: str) -> VspdHit | None:
     if _TI_D0008A.search(text):
         return VspdHit("SOIC-8", "vendor", (), "vendor")
     if _MC_SM.search(text) and not _MC_SN.search(text):
-        return VspdHit("SOIC-16W", "vendor", ("Microchip SM ≈ 208 mil wide SO",), "vendor")
+        return VspdHit(
+            "SOIC-16W", "vendor", ("Microchip SM ≈ 208 mil wide SO",), "vendor"
+        )
     if _MC_SN.search(text):
-        return VspdHit("SOIC-8", "vendor", ("Microchip SN ≈ 150 mil narrow SOIC",), "vendor")
+        return VspdHit(
+            "SOIC-8", "vendor", ("Microchip SN ≈ 150 mil narrow SOIC",), "vendor"
+        )
     return None
 
 

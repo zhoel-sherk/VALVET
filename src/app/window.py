@@ -47,7 +47,6 @@ _TAB_GROUP_KEY = {
     "package": "data",
     "clean_bom": "transform",
     "merge": "transform",
-    "report": "output",
     "pcb_preview": "view",
     "step_3d": "view",
     "machine_lib": "view",
@@ -92,6 +91,8 @@ class MainWindow(
         self._recent_pnp: list[str] = []
         self._last_report_html: str = ""
         self._last_merge_df: Optional[pd.DataFrame] = None
+        self._cc_full_df: Optional[pd.DataFrame] = None
+        self._cc_user_accepted: bool = False
         self._restoring_settings: bool = False
         self._settings = settings or QtCore.QSettings(SETTINGS_ORG, SETTINGS_APP)
         self._autosave_dir = str(autosave_root())
@@ -180,7 +181,6 @@ class MainWindow(
         self._create_package_tab()
         self._create_clean_tab()
         self._create_merge_tab()
-        self._create_report_tab()
         self._create_pcb_preview_tab()
         if exp_step:
             self._create_step_3d_tab()
@@ -458,6 +458,7 @@ class MainWindow(
             self._refresh_pcb_preview_from_ui(force=False)
 
     def _pcb_preview_merge_bridge_kwargs(self) -> Optional[dict]:
+        self._sync_merge_df_from_model()
         df = getattr(self, "_last_merge_df", None)
         if df is None or getattr(df, "empty", True):
             return None
@@ -538,6 +539,7 @@ class MainWindow(
         self._pcb_tab.set_placements_from_dataframe(self._pnp_df, force=True, **kwargs)
 
     def _pcb_preview_show_from_merge(self) -> None:
+        self._sync_merge_df_from_model()
         kwargs = self._pcb_preview_merge_bridge_kwargs()
         df = getattr(self, "_last_merge_df", None)
         if kwargs is None or df is None:

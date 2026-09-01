@@ -7,6 +7,12 @@ from typing import Any, Optional
 import pandas as pd
 from PySide6 import QtCore, QtWidgets
 
+from layer_side import (
+    display_layer_value,
+    is_bot_layer_token,
+    is_top_layer_token,
+    select_merge_layer_defaults,
+)
 from mmd_export import merge_dataframe_to_mmd_mercury
 from qt_models import SortableTableModel
 from report_html import result_dataframe_to_html
@@ -52,6 +58,7 @@ class MergeTabMixin:
             action_button,
             apply_equal_widths,
             left_rail_widget,
+            switch_checkbox,
         )
 
         root = QtWidgets.QHBoxLayout(tab)
@@ -69,7 +76,48 @@ class MergeTabMixin:
         info.setWordWrap(True)
         left_l.addWidget(info)
 
-        self.merge_delete_dnp = QtWidgets.QCheckBox("Delete DNP components")
+        cc_group = QtWidgets.QGroupBox("Cross-check")
+        cc_l = QtWidgets.QVBoxLayout(cc_group)
+        self.btn_cross_check = action_button("Cross-check")
+        self.btn_cross_check.clicked.connect(self._run_cross_check)
+        cc_l.addWidget(self.btn_cross_check)
+        self.chk_critical = switch_checkbox("Critical")
+        self.chk_critical.setChecked(True)
+        self.chk_critical.toggled.connect(self._on_cross_check_filter_toggled)
+        cc_l.addWidget(self.chk_critical)
+        self.chk_warning = switch_checkbox("Warning")
+        self.chk_warning.setChecked(True)
+        self.chk_warning.toggled.connect(self._on_cross_check_filter_toggled)
+        cc_l.addWidget(self.chk_warning)
+        self.chk_info = switch_checkbox("Info")
+        self.chk_info.setChecked(True)
+        self.chk_info.toggled.connect(self._on_cross_check_filter_toggled)
+        cc_l.addWidget(self.chk_info)
+        self.chk_overlap = switch_checkbox("Overlap: mm")
+        self.chk_overlap.setChecked(False)
+        self.chk_overlap.setToolTip(
+            "If enabled, report pairs of placements on the same layer when center distance "
+            "(after scaling PnP X/Y per the PnP / Merge / PCB Preview mm↔mils choice) "
+            "is below this threshold. Distance limit is always in millimeters. "
+            "O(n²) in PnP size — leave off for very dense panels."
+        )
+        self.spin_overlap_mm = QtWidgets.QDoubleSpinBox()
+        self.spin_overlap_mm.setRange(0.1, 999.0)
+        self.spin_overlap_mm.setDecimals(2)
+        self.spin_overlap_mm.setValue(3.0)
+        self.spin_overlap_mm.setEnabled(False)
+        self.chk_overlap.toggled.connect(self.spin_overlap_mm.setEnabled)
+        self.chk_overlap.toggled.connect(self._save_report_overlap_settings)
+        self.spin_overlap_mm.valueChanged.connect(self._save_report_overlap_settings)
+        cc_l.addWidget(self.chk_overlap)
+        cc_l.addWidget(self.spin_overlap_mm)
+        left_l.addWidget(cc_group)
+
+        self.merge_delete_dnp = switch_checkbox("Delete DNP")
+        self.merge_delete_dnp.setToolTip(
+            "When merging, drop PnP placements that are not in the BOM "
+            "(unused / extra refs) and rows whose value is DNP or DNP_FROM_BOM."
+        )
         self.merge_delete_dnp.stateChanged.connect(self._on_merge_settings_changed)
         left_l.addWidget(self.merge_delete_dnp)
         xy_row = QtWidgets.QHBoxLayout()
@@ -149,6 +197,7 @@ class MergeTabMixin:
         left_l.addWidget(files_group)
         apply_equal_widths(
             (
+                self.btn_cross_check,
                 self.btn_merge,
                 self.btn_replace_pnp_from_merge,
                 self.btn_find_package,
@@ -201,12 +250,50 @@ class MergeTabMixin:
         cc_ok_lay.addStretch()
         layout.addWidget(self.merge_cc_ok_banner)
 
+        self.merge_cc_issue_banner = QtWidgets.QFrame()
+        self.merge_cc_issue_banner.setObjectName("mergeCcIssueBanner")
+        self.merge_cc_issue_banner.setVisible(False)
+        self.merge_cc_issue_banner.setStyleSheet(
+            "QFrame#mergeCcIssueBanner { background-color: rgba(183, 110, 0, 0.22); "
+            "border: 1px solid #fb8c00; border-radius: 4px; padding: 6px 8px; }"
+        )
+        cc_bad_lay = QtWidgets.QHBoxLayout(self.merge_cc_issue_banner)
+        cc_bad_lay.setContentsMargins(8, 4, 8, 4)
+        self.merge_cc_issue_icon = QtWidgets.QLabel("!")
+        self.merge_cc_issue_icon.setStyleSheet(
+            "color: #ffb74d; font-size: 22px; font-weight: bold; border: none; background: transparent;"
+        )
+        self.merge_cc_issue_label = QtWidgets.QLabel("You have issues in BOM/PnP!")
+        self.merge_cc_issue_label.setStyleSheet(
+            "color: #ffe0b2; font-weight: bold; border: none; background: transparent;"
+        )
+        self.merge_cc_issue_hint = QtWidgets.QLabel("")
+        self.merge_cc_issue_hint.setStyleSheet(
+            "color: #ffcc80; border: none; background: transparent;"
+        )
+        self.merge_cc_issue_hint.setWordWrap(True)
+        cc_bad_lay.addWidget(
+            self.merge_cc_issue_icon, 0, QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
+        vbad = QtWidgets.QVBoxLayout()
+        vbad.setSpacing(0)
+        vbad.addWidget(self.merge_cc_issue_label)
+        vbad.addWidget(self.merge_cc_issue_hint)
+        cc_bad_lay.addLayout(vbad)
+        cc_bad_lay.addStretch()
+        layout.addWidget(self.merge_cc_issue_banner)
+
         self.merge_table = QtWidgets.QTableView()
         self.merge_table.setAlternatingRowColors(True)
         self.merge_model = SortableTableModel(pd.DataFrame())
         self.merge_table.setModel(self.merge_model)
         layout.addWidget(self.merge_table, 1)
         root.addWidget(right, 1)
+
+        self.result_model = SortableTableModel(pd.DataFrame())
+        self._cc_window: Optional[Any] = None
+        self._cc_full_df: Optional[pd.DataFrame] = None
+        self._cc_user_accepted: bool = False
 
     def _on_merge_settings_changed(self) -> None:
         if not self._restoring_settings and hasattr(self, "merge_delete_dnp"):
@@ -265,10 +352,150 @@ class MergeTabMixin:
     def _hide_merge_cross_check_ok_banner(self) -> None:
         if hasattr(self, "merge_cc_ok_banner"):
             self.merge_cc_ok_banner.setVisible(False)
+        if hasattr(self, "merge_cc_issue_banner"):
+            self.merge_cc_issue_banner.setVisible(False)
 
     def _show_merge_cross_check_ok_banner(self) -> None:
+        if hasattr(self, "merge_cc_issue_banner"):
+            self.merge_cc_issue_banner.setVisible(False)
         if hasattr(self, "merge_cc_ok_banner"):
             self.merge_cc_ok_banner.setVisible(True)
+
+    def _show_merge_cross_check_issue_banner(self, hint: str) -> None:
+        if hasattr(self, "merge_cc_ok_banner"):
+            self.merge_cc_ok_banner.setVisible(False)
+        if hasattr(self, "merge_cc_issue_hint"):
+            self.merge_cc_issue_hint.setText(hint)
+        if hasattr(self, "merge_cc_issue_banner"):
+            self.merge_cc_issue_banner.setVisible(True)
+
+    def _ensure_cross_check_window(self) -> Any:
+        w = getattr(self, "_cc_window", None)
+        if w is not None:
+            try:
+                w.windowTitle()
+                return w
+            except RuntimeError:
+                self._cc_window = None
+        from ui.cross_check_window import CrossCheckResultWindow
+
+        win = CrossCheckResultWindow(
+            model=self.result_model,
+            on_copy=self._copy_report_html,
+            on_save=self._save_report_html,
+            parent=self,
+        )
+        win.proceedAsOk.connect(self._on_cross_check_proceed_as_ok)
+        win.returnRequested.connect(self._on_cross_check_return)
+        self._cc_window = win
+        self.btn_copy_html = win.btn_copy_html
+        self.btn_save_report_html = win.btn_save_report_html
+        self.result_table = win.result_table
+        return win
+
+    def _filter_cross_check_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        if df is None or df.empty or "Severity" not in df.columns:
+            return df
+        filtered = df
+        if not self.chk_critical.isChecked():
+            filtered = filtered[filtered["Severity"] != "critical"]
+        if not self.chk_warning.isChecked():
+            filtered = filtered[filtered["Severity"] != "warning"]
+        if not self.chk_info.isChecked():
+            filtered = filtered[filtered["Severity"] != "info"]
+        return filtered
+
+    def _rebuild_cross_check_html(self, filtered: pd.DataFrame) -> None:
+        bom_p = self.bom_path_label.text()
+        pnp_p = self._pnp_report_paths_display()
+        self._last_report_html = result_dataframe_to_html(
+            filtered,
+            bom_p if not bom_p.startswith("<") else "",
+            pnp_p if not pnp_p.startswith("<") else "",
+        )
+        has_report = bool(self._last_report_html)
+        if hasattr(self, "btn_copy_html"):
+            self.btn_copy_html.setEnabled(has_report)
+        if hasattr(self, "btn_save_report_html"):
+            self.btn_save_report_html.setEnabled(has_report)
+
+    def _on_cross_check_filter_toggled(self, *_args: object) -> None:
+        self._save_report_filter_settings()
+        full = getattr(self, "_cc_full_df", None)
+        if full is None:
+            return
+        filtered = self._filter_cross_check_df(full)
+        self._result_df = filtered
+        if hasattr(self, "result_model"):
+            self.result_model.update_dataframe(
+                filtered if filtered is not None else pd.DataFrame()
+            )
+        self._rebuild_cross_check_html(
+            filtered if filtered is not None else pd.DataFrame()
+        )
+
+    def _save_report_filter_settings(self) -> None:
+        if self._restoring_settings or not hasattr(self, "_settings"):
+            return
+        if not hasattr(self, "chk_critical"):
+            return
+        s = self._settings
+        s.setValue("report/show_critical", self.chk_critical.isChecked())
+        s.setValue("report/show_warning", self.chk_warning.isChecked())
+        s.setValue("report/show_info", self.chk_info.isChecked())
+
+    def _save_report_overlap_settings(self) -> None:
+        if self._restoring_settings or not hasattr(self, "_settings"):
+            return
+        s = self._settings
+        s.setValue("report/check_overlap", self.chk_overlap.isChecked())
+        s.setValue("report/overlap_mm", float(self.spin_overlap_mm.value()))
+
+    def _on_cross_check_proceed_as_ok(self) -> None:
+        self._cc_user_accepted = True
+        self._show_merge_cross_check_ok_banner()
+        self._log("Cross-check: proceeded as OK", "info")
+
+    def _cross_check_return_tab_key(self) -> str | None:
+        full = getattr(self, "_cc_full_df", None)
+        if full is None or full.empty or "IssueType" not in full.columns:
+            return None
+        types = set(str(x) for x in full["IssueType"].tolist())
+        bom_only = types <= {"missing_in_pnp"}
+        pnp_only = types <= {"missing_in_bom", "duplicate_coord", "overlapping"}
+        if bom_only:
+            return "bom"
+        if pnp_only:
+            return "pnp"
+        return None
+
+    def _on_cross_check_return(self) -> None:
+        w = getattr(self, "_cc_window", None)
+        if w is not None:
+            w.hide()
+        full = getattr(self, "_cc_full_df", None)
+        clean = full is None or getattr(full, "empty", True)
+        if clean or getattr(self, "_cc_user_accepted", False):
+            if clean:
+                self._show_merge_cross_check_ok_banner()
+            return
+        filtered = self._result_df
+        crit = warn_n = info_n = 0
+        if (
+            filtered is not None
+            and not filtered.empty
+            and "Severity" in filtered.columns
+        ):
+            crit = int((filtered["Severity"] == "critical").sum())
+            warn_n = int((filtered["Severity"] == "warning").sum())
+            info_n = int((filtered["Severity"] == "info").sum())
+        hint = f"Critical: {crit}  Warning: {warn_n}  Info: {info_n}"
+        self._show_merge_cross_check_issue_banner(hint)
+        key = self._cross_check_return_tab_key()
+        if key:
+            idx = self._tab_index(key)
+            if idx >= 0:
+                self.tabs.setCurrentIndex(idx)
 
     def _run_cross_check(self) -> None:
         t = self._cc_thread
@@ -279,6 +506,7 @@ class MergeTabMixin:
                     return
             except RuntimeError:
                 self._cc_thread = None
+        self._cc_user_accepted = False
         self._hide_merge_cross_check_ok_banner()
         self._log("Running cross-check...", "info")
         proc = self._configure_processor_from_ui()
@@ -305,8 +533,7 @@ class MergeTabMixin:
             self._hide_merge_cross_check_ok_banner()
             self._log(f"Cross-check error: {err}", "error")
             self._last_report_html = ""
-            self.btn_copy_html.setEnabled(False)
-            self.btn_save_report_html.setEnabled(False)
+            self._cc_full_df = None
             QtWidgets.QMessageBox.critical(self, "Error", err)
             return
         if result is None:
@@ -332,13 +559,8 @@ class MergeTabMixin:
                 QtWidgets.QMessageBox.warning(self, "Column mapping", msg)
         cross_check_clean = bool(result.empty)
         try:
-            filtered = result
-            if not self.chk_critical.isChecked():
-                filtered = filtered[filtered["Severity"] != "critical"]
-            if not self.chk_warning.isChecked():
-                filtered = filtered[filtered["Severity"] != "warning"]
-            if not self.chk_info.isChecked():
-                filtered = filtered[filtered["Severity"] != "info"]
+            self._cc_full_df = result
+            filtered = self._filter_cross_check_df(result)
             self._result_df = filtered
             self.result_model.update_dataframe(filtered)
 
@@ -357,20 +579,13 @@ class MergeTabMixin:
             )
 
             if cross_check_clean:
+                self._cc_user_accepted = True
                 self._show_merge_cross_check_ok_banner()
                 self._log(
-                    "Cross-check complete: no issues — BOM and PnP are consistent. "
-                    "Use the Merge tab to merge and export.",
+                    "Cross-check complete: no issues — BOM and PnP are consistent.",
                     "info",
                 )
-                QtWidgets.QMessageBox.information(
-                    self,
-                    "Cross-check",
-                    "No issues found. BOM and PnP look consistent.\n\n"
-                    "Go to the Merge tab to run Merge and export CSV, Excel, or layer files.",
-                )
             else:
-                self._hide_merge_cross_check_ok_banner()
                 self._log(
                     f"Cross-check complete: {len(filtered)} issue(s) in report view",
                     "info",
@@ -379,22 +594,17 @@ class MergeTabMixin:
                 self._log(f"  Warning: {warn_n}", "info")
                 self._log(f"  Info: {info_n}", "info")
 
-            bom_p = self.bom_path_label.text()
-            pnp_p = self._pnp_report_paths_display()
-            self._last_report_html = result_dataframe_to_html(
-                filtered,
-                bom_p if not bom_p.startswith("<") else "",
-                pnp_p if not pnp_p.startswith("<") else "",
+            self._rebuild_cross_check_html(filtered)
+            win = self._ensure_cross_check_window()
+            win.present(
+                clean=cross_check_clean,
+                filtered=filtered,
+                has_html=bool(self._last_report_html),
             )
-            has_report = bool(self._last_report_html)
-            self.btn_copy_html.setEnabled(has_report)
-            self.btn_save_report_html.setEnabled(has_report)
         except Exception as e:
             self._hide_merge_cross_check_ok_banner()
             self._log(f"Cross-check result handling error: {e}", "error")
             self._last_report_html = ""
-            self.btn_copy_html.setEnabled(False)
-            self.btn_save_report_html.setEnabled(False)
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
 
     def _run_merge(self) -> None:
@@ -546,6 +756,13 @@ class MergeTabMixin:
                 out[ref.upper()] = out[ref]
         return out
 
+    def _sync_merge_df_from_model(self) -> None:
+        if not hasattr(self, "merge_model"):
+            return
+        df = self.merge_model.get_dataframe()
+        if df is not None:
+            self._last_merge_df = df
+
     def _merge_layer_column(self) -> Optional[str]:
         if self._last_merge_df is None:
             return None
@@ -556,27 +773,15 @@ class MergeTabMixin:
 
     @staticmethod
     def _display_layer_value(value: Any) -> str:
-        if pd.isna(value):
-            return "None"
-        text = str(value).strip()
-        if not text or text.lower() in ("nan", "none"):
-            return "None"
-        return text
+        return display_layer_value(value)
 
     @staticmethod
     def _is_bot_layer_value(value: str) -> bool:
-        return value.strip().lower() in (
-            "m",
-            "b",
-            "bot",
-            "bottom",
-            "bottomlayer",
-            "mirror",
-        )
+        return is_bot_layer_token(value)
 
     @staticmethod
     def _is_top_layer_value(value: str) -> bool:
-        return value.strip().lower() in ("t", "top", "toplayer")
+        return is_top_layer_token(value)
 
     def _merge_layer_values(self) -> list[str]:
         if self._last_merge_df is None or self._last_merge_df.empty:
@@ -594,17 +799,7 @@ class MergeTabMixin:
     def _select_merge_layer_defaults(
         self, values: list[str]
     ) -> tuple[str | None, str | None]:
-        if not values:
-            return None, None
-        top = next((v for v in values if self._is_top_layer_value(v)), None)
-        bot = next((v for v in values if self._is_bot_layer_value(v)), None)
-        if top is None and "None" in values:
-            top = "None"
-        if bot is None:
-            bot = next((v for v in values if v != top), None)
-        if top is None:
-            top = next((v for v in values if v != bot), values[0])
-        return top, bot
+        return select_merge_layer_defaults(values)
 
     def _populate_layer_combo(
         self, combo: QtWidgets.QComboBox, values: list[str], selected: str | None

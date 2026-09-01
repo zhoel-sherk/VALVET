@@ -1,121 +1,16 @@
-"""Cross-check report tab (MainWindow mixin)."""
+"""HTML copy/save for Cross-check (window buttons; no Report tab)."""
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
-import pandas as pd
 from PySide6 import QtCore, QtWidgets
 
-from qt_models import SortableTableModel
 from report_html import html_document_from_fragment, result_dataframe_plain_text
 
 
 class ReportTabMixin:
-
-    def _create_report_tab(self):
-        """Cross-check report tab."""
-        tab = QtWidgets.QWidget()
-        self._register_main_tab("report", tab)
-
-        from ui.chrome import (
-            CHROME_MARGIN,
-            CHROME_SPACING,
-            action_button,
-            apply_equal_widths,
-            left_rail_widget,
-        )
-
-        root = QtWidgets.QHBoxLayout(tab)
-        root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)
-        root.setSpacing(CHROME_SPACING)
-
-        left = left_rail_widget()
-        left_l = QtWidgets.QVBoxLayout(left)
-        left_l.setContentsMargins(0, 0, 8, 0)
-        left_l.setSpacing(CHROME_SPACING)
-
-        self.btn_cross_check = action_button("Cross-check")
-        self.btn_cross_check.clicked.connect(self._run_cross_check)
-        left_l.addWidget(self.btn_cross_check)
-        self.btn_copy_html = action_button("Copy HTML")
-        self.btn_copy_html.setEnabled(False)
-        self.btn_copy_html.setToolTip("Copy last cross-check result as HTML")
-        self.btn_copy_html.clicked.connect(self._copy_report_html)
-        left_l.addWidget(self.btn_copy_html)
-        self.btn_save_report_html = action_button("Save HTML report…")
-        self.btn_save_report_html.setEnabled(False)
-        self.btn_save_report_html.setToolTip(
-            "Save last cross-check report as a standalone .html file (same styling as Copy HTML)"
-        )
-        self.btn_save_report_html.clicked.connect(self._save_report_html)
-        left_l.addWidget(self.btn_save_report_html)
-
-        self.chk_critical = QtWidgets.QCheckBox("Critical")
-        self.chk_critical.setChecked(True)
-        left_l.addWidget(self.chk_critical)
-        self.chk_warning = QtWidgets.QCheckBox("Warning")
-        self.chk_warning.setChecked(True)
-        left_l.addWidget(self.chk_warning)
-        self.chk_info = QtWidgets.QCheckBox("Info")
-        self.chk_info.setChecked(True)
-        left_l.addWidget(self.chk_info)
-
-        self.chk_overlap = QtWidgets.QCheckBox("Overlap: min center distance (mm)")
-        self.chk_overlap.setChecked(False)
-        self.chk_overlap.setToolTip(
-            "If enabled, report pairs of placements on the same layer when center distance (after scaling "
-            "PnP X/Y per the **PnP / Merge / Report / PCB Preview** mm↔mils choice) is below this threshold. "
-            "Distance limit is always in millimeters. O(n²) in PnP size — leave off for very dense panels."
-        )
-        self.spin_overlap_mm = QtWidgets.QDoubleSpinBox()
-        self.spin_overlap_mm.setRange(0.1, 999.0)
-        self.spin_overlap_mm.setDecimals(2)
-        self.spin_overlap_mm.setValue(3.0)
-        self.spin_overlap_mm.setEnabled(False)
-        self.chk_overlap.toggled.connect(self.spin_overlap_mm.setEnabled)
-        self.chk_overlap.toggled.connect(self._save_report_overlap_settings)
-        self.spin_overlap_mm.valueChanged.connect(self._save_report_overlap_settings)
-        left_l.addWidget(self.chk_overlap)
-        left_l.addWidget(self.spin_overlap_mm)
-
-        xy_row = QtWidgets.QHBoxLayout()
-        xy_row.addWidget(QtWidgets.QLabel("PnP XY:"))
-        self.report_pnp_units_mm = QtWidgets.QRadioButton("mm")
-        self.report_pnp_units_mils = QtWidgets.QRadioButton("mils")
-        self.report_pnp_units_mm.setChecked(True)
-        self.report_pnp_units_mm.setToolTip(self.pnp_units_mm.toolTip())
-        self.report_pnp_units_mils.setToolTip(self.pnp_units_mils.toolTip())
-        self.report_pnp_units_mm.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(True)
-        )
-        self.report_pnp_units_mils.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(False)
-        )
-        xy_row.addWidget(self.report_pnp_units_mm)
-        xy_row.addWidget(self.report_pnp_units_mils)
-        xy_row.addStretch(1)
-        left_l.addLayout(xy_row)
-        apply_equal_widths(
-            (self.btn_cross_check, self.btn_copy_html, self.btn_save_report_html)
-        )
-        left_l.addStretch(1)
-        root.addWidget(left)
-
-        self.result_table = QtWidgets.QTableView()
-        self.result_table.setAlternatingRowColors(True)
-        self.result_model = SortableTableModel(pd.DataFrame())
-        self.result_table.setModel(self.result_model)
-        root.addWidget(self.result_table, 1)
-
-    def _save_report_overlap_settings(self) -> None:
-        if self._restoring_settings or not hasattr(self, "_settings"):
-            return
-        s = self._settings
-        s.setValue("report/check_overlap", self.chk_overlap.isChecked())
-        s.setValue("report/overlap_mm", float(self.spin_overlap_mm.value()))
-
     def _copy_report_html(self) -> None:
         if not self._last_report_html:
             self._log("No report HTML — run Cross-check first", "warning")

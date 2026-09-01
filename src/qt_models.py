@@ -168,7 +168,9 @@ class PandasTableModel(QtCore.QAbstractTableModel):
             return 0
         return len(self._df.columns)
 
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole) -> Any:
+    def data(
+        self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole
+    ) -> Any:
         if not index.isValid():
             return None
 
@@ -187,7 +189,9 @@ class PandasTableModel(QtCore.QAbstractTableModel):
             return self._format_value(value, for_edit=True)
 
         elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
-            return QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
+            return (
+                QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
+            )
 
         elif role == QtCore.Qt.ItemDataRole.ToolTipRole:
             return self._format_value(value, for_edit=True)
@@ -256,7 +260,9 @@ class PandasTableModel(QtCore.QAbstractTableModel):
     def _emit_cell_changed(self, row: int, col: int) -> None:
         idx = self.index(row, col)
         self.dataChanged.emit(
-            idx, idx, [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole]
+            idx,
+            idx,
+            [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole],
         )
 
     def _write_cell(self, row: int, col: int, value: Any, *, emit_change: bool) -> None:
@@ -272,7 +278,10 @@ class PandasTableModel(QtCore.QAbstractTableModel):
         self._audit_callback(payload)
 
     def setData(
-        self, index: QtCore.QModelIndex, value: Any, role: int = QtCore.Qt.ItemDataRole.EditRole
+        self,
+        index: QtCore.QModelIndex,
+        value: Any,
+        role: int = QtCore.Qt.ItemDataRole.EditRole,
     ) -> bool:
         if (
             not self._editable
@@ -320,7 +329,9 @@ class PandasTableModel(QtCore.QAbstractTableModel):
             }
         )
         self.dataChanged.emit(
-            index, index, [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole]
+            index,
+            index,
+            [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole],
         )
         return True
 
@@ -394,7 +405,9 @@ class PandasTableModel(QtCore.QAbstractTableModel):
         tl = self.index(row, lo)
         br = self.index(row, hi)
         self.dataChanged.emit(
-            tl, br, [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole]
+            tl,
+            br,
+            [QtCore.Qt.ItemDataRole.DisplayRole, QtCore.Qt.ItemDataRole.EditRole],
         )
         return True
 
@@ -462,7 +475,9 @@ class SortableTableModel(PandasTableModel):
         self._sort_order = QtCore.Qt.SortOrder.AscendingOrder
 
     def sort(
-        self, column: int, order: QtCore.Qt.SortOrder = QtCore.Qt.SortOrder.AscendingOrder
+        self,
+        column: int,
+        order: QtCore.Qt.SortOrder = QtCore.Qt.SortOrder.AscendingOrder,
     ) -> None:
         if column < 0 or column >= len(self._df.columns):
             return
@@ -495,7 +510,11 @@ class SortableTableModel(PandasTableModel):
             and orientation == QtCore.Qt.Orientation.Horizontal
         ):
             if section == self._sort_column:
-                arrow = "▲" if self._sort_order == QtCore.Qt.SortOrder.AscendingOrder else "▼"
+                arrow = (
+                    "▲"
+                    if self._sort_order == QtCore.Qt.SortOrder.AscendingOrder
+                    else "▼"
+                )
                 return f"{result} {arrow}"
 
         return result
@@ -533,7 +552,7 @@ class CleanPreviewTableModel(SortableTableModel):
             self.dataChanged.emit(
                 tl,
                 br,
-                [QtCore.QtCore.Qt.ItemDataRole.BackgroundRole],
+                [QtCore.Qt.ItemDataRole.BackgroundRole],
             )
 
     def _get_background(self, row: int, col: int, value: Any) -> Any:

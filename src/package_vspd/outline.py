@@ -8,7 +8,7 @@ from typing import Any
 
 import pcb_preview.upd_footprint_builder as upd_fp
 from package_vspd.catalog import iter_seed_packages
-from parsers import regex_api as re
+from parsers import regex_api
 from pcb_preview.types import (
     BBoxMM,
     FootprintOutlineMM,
@@ -172,11 +172,11 @@ def _power_sot_pads(vspd_id: str, lx: float, wy: float) -> tuple[PadRectMM, ...]
 def _conn_pads(vspd_id: str, lx: float, wy: float) -> tuple[PadRectMM, ...]:
     u = (vspd_id or "").upper()
     n = 0
-    m = re.search(r"(\d+)P\b", u)
+    m = regex_api.search(r"(\d+)P\b", u)
     if m:
         n = int(m.group(1))
-    elif re.search(r"1X(\d+)", u.replace("-", "")):
-        n = int(re.search(r"1X(\d+)", u.replace("-", "")).group(1))  # type: ignore[union-attr]
+    elif regex_api.search(r"1X(\d+)", u.replace("-", "")):
+        n = int(regex_api.search(r"1X(\d+)", u.replace("-", "")).group(1))  # type: ignore[union-attr]
     if n < 1:
         return ()
     pitch = min(1.27, (lx * 0.82) / max(n - 1, 1))
@@ -185,13 +185,12 @@ def _conn_pads(vspd_id: str, lx: float, wy: float) -> tuple[PadRectMM, ...]:
     ph = min(1.2, wy * 0.32)
     y = -(wy / 2.0) - ph * 0.2
     return tuple(
-        PadRectMM(-span / 2.0 + i * pitch, y, pw, ph, 0.0, str(i + 1))
-        for i in range(n)
+        PadRectMM(-span / 2.0 + i * pitch, y, pw, ph, 0.0, str(i + 1)) for i in range(n)
     )
 
 
 def _array_pads(vspd_id: str, lx: float, wy: float) -> tuple[PadRectMM, ...]:
-    m = re.search(r"X(\d+)\s*$", (vspd_id or "").upper())
+    m = regex_api.search(r"X(\d+)\s*$", (vspd_id or "").upper())
     if not m:
         return ()
     n = int(m.group(1))
@@ -233,7 +232,12 @@ def _xtal_pads(lx: float, wy: float) -> tuple[PadRectMM, ...]:
 
 def _pads_for(vspd_id: str, lx: float, wy: float) -> tuple[PadRectMM, ...]:
     u = (vspd_id or "").upper()
-    if u.startswith("CHIP-") or u.startswith("TANT-") or u.startswith("SOD-") or u.startswith("LED-"):
+    if (
+        u.startswith("CHIP-")
+        or u.startswith("TANT-")
+        or u.startswith("SOD-")
+        or u.startswith("LED-")
+    ):
         return upd_fp.chip_heuristic_pads(lx, wy)
     if u.startswith("FUSE-") or u.startswith("IND-SMD-"):
         return upd_fp.chip_heuristic_pads(lx, wy)
@@ -259,7 +263,13 @@ def _pads_for(vspd_id: str, lx: float, wy: float) -> tuple[PadRectMM, ...]:
         tail = u.split("TSOT-23-", 1)[1]
         n = int(tail[0]) if tail[:1].isdigit() else 6
         return _sot23_more_pads(lx, wy, n)
-    if u.startswith("SOT-23") or u in {"SOT-323", "SOT-353", "SOT-523", "SOT-723", "SOT-143"}:
+    if u.startswith("SOT-23") or u in {
+        "SOT-323",
+        "SOT-353",
+        "SOT-523",
+        "SOT-723",
+        "SOT-143",
+    }:
         return _sot23_pads(lx, wy)
     if u.startswith("SOT-363") or u.startswith("SOT-563"):
         return _sot23_more_pads(lx, wy, 6)
@@ -305,9 +315,7 @@ def _sot23_more_pads(lx: float, wy: float, n: int) -> tuple[PadRectMM, ...]:
     return _dual_row_pads(max(n, per * 2), lx, wy, max(0.45, lx / max(per, 1) * 0.7))
 
 
-def _dual_row_pads(
-    n: int, lx: float, wy: float, pitch: float
-) -> tuple[PadRectMM, ...]:
+def _dual_row_pads(n: int, lx: float, wy: float, pitch: float) -> tuple[PadRectMM, ...]:
     per = max(n // 2, 1)
     if per < 1 or lx <= 0 or wy <= 0:
         return ()
@@ -374,9 +382,7 @@ def _ball_circles(vspd_id: str, lx: float, wy: float) -> tuple[StrokeCircleMM, .
     r = min(lx, wy) / side * 0.18
     xs = [(-side + 1) / 2.0 * (lx / side) + i * (lx / side) for i in range(side)]
     ys = [(-side + 1) / 2.0 * (wy / side) + j * (wy / side) for j in range(side)]
-    return tuple(
-        StrokeCircleMM(x, y, r, 0.08) for y in ys for x in xs
-    )
+    return tuple(StrokeCircleMM(x, y, r, 0.08) for y in ys for x in xs)
 
 
 def _outline_bbox(
@@ -388,7 +394,12 @@ def _outline_bbox(
         boxes.append(BBoxMM(p.cx - hx, p.cy - hy, p.cx + hx, p.cy + hy))
     for c in circ:
         boxes.append(
-            BBoxMM(c.cx - c.radius_mm, c.cy - c.radius_mm, c.cx + c.radius_mm, c.cy + c.radius_mm)
+            BBoxMM(
+                c.cx - c.radius_mm,
+                c.cy - c.radius_mm,
+                c.cx + c.radius_mm,
+                c.cy + c.radius_mm,
+            )
         )
     return union_bbox(boxes)
 

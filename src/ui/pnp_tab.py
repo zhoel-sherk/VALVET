@@ -28,7 +28,9 @@ class PnpTabMixin:
         )
 
         root = QtWidgets.QHBoxLayout(tab)
-        root.setContentsMargins(CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN)
+        root.setContentsMargins(
+            CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN, CHROME_MARGIN
+        )
         root.setSpacing(CHROME_SPACING)
 
         left = left_rail_widget()
@@ -120,13 +122,11 @@ class PnpTabMixin:
         self.btn_pnp_find = action_button(self.ui_tr("pnp.find_replace"))
         self.btn_pnp_find.clicked.connect(lambda: self._find_replace_table("pnp"))
         edit_l.addWidget(self.btn_pnp_find)
-        self.btn_apply_package_table = action_button(
-            self.ui_tr("package.apply_table")
+        self.btn_apply_package_table = action_button(self.ui_tr("package.apply_table"))
+        self.btn_apply_package_table.setToolTip(self.ui_tr("package.apply_table_tip"))
+        self.btn_apply_package_table.clicked.connect(
+            self._apply_package_table_placeholder
         )
-        self.btn_apply_package_table.setToolTip(
-            self.ui_tr("package.apply_table_tip")
-        )
-        self.btn_apply_package_table.clicked.connect(self._apply_package_table_placeholder)
         edit_l.addWidget(self.btn_apply_package_table)
         left_l.addWidget(self.gb_pnp_edit)
 
@@ -191,12 +191,14 @@ class PnpTabMixin:
         self.pnp_separator.currentTextChanged.connect(
             lambda *_: self._schedule_save_pnp_tab_settings()
         )
+
     def _sync_pnp_df_from_model(self) -> None:
         if not hasattr(self, "pnp_model"):
             return
         df = self.pnp_model.get_dataframe()
         if df is not None:
             self._pnp_df = df
+
     def _confirm_clear_pnp_workspace(self) -> None:
         if self._pnp_df is None or self._pnp_df.empty:
             self._clear_pnp_workspace()
@@ -211,12 +213,14 @@ class PnpTabMixin:
         )
         if res == QtWidgets.QMessageBox.StandardButton.Yes:
             self._clear_pnp_workspace()
+
     def _show_pnp_help(self) -> None:
         QtWidgets.QMessageBox.information(
             self,
             self.ui_tr("pnp.help_title"),
             self.ui_tr("pnp.help_body"),
         )
+
     def _clear_pnp_workspace(self) -> None:
         self._prune_session_links_for_pnp_identity(self._pnp_snapshot_identity_path())
         self._pnp_df = None
@@ -242,6 +246,7 @@ class PnpTabMixin:
         self._profile_restore_pnp_mappings = None
         self._refresh_pcb_preview_from_ui()
         self._log(self.ui_tr("msg.pnp_cleared"), "info")
+
     def _apply_pending_profile_pnp_mappings(self) -> None:
         pm = getattr(self, "_profile_restore_pnp_mappings", None)
         if not pm or not getattr(self, "pnp_col_combos", None):
@@ -256,8 +261,10 @@ class PnpTabMixin:
         finally:
             self._pnp_ui_restoring = False
         self._profile_restore_pnp_mappings = None
+
     def _pnp_xy_stored_in_mm(self) -> bool:
         return not self.pnp_units_mils.isChecked()
+
     def _apply_pnp_xy_units_everywhere(
         self, stored_mm: bool, *, save_settings: bool = True
     ) -> None:
@@ -273,10 +280,6 @@ class PnpTabMixin:
                 (
                     getattr(self, "merge_pnp_units_mm", None),
                     getattr(self, "merge_pnp_units_mils", None),
-                ),
-                (
-                    getattr(self, "report_pnp_units_mm", None),
-                    getattr(self, "report_pnp_units_mils", None),
                 ),
             ]
             for rmm, rmil in pairs:
@@ -297,10 +300,12 @@ class PnpTabMixin:
         finally:
             self._syncing_pnp_xy_units = False
         self._refresh_pcb_preview_from_ui()
+
     def _on_user_pnp_xy_unit_choice(self, stored_mm: bool) -> None:
         if self._restoring_settings:
             return
         self._apply_pnp_xy_units_everywhere(stored_mm, save_settings=True)
+
     def _pnp_clean_xy_rot_columns(self) -> None:
         self._sync_pnp_df_from_model()
         if self._pnp_df is None or self._pnp_df.empty:
@@ -325,6 +330,7 @@ class PnpTabMixin:
             )
         self._apply_pnp_dataframe(df)
         self._log("PnP: cleaned X / Y / Rotation cells", "info")
+
     def _pnp_convert_xy_mm_to_mil(self) -> None:
         self._sync_pnp_df_from_model()
         if self._pnp_df is None or self._pnp_df.empty:
@@ -347,6 +353,7 @@ class PnpTabMixin:
                 n += 1
         self._apply_pnp_dataframe(df)
         self._log(f"PnP: MM→MIL on X/Y ({n} rows)", "info")
+
     def _pnp_convert_xy_mil_to_mm(self) -> None:
         self._sync_pnp_df_from_model()
         if self._pnp_df is None or self._pnp_df.empty:
@@ -369,6 +376,7 @@ class PnpTabMixin:
                 n += 1
         self._apply_pnp_dataframe(df)
         self._log(f"PnP: MIL→MM on X/Y ({n} rows)", "info")
+
     def _apply_pnp_dataframe(self, df: pd.DataFrame) -> None:
         self._loading_working_copy = True
         self._pnp_df = df

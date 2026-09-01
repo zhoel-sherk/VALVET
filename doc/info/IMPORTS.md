@@ -1,8 +1,8 @@
 # VALVET import conventions
 
-PEP 8 plus this repo’s stack (pandas, numpy, PySide6, PyPI `regex`) and Ruff (`I` isort, `ICN` import-conventions). An alias must make the file **easier to read**, not merely shorter. A colleague (or a model) should know what `NNN` is on first sight.
+PEP 8 plus this repo’s stack (pandas, numpy, PySide6, PyPI `regex`) and Ruff (`I` isort, `ICN` import-conventions). An alias must make the file **easier to read**, not merely shorter. A colleague (or an agent) should know what `NNN` is on first sight.
 
-Ruff: `[tool.ruff.lint]` in [`pyproject.toml`](../../pyproject.toml) (`select` includes `I` and `ICN`). Fix order and pandas/numpy aliases with:
+Ruff: `[tool.ruff.lint]` in [`pyproject.toml`](../../pyproject.toml) (`select` includes `I` and `ICN`). `ruff format` matches Black (88 columns, double quotes). isort wrapping follows that line length; `combine-as-imports = true` is kept on purpose. Fix order and pandas/numpy aliases with:
 
 ```bash
 python -m ruff check src tests --fix
@@ -80,11 +80,25 @@ import machine_library.hanwha_sqlite_cache as hanwha_cache
 hanwha_cache.import_mdb_to_cache(src, dest)
 ```
 
+### Do not invent `from … import LongName as Short`
+
+`from parsers.si_units import SiQuantity as SiQty` (or `FpResult`, `HanwhaEditorWindow`, `parse_si`, `get_col_label`) is **not** used in this tree and is **not** a repo convention. Types and functions keep their real names:
+
+```python
+from pcb_preview.upd_footprint_builder import FootprintBuildResult
+from parsers.si_units import convert_nf_token_to_uf
+from hanwha_mdb_edit.gui.editor_window import HanwhaMdbEditorWindow
+```
+
+Ruff `ICN` does **not** enforce `from module import Class as Alias`. `[tool.ruff.lint.flake8-import-conventions.aliases]` only applies to **whole-module** imports (`import pandas as pd`, `import machine_library.hanwha_mdbtools as mdbtools`). Putting `FootprintBuildResult = "FpResult"` in that map would flag every unaliased import and force a mass rename — do not add it.
+
+If a type alias is ever needed, add a row here **and** migrate every call site in the same change. Until then: no one-off `as SiQ` / `as FBR` / `as Sq`.
+
 ---
 
 ## 4. Ruff isort (`I`) and conventions (`ICN`)
 
-`I` groups and sorts imports (stdlib, third-party, first-party). `ICN` requires `numpy` → `np`, `pandas` → `pd`, and the long-module aliases in `pyproject.toml` (`hanwha_cache`, `mdbtools`, `upd_geom`, `upd_fp`) when those modules are imported as a whole.
+`I` groups and sorts imports (stdlib, third-party, first-party). Ruff isort wrapping uses `line-length = 88` (Black-compatible); `combine-as-imports = true` is a repo preference. `ICN` requires `numpy` → `np`, `pandas` → `pd`, and the long-module aliases in [`pyproject.toml`](../../pyproject.toml) (`hanwha_cache`, `mdbtools`, `upd_geom`, `upd_fp`) when those modules are imported as a whole (`import … as …`). It does not lint class/function `as` aliases.
 
 After edits:
 
@@ -124,7 +138,7 @@ from smt_processor import SMTProcessorError
 
 `from __future__ import annotations` stays immediately under the docstring (Ruff `I` keeps it there).
 
-Relative imports (`from .foo import bar`) only inside a package that already uses them (`hanwha_mdb_edit`, `pcb_preview.engine`, …). Do not start using relative imports in the flat `src/*.py` layout.
+**Relative imports** (`from .foo import bar`) only inside packages that already use them (`hanwha_mdb_edit`, `pcb_preview`, `parsers`, `pn_original`, `step_3d`, …). Do not start using relative imports in the flat `src/*.py` layout.
 
 ---
 
@@ -136,4 +150,5 @@ Relative imports (`from .foo import bar`) only inside a package that already use
 - [ ] No cute aliases (`pdirs`, `pan`, `log`)
 - [ ] Parser regex via `parsers.regex_api`, not `import regex as re`
 - [ ] Two or more names from a long first-party module → alias table (§3)
+- [ ] Types/functions keep their real names (no `SiQty` / `FpResult` unless listed in this file)
 - [ ] `ruff check src tests` clean for `E`, `F`, `I`, `ICN`

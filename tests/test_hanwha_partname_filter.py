@@ -12,7 +12,7 @@ tests_dir = Path(__file__).resolve().parent
 _repo_root = tests_dir.parent
 sys.path.insert(0, str(_repo_root / "src"))
 
-from machine_library.hanwha_mdbtools import part_det_rows_to_dataframe  # noqa: E402
+import machine_library.hanwha_mdbtools as mdbtools  # noqa: E402
 from machine_library.hanwha_partnames import (  # noqa: E402
     filter_by_confidence_levels,
     is_junk_hanwha_partname,
@@ -27,10 +27,8 @@ _FIXTURE = _repo_root / "tests" / "fixtures" / "hanwha_PART_Det_sample.csv"
 
 def _sample_df():
 
-    from machine_library.hanwha_mdbtools import parse_part_det_csv
-
     text = _FIXTURE.read_text(encoding="utf-8")
-    return part_det_rows_to_dataframe(parse_part_det_csv(text))
+    return mdbtools.part_det_rows_to_dataframe(mdbtools.parse_part_det_csv(text))
 
 
 @pytest.mark.parametrize(
@@ -65,7 +63,9 @@ def test_is_junk_hanwha_partname(pn: str, desc: str | None, junk: bool) -> None:
         ("LQG15HS68NJ02D", "L0402", False),
     ],
 )
-def test_is_passive_rc_hanwha_partname(pn: str, desc: str | None, passive: bool) -> None:
+def test_is_passive_rc_hanwha_partname(
+    pn: str, desc: str | None, passive: bool
+) -> None:
     assert is_passive_rc_hanwha_partname(pn, desc) is passive
 
 
@@ -119,11 +119,23 @@ def test_resolve_upd_mdb_path() -> None:
 
 
 @pytest.mark.skipif(
-    not (_repo_root / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json").is_file(),
+    not (
+        _repo_root
+        / "tests"
+        / "fixtures"
+        / "clean_corpus"
+        / "hanwha_partnames_cl40.json"
+    ).is_file(),
     reason="hanwha_partnames_cl40.json not generated yet",
 )
 def test_load_partnames_snapshot() -> None:
-    path = _repo_root / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
+    path = (
+        _repo_root
+        / "tests"
+        / "fixtures"
+        / "clean_corpus"
+        / "hanwha_partnames_cl40.json"
+    )
     names = load_partnames_snapshot(path)
     assert len(names) > 0
     assert "0603" not in names

@@ -170,9 +170,7 @@ def _save_profiles_pyodbc(mdb_path: Path, enriched: pd.DataFrame) -> None:
                     vals.append(int(row["UPDPARTGROUPID"]))
                 if sets:
                     vals.append(str(fn).strip())
-                    sql = (
-                        f"UPDATE [PROFILE_Det] SET {', '.join(sets)} WHERE [PROFILENAME]=?"
-                    )
+                    sql = f"UPDATE [PROFILE_Det] SET {', '.join(sets)} WHERE [PROFILENAME]=?"
                     cur.execute(sql, tuple(vals))
 
             com_tbl = patches["PROFILECOMDATA"]

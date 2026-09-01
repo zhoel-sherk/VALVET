@@ -24,9 +24,7 @@ PNP_PKL = "pnp.pkl"
 MERGE_PKL = "merge.pkl"
 VALVETPACK_EXT = ".valvetpack"
 LEGACY_PACK_EXT = ".boomerpack"
-OPEN_FILTER = (
-    "Valvetpack (*.valvetpack);;Legacy Valvetpack (*.boomerpack);;All (*)"
-)
+OPEN_FILTER = "Valvetpack (*.valvetpack);;Legacy Valvetpack (*.boomerpack);;All (*)"
 SAVE_FILTER = "Valvetpack (*.valvetpack);;All (*)"
 
 

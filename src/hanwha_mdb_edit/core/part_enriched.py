@@ -130,7 +130,9 @@ def load_wide_editor_dataframe(mdb_path: str | Path) -> pd.DataFrame:
     Intended as a temporary exploration mode until the schema is narrowed again.
     """
     base = load_enriched_parts_dataframe(mdb_path)
-    tables = [t for t in mdbtools.list_mdb_tables(mdb_path) if not str(t).startswith("~")]
+    tables = [
+        t for t in mdbtools.list_mdb_tables(mdb_path) if not str(t).startswith("~")
+    ]
     merged_count = 0
 
     for table in tables:

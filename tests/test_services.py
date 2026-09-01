@@ -112,9 +112,7 @@ def test_apply_clean_preview_meta_columns() -> None:
 def test_apply_clean_preview_replace_source_and_source_indices() -> None:
     bom = pd.DataFrame({"Comment": ["a", "b", "c"]})
     preview = [(1, "a", "A1", "OTHER", "")]
-    out = apply_clean_preview_to_bom(
-        bom, preview, [2], "Comment", replace_source=True
-    )
+    out = apply_clean_preview_to_bom(bom, preview, [2], "Comment", replace_source=True)
     assert out.at[2, "Comment"] == "A1"
     assert "Comment_cleaned" not in out.columns
 
@@ -122,9 +120,7 @@ def test_apply_clean_preview_replace_source_and_source_indices() -> None:
 def test_apply_clean_preview_uses_comment_column() -> None:
     bom = pd.DataFrame({"Part": ["orig"], "comment": [""]})
     preview = [(1, "orig", "cleaned_val", "CAP", "regex")]
-    out = apply_clean_preview_to_bom(
-        bom, preview, [0], "Part", replace_source=False
-    )
+    out = apply_clean_preview_to_bom(bom, preview, [0], "Part", replace_source=False)
     assert "comment" in out.columns
     assert out.at[0, "comment"] == "cleaned_val"
     assert "Part_cleaned" not in out.columns
@@ -215,9 +211,7 @@ def test_build_processor_config_fallback_and_skip() -> None:
 
 
 def test_build_processor_config_prefers_pn_name_over_join() -> None:
-    bom = pd.DataFrame(
-        {"Ref": ["R1"], "Name": ["10K"], "Extra": ["vendor"]}
-    )
+    bom = pd.DataFrame({"Ref": ["R1"], "Name": ["10K"], "Extra": ["vendor"]})
     pnp = pd.DataFrame({"DESIGNATOR": ["R1"], "X": [1.0], "Y": [2.0]})
     proc = build_processor_config(
         bom,

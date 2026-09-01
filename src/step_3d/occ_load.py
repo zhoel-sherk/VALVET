@@ -152,7 +152,9 @@ def _label_name(label: object) -> str:
     return ""
 
 
-def _part_color(color_tool: object, label: object, shape: object) -> tuple[float, float, float]:
+def _part_color(
+    color_tool: object, label: object, shape: object
+) -> tuple[float, float, float]:
     from OCC.Core.Quantity import Quantity_Color
 
     color = Quantity_Color()
@@ -629,9 +631,7 @@ def load_step_file(
         if progress:
             n = len(parts)
             progress(n, n, "done")
-        logger.info(
-            "STEP loaded via %s: %s (%s part(s))", loader, abs_path, len(parts)
-        )
+        logger.info("STEP loaded via %s: %s (%s part(s))", loader, abs_path, len(parts))
         return StepLoadResult(parts=parts, source_path=abs_path)
     except StepLoadCancelled:
         return StepLoadResult(parts=[], source_path=abs_path, cancelled=True)

@@ -14,12 +14,16 @@ from ui_i18n import UI_LANGUAGE_OPTIONS
 class PathLabel(QtWidgets.QLabel):
     """Basename + middle-elide; full path in tooltip; re-elides on resize."""
 
-    def __init__(self, empty_text: str = "", parent: QtWidgets.QWidget | None = None) -> None:
+    def __init__(
+        self, empty_text: str = "", parent: QtWidgets.QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self._full_path = ""
         self._empty_text = empty_text
         self.setTextFormat(QtCore.Qt.TextFormat.PlainText)
-        self.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
@@ -51,7 +55,9 @@ class PathLabel(QtWidgets.QLabel):
             self.setToolTip("")
 
 
-def configure_path_label(label: QtWidgets.QLabel, path: str, *, empty_text: str) -> None:
+def configure_path_label(
+    label: QtWidgets.QLabel, path: str, *, empty_text: str
+) -> None:
     """Show basename with middle-elide; full path in tooltip."""
     if isinstance(label, PathLabel):
         label.set_path(path, empty_text=empty_text)

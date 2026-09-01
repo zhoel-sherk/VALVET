@@ -15,9 +15,7 @@ def _pin1_meta_line(result: FootprintBuildResult) -> str:
     if result.polarity == "none":
         return "Pin 1: —  (no polarity)"
     if result.pin1_kind == "mdb":
-        return (
-            f"Pin 1: {result.pin1_x_mm:.3f}, {result.pin1_y_mm:.3f} mm  (MDB)"
-        )
+        return f"Pin 1: {result.pin1_x_mm:.3f}, {result.pin1_y_mm:.3f} mm  (MDB)"
     if result.pin1_kind == "lead1":
         return (
             f"Pin 1: {result.pin1_x_mm:.3f}, {result.pin1_y_mm:.3f} mm  "
@@ -36,9 +34,7 @@ class _ZoomView(QtWidgets.QGraphicsView):
         self.setTransformationAnchor(
             QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
         )
-        self.setResizeAnchor(
-            QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse
-        )
+        self.setResizeAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
         self.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing, True)
 

@@ -10,13 +10,9 @@ from __future__ import annotations
 import re
 from typing import Literal
 
+import pcb_preview.upd_footprint_builder as upd_fp
 from machine_library.yamaha_tou import TouRecord
 from pcb_preview.types import BBoxMM, FootprintOutlineMM, StrokeLineMM
-from pcb_preview.upd_footprint_builder import (
-    FootprintBuildResult,
-    body_rect_lines,
-    chip_heuristic_pads,
-)
 
 YamahaOutlineSource = Literal["yamaha_tou", "yamaha_heuristic"]
 
@@ -58,9 +54,9 @@ def package_size_mm(name: str) -> tuple[float, float] | None:
 def _rect_outline(
     size_x_mm: float, size_y_mm: float, *, source: YamahaOutlineSource
 ) -> FootprintOutlineMM:
-    lines: tuple[StrokeLineMM, ...] = body_rect_lines(size_x_mm, size_y_mm)
+    lines: tuple[StrokeLineMM, ...] = upd_fp.body_rect_lines(size_x_mm, size_y_mm)
     hx, hy = size_x_mm / 2.0, size_y_mm / 2.0
-    pads = chip_heuristic_pads(size_x_mm, size_y_mm)
+    pads = upd_fp.chip_heuristic_pads(size_x_mm, size_y_mm)
     return FootprintOutlineMM(
         lines=lines,
         pads=pads,
@@ -76,7 +72,7 @@ def _result(
     extra: tuple[str, ...] = (),
     partdesc: str = "",
     kind: str = "",
-) -> FootprintBuildResult:
+) -> upd_fp.FootprintBuildResult:
     warnings = list(extra)
     if size is None:
         warnings.append("yamaha payload has no body size; name has no package code")
@@ -91,7 +87,7 @@ def _result(
             warnings.append("body from package code in name (not binary size)")
         else:
             warnings.append("body from package code in name; .Tou has placement only")
-    return FootprintBuildResult(
+    return upd_fp.FootprintBuildResult(
         outline=outline,
         vision_type=0,
         partgroup_name=kind or "Yamaha",
@@ -113,7 +109,7 @@ def build_outline_from_name(
     *,
     kind: str = "",
     basename: str = "",
-) -> FootprintBuildResult:
+) -> upd_fp.FootprintBuildResult:
     """Lib / name-only silhouette (``yamaha_heuristic``)."""
     extra: list[str] = []
     if basename:
@@ -128,7 +124,7 @@ def build_outline_from_name(
     )
 
 
-def build_outline_from_tou_record(rec: TouRecord) -> FootprintBuildResult:
+def build_outline_from_tou_record(rec: TouRecord) -> upd_fp.FootprintBuildResult:
     extra: list[str] = []
     if rec.refdes:
         extra.append(f"ref={rec.refdes}")

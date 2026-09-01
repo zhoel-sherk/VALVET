@@ -22,9 +22,7 @@ from pcb_preview.types import (
 UM_PER_MM = 1000.0
 _LINE_W = 0.12
 _SOT23_RE = re.compile(r"SOT[\s\-]?23", re.I)
-_SOT23_MORE_PINS_RE = re.compile(
-    r"SOT[\s\-]?23[\s\-_]?[5-8]|SOT[\s\-]?353", re.I
-)
+_SOT23_MORE_PINS_RE = re.compile(r"SOT[\s\-]?23[\s\-_]?[5-8]|SOT[\s\-]?353", re.I)
 _SOD_RE = re.compile(r"SOD[\s\-]?\d", re.I)
 _TR_GROUPS = frozenset({"TR", "TR2"})
 
@@ -103,9 +101,7 @@ def is_chip_circle(partgroup_name: str) -> bool:
     return "CIRCLE" in g
 
 
-def chip_circle_body(
-    size_x_mm: float, size_y_mm: float
-) -> tuple[StrokeCircleMM, ...]:
+def chip_circle_body(size_x_mm: float, size_y_mm: float) -> tuple[StrokeCircleMM, ...]:
     """Circle inscribed in the chip TYPSIZE / SIZE box (diameter = min axis)."""
     d = min(abs(size_x_mm), abs(size_y_mm))
     if d <= 0:
@@ -415,9 +411,7 @@ def _ll_param_map(
     return out
 
 
-def _missing_lead_set(
-    gaps: Sequence[Mapping[str, Any]], group_index: int
-) -> set[int]:
+def _missing_lead_set(gaps: Sequence[Mapping[str, Any]], group_index: int) -> set[int]:
     """1-based lead numbers listed as missing in VISION_LL_GAP_Det."""
     missing: set[int] = set()
     for g in gaps:
@@ -510,9 +504,7 @@ def _ll_pads(
     n_pad = 0
     rotated = False
     flip_tan = _ll_flip_tan_for_opposite_sides(groups)
-    rotate_all = _ll_rotate_whole_footprint(
-        groups, pmap, body_x_mm, body_y_mm
-    )
+    rotate_all = _ll_rotate_whole_footprint(groups, pmap, body_x_mm, body_y_mm)
     for grp in groups:
         gi = _int(_row_get(grp, "INDEX"))
         angle = _int(_row_get(grp, "ANGLE"))
@@ -554,13 +546,9 @@ def _ll_pads(
             else:
                 cx, cy, rot = t, -rad, 0.0
             n_pad += 1
-            pads.append(
-                PadRectMM(cx, cy, width, length, rot, str(n_pad))
-            )
+            pads.append(PadRectMM(cx, cy, width, length, rot, str(n_pad)))
     if rotated:
-        warnings.append(
-            "pads: lead row rotated 90° (pitch span vs TYPSIZE)"
-        )
+        warnings.append("pads: lead row rotated 90° (pitch span vs TYPSIZE)")
     return tuple(pads)
 
 
@@ -673,9 +661,7 @@ def build_from_snapshot(snap: UpdProfileSnapshot) -> FootprintBuildResult:
         lead_pads = chip_lead_pads_from_exparam(whole, bx, by)
         if lead_pads:
             pads = lead_pads
-            warnings.append(
-                "pads: chip lead slots (EXPARAM15/16 counts; unused = 0)"
-            )
+            warnings.append("pads: chip lead slots (EXPARAM15/16 counts; unused = 0)")
         elif uses_sot23_pads(
             snap.partgroup_name,
             snap.partdesc,
@@ -683,9 +669,7 @@ def build_from_snapshot(snap: UpdProfileSnapshot) -> FootprintBuildResult:
             whole,
         ):
             pads = sot23_heuristic_pads(bx, by)
-            warnings.append(
-                "pads: SOT-23 heuristic (chip table has no leads)"
-            )
+            warnings.append("pads: SOT-23 heuristic (chip table has no leads)")
         else:
             pads = chip_heuristic_pads(bx, by)
             warnings.append("pads: heuristic (chip lands are not in UPD.MDB)")
@@ -712,7 +696,9 @@ def build_from_snapshot(snap: UpdProfileSnapshot) -> FootprintBuildResult:
         )
         warnings.append("pads: reconstructed from vision leads (not copper lands)")
         if not pads and not lines:
-            return _empty_result(snap, error="no LL body or leads", warnings=tuple(warnings))
+            return _empty_result(
+                snap, error="no LL body or leads", warnings=tuple(warnings)
+            )
         outline = FootprintOutlineMM(
             lines=lines,
             pads=pads,

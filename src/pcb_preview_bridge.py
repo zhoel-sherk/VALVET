@@ -7,7 +7,8 @@ from typing import Any, Optional
 
 import pandas as pd
 
-from pcb_preview.types import BoardSide, PlacementRecord
+from layer_side import parse_board_side
+from pcb_preview.types import PlacementRecord
 
 _RE_UNITS_MM = re.compile(r"(?i)UUNITS\s*=\s*MILLIMETERS?")
 _RE_UNITS_MIL = re.compile(r"(?i)UUNITS\s*=\s*MILS?")
@@ -111,13 +112,7 @@ def placements_from_pnp_dataframe(
                 rot = float(s_rot.iloc[i])
             except (TypeError, ValueError):
                 rot = 0.0
-        side: BoardSide = "unknown"
-        if s_layer is not None:
-            lv = str(s_layer.iloc[i]).upper()
-            if "BOT" in lv or "BOTTOM" in lv or "B." in lv:
-                side = "bottom"
-            elif "TOP" in lv or "T." in lv or "F." in lv:
-                side = "top"
+        side = parse_board_side(s_layer.iloc[i] if s_layer is not None else None)
         fp = ""
         if s_fp is not None:
             fp = str(s_fp.iloc[i]).strip()

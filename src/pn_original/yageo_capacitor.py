@@ -107,9 +107,7 @@ def parse(pn: str, component_type: str) -> str | None:
         npo_bn = search(r"NPO(\d)BN(\d{3})", pn, I) or search(
             r"NP0(\d)BN(\d{3})", pn, I
         )
-        npo_br0 = search(r"NPO(\d)BN(5R\d)", pn, I) or search(
-            r"NP0(\d)BN(5R\d)", pn, I
-        )
+        npo_br0 = search(r"NPO(\d)BN(5R\d)", pn, I) or search(r"NP0(\d)BN(5R\d)", pn, I)
         if npo_br0:
             vdig, rval = npo_br0.groups()
             voltage = voltage_before_bb.get(vdig, "") or voltage_letter.get(vdig, "")

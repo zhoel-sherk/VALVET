@@ -35,7 +35,9 @@ def test_clean_preview_emits_alert_column_without_master() -> None:
     assert rows[0][5].startswith("missing=")
 
 
-def test_clean_preview_emits_alert_column_with_master(tmp_path: Path, monkeypatch) -> None:
+def test_clean_preview_emits_alert_column_with_master(
+    tmp_path: Path, monkeypatch
+) -> None:
     log_path = tmp_path / "missing_tokens.jsonl"
     monkeypatch.setenv("BOOMER_MISSING_TOKENS_LOG", str(log_path))
     cfg = CleanConfig(regex_master_enabled=True, regex_master_preview_scores=True)

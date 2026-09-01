@@ -294,9 +294,7 @@ def _load_tables(mdb_path: Path, name: str) -> dict[str, pd.DataFrame]:
     return out
 
 
-def _vision_type(
-    profile: dict[str, Any] | None, gmap: pd.DataFrame
-) -> tuple[int, str]:
+def _vision_type(profile: dict[str, Any] | None, gmap: pd.DataFrame) -> tuple[int, str]:
     if not profile:
         return 0, ""
     gid = upd_fp._int(upd_fp._row_get(profile, "UPDPARTGROUPID"))
@@ -316,7 +314,9 @@ def snapshot_from_table_map(
 ) -> upd_fp.UpdProfileSnapshot:
     """Build a snapshot from already-filtered (or full) table frames."""
     profile = _first_row(tables.get("PROFILE_Det", pd.DataFrame()))
-    parent = str(upd_fp._row_get(profile or {}, "PARENTPROFILE", default="") or "").strip()
+    parent = str(
+        upd_fp._row_get(profile or {}, "PARENTPROFILE", default="") or ""
+    ).strip()
     vt, gname = _vision_type(profile, tables.get("PARTGROUP_Map", pd.DataFrame()))
     com = _first_row(tables.get("PROFILECOMDATA_Det", pd.DataFrame())) or {}
     return upd_fp.UpdProfileSnapshot(
@@ -349,7 +349,9 @@ def snapshot_from_table_map(
         poly_whole=_first_row(tables.get("VISION_POLYGON_WHOLE_Det", pd.DataFrame())),
         poly_verts=_df_records(tables.get("VISION_POLYGON_POLY_Det", pd.DataFrame())),
         flip_whole=_first_row(tables.get("VISION_FLIPCHIP_WHOLE_Det", pd.DataFrame())),
-        flip_params=_df_records(tables.get("VISION_FLIPCHIP_PARAM_Det", pd.DataFrame())),
+        flip_params=_df_records(
+            tables.get("VISION_FLIPCHIP_PARAM_Det", pd.DataFrame())
+        ),
         flip_balls=_df_records(tables.get("VISION_FLIPCHIP_BALL_Det", pd.DataFrame())),
     )
 

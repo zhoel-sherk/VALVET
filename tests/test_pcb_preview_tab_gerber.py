@@ -49,7 +49,9 @@ def test_pcb_preview_tab_loads_gerber_layer(tmp_path: Path) -> None:
     from pcb_preview_tab import PcbPreviewTab
 
     qapp = _qapp()
-    settings = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
+    settings = QtCore.QSettings(
+        str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat
+    )
     tab = PcbPreviewTab(settings=settings)
     try:
         thread = GerberLoadThread(str(_ART), tab._px_per_mm, tab)
@@ -69,7 +71,9 @@ def test_pcb_preview_gerber_unit_radio_rescales_layer(tmp_path: Path) -> None:
     from pcb_preview_tab import PcbPreviewTab
 
     qapp = _qapp()
-    settings = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
+    settings = QtCore.QSettings(
+        str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat
+    )
     tab = PcbPreviewTab(settings=settings)
     try:
         thread = GerberLoadThread(str(_ART), tab._px_per_mm, tab)
@@ -98,7 +102,9 @@ def test_pcb_preview_missing_gerber_logs_error(
 
     spy = mocker.spy(logger, "error")
     qapp = _qapp()
-    settings = QtCore.QSettings(str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat)
+    settings = QtCore.QSettings(
+        str(tmp_path / "t.ini"), QtCore.QSettings.Format.IniFormat
+    )
     tab = PcbPreviewTab(settings=settings)
     missing = tmp_path / "missing.gbr"
     try:

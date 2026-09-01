@@ -281,7 +281,9 @@ def export_partnames_snapshot(
     if dump_rejects_path is not None:
         rp = Path(dump_rejects_path)
         rp.parent.mkdir(parents=True, exist_ok=True)
-        lines = ["partname\treason"] + [f"{r['partname']}\t{r['reason']}" for r in rejects]
+        lines = ["partname\treason"] + [
+            f"{r['partname']}\t{r['reason']}" for r in rejects
+        ]
         rp.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     meta = {
@@ -305,7 +307,9 @@ def export_partnames_snapshot(
     }
     op = Path(out_path)
     op.parent.mkdir(parents=True, exist_ok=True)
-    op.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    op.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     return meta
 
 

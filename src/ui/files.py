@@ -26,6 +26,7 @@ class FilesMixin:
         if path:
             self._settings.setValue("ui/dialog_last_dir_bom", os.path.dirname(path))
             self._load_bom(path)
+
     def _browse_pnp(self):
         start = str(self._settings.value("ui/dialog_last_dir_pnp", "") or "")
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -37,6 +38,7 @@ class FilesMixin:
         if path:
             self._settings.setValue("ui/dialog_last_dir_pnp", os.path.dirname(path))
             self._load_pnp(path)
+
     def _browse_pnp_secondary(self) -> None:
         start = str(self._settings.value("ui/dialog_last_dir_pnp", "") or "")
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -59,6 +61,7 @@ class FilesMixin:
             self._log(self.ui_tr("msg.pnp_secondary_need_primary"), "warning")
             return
         self._load_pnp(primary)
+
     def _clear_pnp_secondary_only(self) -> None:
         primary = (self._pnp_source_path or "").strip()
         if primary and os.path.isfile(primary) and self._pnp_dirty:
@@ -70,14 +73,17 @@ class FilesMixin:
         )
         if primary and os.path.isfile(primary):
             self._load_pnp(primary, force_original=True)
+
     def _on_pnp_layer_override_toggled(self, on: bool) -> None:
         self.edit_pnp_layer_tokens.setEnabled(bool(on))
+
     def _schedule_pnp_layer_prefs_reload(self) -> None:
         if self._loading_working_copy or self._restoring_settings:
             return
         if not getattr(self, "_pnp_layer_reload_timer", None):
             return
         self._pnp_layer_reload_timer.start(450)
+
     def _on_pnp_layer_reload_timer(self) -> None:
         primary = (self._pnp_source_path or "").strip()
         if not primary or not os.path.isfile(primary):
@@ -85,6 +91,7 @@ class FilesMixin:
         if self._pnp_dirty and not self._confirm_reload_original("pnp"):
             return
         self._load_pnp(primary, force_original=True)
+
     def _pnp_snapshot_identity_path(self) -> str:
         """Stable path string for autosave / per-file UI settings when merging two PnP files."""
         p1 = (self._pnp_source_path or "").strip()
@@ -92,18 +99,21 @@ class FilesMixin:
         if p2 and os.path.isfile(p2):
             return p1 + "\n+pnp_merge:\n" + p2
         return p1
+
     def _pnp_report_paths_display(self) -> str:
         p1 = (self._pnp_source_path or "").strip()
         p2 = (self._pnp_secondary_path or "").strip()
         if p2 and os.path.isfile(p2):
             return p1 + " + " + p2
         return p1
+
     def _read_pnp_dataframe_from_disk(
         self,
         path: str,
         sep: str,
     ) -> pd.DataFrame:
         return _service_read_pnp(path, sep, 0, -1)
+
     def _pnp_mapped_layer_column_index(self) -> int | None:
         if self._pnp_df is None or not getattr(self, "pnp_col_combos", None):
             return None
@@ -112,6 +122,7 @@ class FilesMixin:
             if i < len(cols) and self._mapping_combo_role(combo) == "Layer":
                 return i
         return None
+
     def _inject_pnp_layer_values(self) -> None:
         """Fill Layer column for merged rows (expects combos already built)."""
         if self._pnp_df is None or len(self._pnp_df) == 0:
@@ -142,6 +153,7 @@ class FilesMixin:
             self._pnp_df.iloc[:n1, j] = v1
         if n2 > 0 and v2 is not None:
             self._pnp_df.iloc[n1:, j] = v2
+
     def _load_bom(self, path: str, *, force_original: bool = False):
         path = (path or "").strip()
         if not path:
@@ -213,6 +225,7 @@ class FilesMixin:
 
         finally:
             self._loading_working_copy = False
+
     def _load_pnp(self, path: str, *, force_original: bool = False):
         path = (path or "").strip()
         if not path:
@@ -317,14 +330,17 @@ class FilesMixin:
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
         finally:
             self._loading_working_copy = False
+
     def _reload_bom(self):
         path = (self._bom_source_path or "").strip()
         if path and os.path.isfile(path) and self._confirm_reload_original("bom"):
             self._load_bom(path, force_original=True)
+
     def _reload_pnp(self):
         path = (self._pnp_source_path or "").strip()
         if path and os.path.isfile(path) and self._confirm_reload_original("pnp"):
             self._load_pnp(path, force_original=True)
+
     def _drop_pnp_secondary(self, path: str) -> None:
         self._pnp_secondary_path = path
         configure_path_label(
@@ -337,6 +353,7 @@ class FilesMixin:
             self._log(self.ui_tr("msg.pnp_secondary_need_primary"), "warning")
             return
         self._load_pnp(primary)
+
     def _confirm_reload_original(self, kind: str) -> bool:
         dirty = self._bom_dirty if kind == "bom" else self._pnp_dirty
         if not dirty:
@@ -351,6 +368,7 @@ class FilesMixin:
             QtWidgets.QMessageBox.StandardButton.No,
         )
         return res == QtWidgets.QMessageBox.StandardButton.Yes
+
     def _mark_working_dirty(self, kind: str, *, autosave: bool = True) -> None:
         if self._loading_working_copy or self._restoring_settings:
             return
@@ -366,6 +384,7 @@ class FilesMixin:
             return
         if autosave:
             self._autosave_timer.start(1500)
+
     def _autosave_dirty_working_copies(self) -> None:
         try:
             if self._bom_dirty and self._bom_source_path and self._bom_df is not None:

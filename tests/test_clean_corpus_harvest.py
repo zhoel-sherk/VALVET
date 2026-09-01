@@ -92,7 +92,9 @@ def test_is_procurement_or_internal_code() -> None:
 
 def test_harvest_tabular_comment_columns() -> None:
     csv = tests_dir / "fixtures" / "clean_corpus" / "tabular_sample.csv"
-    rows = list(harvest_from_tabular(csv, "tests/fixtures/clean_corpus/tabular_sample.csv"))
+    rows = list(
+        harvest_from_tabular(csv, "tests/fixtures/clean_corpus/tabular_sample.csv")
+    )
     originals = {r["original"] for r in rows}
     assert "RES 10K 1% 0402" in originals
     assert "CAP CER 0.1uF 16V 0402" in originals

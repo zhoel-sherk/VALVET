@@ -301,10 +301,14 @@ def normalize_for_regex_parsing(spec: str) -> str:
     s = sub(r"<[gG]>\s*$", "", s).strip()
     if "/" not in s:
         return s
-    if search(r"[\d.]+\s*(?:PF|NF|UF|F)\s*/\s*[\d.]+\s*(?:kV|KV|V)(?![A-Za-z0-9])", s, I):
+    if search(
+        r"[\d.]+\s*(?:PF|NF|UF|F)\s*/\s*[\d.]+\s*(?:kV|KV|V)(?![A-Za-z0-9])", s, I
+    ):
         return s
     if search(r"(?<![0-9.])\d+/\d+W(?![0-9A-Z])", s, I):
         return s
-    if search(r"^(?:CAP[\s_-]*SMD|MLCC|NETRES|RES(?:ISTOR)?|PL_)(?:[^A-Za-z0-9]|$)", s, I):
+    if search(
+        r"^(?:CAP[\s_-]*SMD|MLCC|NETRES|RES(?:ISTOR)?|PL_)(?:[^A-Za-z0-9]|$)", s, I
+    ):
         return s
     return s.split("/")[-1].strip()

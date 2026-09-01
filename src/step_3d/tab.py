@@ -456,7 +456,9 @@ class Step3DTabWidget(QtWidgets.QWidget):
                 stack.extend(kids)
         return out
 
-    def _on_tree_item_changed(self, item: QtWidgets.QTreeWidgetItem, column: int) -> None:
+    def _on_tree_item_changed(
+        self, item: QtWidgets.QTreeWidgetItem, column: int
+    ) -> None:
         if self._view is None:
             return
         pid = item.data(0, QtCore.Qt.ItemDataRole.UserRole)

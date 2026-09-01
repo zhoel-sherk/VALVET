@@ -27,7 +27,9 @@ def project_payload(
 
 def save_project_file(path: str | Path, payload: dict[str, Any]) -> Path:
     p = Path(path)
-    p.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    p.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     return p
 
 

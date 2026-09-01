@@ -1,4 +1,5 @@
 """VALVET desktop entry (Validator And Line-Verified Export Tool)."""
+
 from __future__ import annotations
 
 import argparse
@@ -10,8 +11,7 @@ _SRC = Path(__file__).resolve().parent
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from PySide6 import QtGui, QtWidgets  # noqa: E402
-from PySide6.QtCore import QTimer  # noqa: E402
+from PySide6 import QtCore, QtGui, QtWidgets  # noqa: E402
 
 import logger  # noqa: E402
 from app.constants import (  # noqa: E402
@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> None:
     win.show()
     print(f"{APP_NAME} - {APP_EXPANSION}", flush=True)
     if args.smoke or os.environ.get("VALVET_SMOKE", "").strip() in ("1", "true", "yes"):
-        QTimer.singleShot(400, app.quit)
+        QtCore.QTimer.singleShot(400, app.quit)
     raise SystemExit(app.exec())
 
 

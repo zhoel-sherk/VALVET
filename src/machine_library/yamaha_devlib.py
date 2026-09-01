@@ -95,9 +95,7 @@ def _scan_devlib_records(data: bytes, lib_v1: bool) -> list[DevLibRecord] | None
                     braw = braw[:nul_b]
                 decoded = _decode_devlib_name(n, braw)
                 basename = (decoded or "").strip()
-        records.append(
-            DevLibRecord(name=name_str, basename=basename, record_index=n)
-        )
+        records.append(DevLibRecord(name=name_str, basename=basename, record_index=n))
         _log.debug("DevLib %s %s", n, name_str)
     return records
 

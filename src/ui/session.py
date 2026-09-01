@@ -19,7 +19,6 @@ from working_copy_ui import prompt_recover_snapshot
 
 
 class SessionMixin:
-
     @staticmethod
     def _norm_session_bom_path(p: str) -> str:
         if not p or not os.path.isfile(p):

@@ -81,7 +81,13 @@ def test_mdb_export_matches_fixture_snapshot() -> None:
         load_partnames_snapshot,
     )
 
-    fixture = _REPO_ROOT / "tests" / "fixtures" / "clean_corpus" / "hanwha_partnames_cl40.json"
+    fixture = (
+        _REPO_ROOT
+        / "tests"
+        / "fixtures"
+        / "clean_corpus"
+        / "hanwha_partnames_cl40.json"
+    )
     if _UPD_MDB is None or not fixture.is_file():
         pytest.skip("UPD.MDB or hanwha_partnames_cl40.json missing")
     skip_if_mdb_unreadable(_UPD_MDB)

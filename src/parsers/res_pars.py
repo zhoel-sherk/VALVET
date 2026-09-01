@@ -72,9 +72,7 @@ def parse_resistor_token_fields(
                 if tol:
                     tolerance = f"{tol}%"
             continue
-        if match(r"^[\d\.]+[RKM]?$", part, I) or match(
-            r"^[0-9]+[RKMtkm][0-9]+$", part
-        ):
+        if match(r"^[\d\.]+[RKM]?$", part, I) or match(r"^[0-9]+[RKMtkm][0-9]+$", part):
             # Keep original case so lowercase m (milli) survives normalize.
             value = part.strip()
             continue
@@ -90,9 +88,7 @@ def parse_resistor_token_fields(
             if m_milli:
                 value = f"{m_milli.group(1)}m"
                 break
-            m_ohm = match(
-                r"^([0-9.]+)(R|KR|MR|M|K|OHM|KOHM|MOHM)$", part, I
-            )
+            m_ohm = match(r"^([0-9.]+)(R|KR|MR|M|K|OHM|KOHM|MOHM)$", part, I)
             if m_ohm:
                 num, unit = m_ohm.groups()
                 # Preserve original unit case for m vs M when single-letter.
@@ -104,7 +100,11 @@ def parse_resistor_token_fields(
                     unit = "K"
                 elif unit in ["MR", "MOHM"]:
                     unit = "M"
-                elif unit == "M" and unit_raw.startswith("m") and not unit_raw.upper().startswith("MOHM"):
+                elif (
+                    unit == "M"
+                    and unit_raw.startswith("m")
+                    and not unit_raw.upper().startswith("MOHM")
+                ):
                     # lowercase m alone → milliohm marker for normalize_res_ohm_value
                     value = f"{num}m"
                     break

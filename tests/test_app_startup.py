@@ -43,13 +43,14 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
     try:
         assert win.windowTitle()
         assert win.tabs.count() == len(win._tab_keys_in_order)
-        assert win.tabs.count() == 9
+        assert win.tabs.count() == 8
         assert "package" in win._tab_keys_in_order
         assert hasattr(win, "_package_tab")
         assert hasattr(win, "btn_find_package")
         assert not hasattr(win, "btn_apply_package_table_merge")
         assert hasattr(win, "btn_apply_package_table")
         assert hasattr(win._package_tab, "_fp_preview")
+        assert "report" not in win._tab_keys_in_order
         assert "pcb_preview" in win._tab_keys_in_order
         assert "step_3d" not in win._tab_keys_in_order
         assert hasattr(win._machine_library_tab, "_fp_preview")
@@ -60,8 +61,8 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
 @pytest.mark.parametrize(
     "experimental_on,expected_tabs",
     [
-        (False, 9),
-        (True, 10),
+        (False, 8),
+        (True, 9),
     ],
 )
 def test_main_window_each_tab_switchable(
@@ -177,7 +178,7 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
             win.gb_bom_file.parentWidget(),
             win.gb_pnp_file.parentWidget(),
             win.btn_merge.parentWidget(),
-            win.btn_cross_check.parentWidget(),
+            win.btn_cross_check.parentWidget().parentWidget(),
         ):
             assert w is not None
             assert w.width() == LEFT_RAIL_W
@@ -198,10 +199,18 @@ def test_debug_logs_checkbox_calls_set_debug_mode(
     try:
         assert win.chk_colorful.isChecked() is False
         win.chk_colorful.setChecked(True)
-        on_arg = spy.call_args[0][0] if spy.call_args.args else spy.call_args.kwargs.get("on")
+        on_arg = (
+            spy.call_args[0][0]
+            if spy.call_args.args
+            else spy.call_args.kwargs.get("on")
+        )
         assert on_arg is True
         win.chk_colorful.setChecked(False)
-        on_arg = spy.call_args[0][0] if spy.call_args.args else spy.call_args.kwargs.get("on")
+        on_arg = (
+            spy.call_args[0][0]
+            if spy.call_args.args
+            else spy.call_args.kwargs.get("on")
+        )
         assert on_arg is False
     finally:
         win.close()

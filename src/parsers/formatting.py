@@ -147,7 +147,9 @@ def inductor_pack_guess(s: str) -> str:
         em = search(r"(?<=[A-Za-z])(\d{4})(?=[A-Za-z\-]|$)", tok)
         if em:
             return em.group(1)
-    mpn_m = search(r"(?<![A-Za-z0-9])(?:SCCT|SCCB|STPI|SWAI|MCW|CCCA)(\d{4})[-\w]*", s, I)
+    mpn_m = search(
+        r"(?<![A-Za-z0-9])(?:SCCT|SCCB|STPI|SWAI|MCW|CCCA)(\d{4})[-\w]*", s, I
+    )
     if mpn_m:
         return mpn_m.group(1)
     mm = search(rf"(?<![A-Za-z0-9])[RC]?({PACKAGE_PATTERN})(?![A-Za-z0-9])", s, I)

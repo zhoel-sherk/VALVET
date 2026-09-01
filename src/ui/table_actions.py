@@ -15,9 +15,7 @@ class TableActionsMixin:
     def _capture_table_edit_state(self, kind: str) -> dict[str, Any]:
         table = self.bom_table if kind == "bom" else self.pnp_table
         model = self.bom_model if kind == "bom" else self.pnp_model
-        combos = (
-            self.bom_col_combos if kind == "bom" else self.pnp_col_combos
-        )
+        combos = self.bom_col_combos if kind == "bom" else self.pnp_col_combos
         df = model.get_dataframe()
         selected = sorted(
             {
@@ -33,12 +31,11 @@ class TableActionsMixin:
             "widths": widths,
             "mappings": mappings,
         }
+
     def _restore_table_edit_state(self, kind: str, state: dict[str, Any]) -> bool:
         table = self.bom_table if kind == "bom" else self.pnp_table
         model = self.bom_model if kind == "bom" else self.pnp_model
-        combos = (
-            self.bom_col_combos if kind == "bom" else self.pnp_col_combos
-        )
+        combos = self.bom_col_combos if kind == "bom" else self.pnp_col_combos
         df = model.get_dataframe()
         if df is None or list(df.columns) != state.get("columns", []):
             return False
@@ -72,6 +69,7 @@ class TableActionsMixin:
         else:
             self._sync_pnp_all_combos_width()
         return True
+
     def _on_table_context_menu(self, pos: QtCore.QPoint, kind: str) -> None:
         table = self.bom_table if kind == "bom" else self.pnp_table
         model = self.bom_model if kind == "bom" else self.pnp_model
@@ -85,6 +83,7 @@ class TableActionsMixin:
             self._delete_table_rows(kind)
         elif chosen is act_cols:
             self._delete_table_columns(kind)
+
     def _delete_table_rows(self, kind: str) -> None:
         table = self.bom_table if kind == "bom" else self.pnp_table
         model = self.bom_model if kind == "bom" else self.pnp_model
@@ -110,12 +109,11 @@ class TableActionsMixin:
             self._pnp_df = new_df
             self._mark_working_dirty("pnp")
             self._refresh_pcb_preview_from_ui()
+
     def _delete_table_columns(self, kind: str) -> None:
         table = self.bom_table if kind == "bom" else self.pnp_table
         model = self.bom_model if kind == "bom" else self.pnp_model
-        combos = (
-            self.bom_col_combos if kind == "bom" else self.pnp_col_combos
-        )
+        combos = self.bom_col_combos if kind == "bom" else self.pnp_col_combos
         df = model.get_dataframe()
         if df is None or df.empty or not combos:
             return
@@ -146,6 +144,7 @@ class TableActionsMixin:
             self._mark_working_dirty("pnp")
             QtCore.QTimer.singleShot(0, self._autoresize_pnp_columns)
             self._refresh_pcb_preview_from_ui()
+
     def _find_replace_table(self, kind: str) -> None:
         table = self.bom_table if kind == "bom" else self.pnp_table
         model = self.bom_model if kind == "bom" else self.pnp_model
@@ -211,7 +210,10 @@ class TableActionsMixin:
                 ]
 
             new_df, changed = find_and_replace(
-                df, needle, repl, indexes,
+                df,
+                needle,
+                repl,
+                indexes,
                 match_case=match_case.isChecked(),
                 whole_cell=whole_cell.isChecked(),
             )
@@ -245,14 +247,17 @@ class TableActionsMixin:
         buttons.rejected.connect(dlg.reject)
         dlg.resize(420, 180)
         dlg.exec()
+
     def _schedule_save_bom_tab_settings(self) -> None:
         if self._bom_ui_restoring or self._restoring_settings:
             return
         self._bom_tab_settings_timer.start(400)
+
     def _schedule_save_pnp_tab_settings(self) -> None:
         if self._pnp_ui_restoring or self._restoring_settings:
             return
         self._pnp_tab_settings_timer.start(400)
+
     def _save_bom_tab_settings_to_disk(self) -> None:
         if self._bom_ui_restoring or self._restoring_settings:
             return
@@ -268,6 +273,7 @@ class TableActionsMixin:
                 self._mapping_roles_from_combos(self.bom_col_combos),
             )
         self._settings.endGroup()
+
     def _save_pnp_tab_settings_to_disk(self) -> None:
         if self._pnp_ui_restoring or self._restoring_settings:
             return
@@ -283,6 +289,7 @@ class TableActionsMixin:
                 self._mapping_roles_from_combos(self.pnp_col_combos),
             )
         self._settings.endGroup()
+
     def _restore_bom_tab_load_params(self, path: str) -> None:
         if not path or not os.path.isfile(path):
             return
@@ -302,6 +309,7 @@ class TableActionsMixin:
         finally:
             self._bom_ui_restoring = False
             self._settings.endGroup()
+
     def _restore_pnp_tab_load_params(self, path: str) -> None:
         if not path:
             return
@@ -320,6 +328,7 @@ class TableActionsMixin:
         finally:
             self._pnp_ui_restoring = False
             self._settings.endGroup()
+
     def _restore_bom_mappings_after_fill(self, path: str) -> None:
         if not path or not hasattr(self, "bom_col_combos") or not self.bom_col_combos:
             return
@@ -334,6 +343,7 @@ class TableActionsMixin:
             self._apply_bom_role_list([str(m) for m in mappings])
         finally:
             self._bom_ui_restoring = False
+
     def _restore_pnp_mappings_after_fill(self, path: str) -> None:
         if not path or not hasattr(self, "pnp_col_combos") or not self.pnp_col_combos:
             return

@@ -10,6 +10,12 @@ from typing import Any
 
 import pandas as pd
 
+import logger
+
+
+class SnapshotLoadError(Exception):
+    """Autosave pickle/meta exists but cannot be read (e.g. pandas dtype mismatch)."""
+
 
 @dataclass(frozen=True)
 class SnapshotIndex:
@@ -78,7 +84,7 @@ def save_snapshot(
         "saved_at": datetime.now(timezone.utc).isoformat(),
         "extra": extra or {},
     }
-    dataframe.to_pickle(tmp_data)
+    _dataframe_for_pickle(dataframe).to_pickle(tmp_data)
     tmp_data.replace(data_path)
     tmp_meta.write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -87,11 +93,40 @@ def save_snapshot(
     return meta_path
 
 
+def _dataframe_for_pickle(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Use object columns instead of pandas StringDtype (unpickle breaks across versions)."""
+    out = dataframe.copy()
+    for col in out.columns:
+        dtype = out[col].dtype
+        if isinstance(dtype, pd.StringDtype) or str(dtype).startswith("string"):
+            out[col] = out[col].astype(object)
+    return out
+
+
+def _read_snapshot_pickle(data_path: Path) -> pd.DataFrame:
+    try:
+        df = pd.read_pickle(data_path)
+    except Exception as exc:
+        logger.warning(
+            "Autosave pickle unreadable (%s); falling back to original file: %s",
+            type(exc).__name__,
+            data_path,
+        )
+        raise SnapshotLoadError(str(data_path)) from exc
+    if not isinstance(df, pd.DataFrame):
+        logger.warning(
+            "Autosave pickle is not a DataFrame; falling back to original file: %s",
+            data_path,
+        )
+        raise SnapshotLoadError(str(data_path))
+    return df
+
+
 def load_snapshot(meta_path: str | os.PathLike[str]) -> Snapshot:
     mp = Path(meta_path)
     meta = json.loads(mp.read_text(encoding="utf-8"))
     data_path = mp.with_suffix(".pkl")
-    df = pd.read_pickle(data_path)
+    df = _read_snapshot_pickle(data_path)
     return Snapshot(meta=meta, dataframe=df)
 
 
@@ -104,8 +139,12 @@ def find_snapshot(
     if not base.exists():
         return None
     exact_meta, exact_data = _snapshot_paths(base, source_path, kind)
+    skipped: set[Path] = set()
     if exact_meta.exists() and exact_data.exists():
-        return load_snapshot(exact_meta)
+        try:
+            return load_snapshot(exact_meta)
+        except SnapshotLoadError:
+            skipped.add(exact_meta.resolve())
 
     fp = source_fingerprint(source_path)
     candidates: list[Path] = []
@@ -118,6 +157,8 @@ def find_snapshot(
             continue
         source = meta.get("source") or {}
         if source.get("path") == fp["path"] and meta_path.with_suffix(".pkl").exists():
+            if meta_path.resolve() in skipped:
+                continue
             candidates.append(meta_path)
     if not candidates:
         return None
@@ -125,7 +166,12 @@ def find_snapshot(
         key=lambda p: json.loads(p.read_text(encoding="utf-8")).get("saved_at", ""),
         reverse=True,
     )
-    return load_snapshot(candidates[0])
+    for meta_path in candidates:
+        try:
+            return load_snapshot(meta_path)
+        except SnapshotLoadError:
+            continue
+    return None
 
 
 def list_snapshot_indices(base_dir: str | os.PathLike[str]) -> list[SnapshotIndex]:

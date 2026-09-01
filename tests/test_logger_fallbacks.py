@@ -50,7 +50,9 @@ def test_main_parse_args_debug() -> None:
     assert args.smoke is True
 
 
-def test_gerber_gerbonara_fallback_logs_warning(monkeypatch, mocker, tmp_path: Path) -> None:
+def test_gerber_gerbonara_fallback_logs_warning(
+    monkeypatch, mocker, tmp_path: Path
+) -> None:
     gbr = tmp_path / "x.gbr"
     gbr.write_text("G04 test*", encoding="ascii")
     empty = GerberSvgPayload(
@@ -66,10 +68,10 @@ def test_gerber_gerbonara_fallback_logs_warning(monkeypatch, mocker, tmp_path: P
         bbox_mm=BBoxMM(0.0, 0.0, 1.0, 1.0),
         backend_name="gerbonara",
     )
-    import pcb_preview.engine as eng
+    import pcb_preview.engine
 
-    monkeypatch.setattr(eng, "load_via_pygerber", lambda p: empty)
-    monkeypatch.setattr(eng, "load_via_gerbonara", lambda p: ok)
+    monkeypatch.setattr(pcb_preview.engine, "load_via_pygerber", lambda p: empty)
+    monkeypatch.setattr(pcb_preview.engine, "load_via_gerbonara", lambda p: ok)
     warn_spy = mocker.spy(logger, "warning")
     payload = load_gerber_layer(str(gbr))
     assert payload.backend_name == "gerbonara"
@@ -111,9 +113,7 @@ def test_hanwha_odbc_fallback_logs_warning(monkeypatch, mocker, tmp_path: Path) 
     def _odbc_fail(_path):
         raise AccessOdbcError("no ACE")
 
-    monkeypatch.setattr(
-        "machine_library.access_odbc.list_mdb_tables_odbc", _odbc_fail
-    )
+    monkeypatch.setattr("machine_library.access_odbc.list_mdb_tables_odbc", _odbc_fail)
     monkeypatch.setattr(mdbtools, "_list_mdb_tables_cli", lambda _p: ["PART_Det"])
     warn_spy = mocker.spy(logger, "warning")
     names = mdbtools.list_mdb_tables(fake)

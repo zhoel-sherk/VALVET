@@ -58,7 +58,11 @@ def cache_is_fresh(source_mdb: str | Path, cache_dir: str | Path) -> bool:
     """True when vision.sqlite exists and meta matches source path + mtime."""
     dest = Path(cache_dir)
     src = Path(source_mdb)
-    if not src.is_file() or not sqlite_path(dest).is_file() or not meta_path(dest).is_file():
+    if (
+        not src.is_file()
+        or not sqlite_path(dest).is_file()
+        or not meta_path(dest).is_file()
+    ):
         return False
     try:
         meta = json.loads(meta_path(dest).read_text(encoding="utf-8"))
@@ -294,9 +298,7 @@ def _sqlite_table(
         return pd.DataFrame()
 
 
-def load_profile_snapshot_from_sqlite(
-    cache_dir: str | Path, profilename: str
-) -> Any:
+def load_profile_snapshot_from_sqlite(cache_dir: str | Path, profilename: str) -> Any:
     dest = Path(cache_dir)
     name = (profilename or "").strip()
     if not name or not sqlite_path(dest).is_file():

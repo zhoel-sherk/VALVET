@@ -1,4 +1,5 @@
 """Deprecated import path. Use src/main.py to launch; MainWindow lives in app.window."""
+
 from app.window import MainWindow
 from main import main
 

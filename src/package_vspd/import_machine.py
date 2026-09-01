@@ -49,9 +49,7 @@ def import_machine_packages(
     share ``normalize_package_key`` so they become one alias row.
     """
     store.clear_other_noise()
-    tokens = _unique_tokens(
-        list(part_groups) + list(yamaha_names) + list(extra_tokens)
-    )
+    tokens = _unique_tokens(list(part_groups) + list(yamaha_names) + list(extra_tokens))
     mapped_ids: set[str] = set()
     skipped = 0
     outlines = 0

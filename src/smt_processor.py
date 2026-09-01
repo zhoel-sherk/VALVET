@@ -1014,7 +1014,7 @@ class SMTDataProcessor:
             "info",
         )
 
-        # 1. BOM refs absent from PnP (often OK: fiducials, mechanicals)
+        # 1. BOM refs absent from PnP (parts the line will not place)
         for designator, bom_comment in bom_parts.items():
             if designator and designator not in pnp_parts:
                 results.append(
@@ -1023,11 +1023,11 @@ class SMTDataProcessor:
                         issue_type="missing_in_pnp",
                         bom_value=bom_comment,
                         pnp_value=None,
-                        severity="warning",  # May be acceptable
+                        severity="critical",
                     )
                 )
 
-        # 2. PnP refs missing from BOM (usually critical)
+        # 2. PnP refs missing from BOM (extra placements; often unused / DNP)
         for designator, pnp_data in pnp_parts.items():
             if designator and designator not in bom_parts:
                 pnp_comment = pnp_data[0] if pnp_data else None
@@ -1037,7 +1037,7 @@ class SMTDataProcessor:
                         issue_type="missing_in_bom",
                         bom_value=None,
                         pnp_value=pnp_comment,
-                        severity="critical",  # Likely real issue
+                        severity="warning",
                     )
                 )
 
@@ -1150,7 +1150,7 @@ class SMTDataProcessor:
                 )
         else:
             self.config.emit_progress(
-                "Overlap check: off (faster; enable on Report tab if needed)", "info"
+                "Overlap check: off (faster; enable Overlap on Merge if needed)", "info"
             )
 
         self.config.emit_progress("Cross-check: building result table...", "info")

@@ -242,7 +242,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
         hdr = self._table.horizontalHeader()
         hdr.setStretchLastSection(False)
         hdr.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Interactive)
-        self._table.selectionModel().currentChanged.connect(self._on_table_current_changed)
+        self._table.selectionModel().currentChanged.connect(
+            self._on_table_current_changed
+        )
 
         self._fp_preview = FootprintPreviewWidget(self)
         self._fp_debounce = QtCore.QTimer(self)
@@ -308,7 +310,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
         df = self._hanwha_df
         if df is None or df.empty or "PARTNAME" not in df.columns:
             return set()
-        return partnames_for_clean(df, enabled_confidence_levels=self._enabled_confidence_levels())
+        return partnames_for_clean(
+            df, enabled_confidence_levels=self._enabled_confidence_levels()
+        )
 
     def _enabled_confidence_levels(self) -> Set[int]:
         s: Set[int] = set()
@@ -421,7 +425,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
     def _browse_mdb(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
-            start = str(self._settings.value("machine_lib/last_mdb_dir", start) or start)
+            start = str(
+                self._settings.value("machine_lib/last_mdb_dir", start) or start
+            )
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select Hanwha UPD library (.mdb)",
@@ -518,7 +524,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
     def _browse_yamaha_tou(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
-            start = str(self._settings.value("machine_lib/last_tou_dir", start) or start)
+            start = str(
+                self._settings.value("machine_lib/last_tou_dir", start) or start
+            )
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select Yamaha .tou",
@@ -538,7 +546,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
     def _browse_yamaha_tou_folder(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
-            start = str(self._settings.value("machine_lib/last_tou_dir", start) or start)
+            start = str(
+                self._settings.value("machine_lib/last_tou_dir", start) or start
+            )
         path = QtWidgets.QFileDialog.getExistingDirectory(
             self, "Select folder of Yamaha .tou files", start
         )
@@ -553,7 +563,9 @@ class MachineLibraryTab(QtWidgets.QWidget):
     def _browse_yamaha_lib(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
-            start = str(self._settings.value("machine_lib/last_lib_dir", start) or start)
+            start = str(
+                self._settings.value("machine_lib/last_lib_dir", start) or start
+            )
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Select Yamaha DevLib .lib",
@@ -591,9 +603,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
                     names.add(rec.name)
                     if rec.key not in tou_by_key:
                         tou_by_key[rec.key] = rec
-                        rows.append(
-                            {"PARTNAME": rec.name, "Kind": "Tou", "File": base}
-                        )
+                        rows.append({"PARTNAME": rec.name, "Kind": "Tou", "File": base})
             if self._yam_lib_path:
                 p = Path(self._yam_lib_path)
                 base = p.name
@@ -656,9 +666,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
         drv = pick_access_odbc_driver()
         msg = driver_status_message(drv)
         if drv:
-            QtWidgets.QMessageBox.information(
-                self, "Hanwha .mdb — Access ODBC", msg
-            )
+            QtWidgets.QMessageBox.information(self, "Hanwha .mdb — Access ODBC", msg)
             return
         r = QtWidgets.QMessageBox.question(
             self,
@@ -738,9 +746,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
             )
         else:
             bn = self._yamaha_lib_basename.get(name.lower(), "")
-            result = build_outline_from_name(
-                name, kind=kind or "Lib", basename=bn
-            )
+            result = build_outline_from_name(name, kind=kind or "Lib", basename=bn)
         self._fp_preview.show_result(result, title=name)
 
     def _load_selected_footprint(self) -> None:
@@ -749,9 +755,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
             return
         import machine_library.hanwha_sqlite_cache as hanwha_cache
 
-        if not self._hanwha_cache_dir or not hanwha_cache.sqlite_path(
-            self._hanwha_cache_dir
-        ).is_file():
+        if (
+            not self._hanwha_cache_dir
+            or not hanwha_cache.sqlite_path(self._hanwha_cache_dir).is_file()
+        ):
             self._fp_preview.set_idle("Open a Hanwha .mdb first (builds SQLite cache)")
             return
         _part, profile, desc = self._selected_hanwha_keys()
@@ -816,10 +823,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
             return
         _part, profile, _d = self._selected_hanwha_keys()
         try:
-            self._fp_preview.show_result(
-                result, title=profile or result.partgroup_name
-            )
+            self._fp_preview.show_result(result, title=profile or result.partgroup_name)
         except Exception as e:
             logger.error("footprint preview paint failed: %s", e)
             self._fp_preview.set_idle(str(e)[:400])
-

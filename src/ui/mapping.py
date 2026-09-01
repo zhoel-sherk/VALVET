@@ -102,9 +102,7 @@ class MappingMixin:
                 return role
         return "-"
 
-    def _set_mapping_combo_role(
-        self, combo: QtWidgets.QComboBox, role: str
-    ) -> None:
+    def _set_mapping_combo_role(self, combo: QtWidgets.QComboBox, role: str) -> None:
         idx = combo.findData(role)
         if idx < 0 and role in (*_PNP_MAPPING_ROLES, *_BOM_MAPPING_ROLES):
             idx = combo.findText(self._mapping_role_label(role))
@@ -157,9 +155,7 @@ class MappingMixin:
             return
         n = len(self.bom_col_combos)
         padded = list(roles) + ["-"] * max(0, n - len(roles))
-        padded = uniquify_roles(
-            padded[:n], exclusive=BOM_EXCLUSIVE_ROLES, last_wins=()
-        )
+        padded = uniquify_roles(padded[:n], exclusive=BOM_EXCLUSIVE_ROLES, last_wins=())
         for combo, role in zip(self.bom_col_combos, padded, strict=True):
             combo.blockSignals(True)
             self._set_mapping_combo_role(combo, role)
@@ -243,12 +239,14 @@ class MappingMixin:
             f"BOM cols: REF={self.bom_ref_combo.currentText() if hasattr(self, 'bom_ref_combo') else 'N/A'}, Comment={self.bom_comment_combo.currentText() if hasattr(self, 'bom_comment_combo') else 'N/A'}",
             "debug",
         )
+
     def _on_pnp_column_changed(self, text):
         """Legacy single-combo PnP column handler (logging only)."""
         self._log(
             f"PnP cols: REF={self.pnp_ref_combo.currentText() if hasattr(self, 'pnp_ref_combo') else 'N/A'}, Comment={self.pnp_comment_combo.currentText() if hasattr(self, 'pnp_comment_combo') else 'N/A'}",
             "debug",
         )
+
     def _exclusive_mapping_role(
         self,
         combos: list[QtWidgets.QComboBox],
@@ -296,12 +294,15 @@ class MappingMixin:
             self._exclusive_mapping_role(self.pnp_col_combos, col_idx, mapping)
         self._log(f"PnP col {col_idx} -> {mapping}", "debug")
         self._schedule_save_pnp_tab_settings()
+
     def _on_bom_header_click(self, section: int):
         """Highlight the mapping combo for the clicked BOM column."""
         self._highlight_mapping_combo("bom", section)
+
     def _on_pnp_header_click(self, section: int):
         """Highlight the mapping combo for the clicked PnP column."""
         self._highlight_mapping_combo("pnp", section)
+
     def _pnp_mappings_from_combos(self) -> dict[str, object]:
         self._sync_pnp_df_from_model()
         out: dict[str, object] = {}

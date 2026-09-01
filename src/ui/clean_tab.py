@@ -269,7 +269,9 @@ class CleanTabMixin:
         self.clean_octopart_api_key.editingFinished.connect(
             self._save_clean_mpn_lookup_settings
         )
-        self.clean_format_preset.currentIndexChanged.connect(self._on_clean_preset_changed)
+        self.clean_format_preset.currentIndexChanged.connect(
+            self._on_clean_preset_changed
+        )
 
         buttons = QtWidgets.QHBoxLayout()
         buttons.setSpacing(10)
@@ -383,13 +385,17 @@ class CleanTabMixin:
         layout.addWidget(self.clean_options_panel)
         expanded = False
         if hasattr(self, "_settings"):
-            expanded = bool(self._settings.value("clean/options_expanded", False, type=bool))
+            expanded = bool(
+                self._settings.value("clean/options_expanded", False, type=bool)
+            )
         self.btn_clean_options_toggle.blockSignals(True)
         self.btn_clean_options_toggle.setChecked(expanded)
         self.btn_clean_options_toggle.blockSignals(False)
         self.clean_options_panel.setVisible(expanded)
         self.btn_clean_options_toggle.setArrowType(
-            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+            QtCore.Qt.ArrowType.DownArrow
+            if expanded
+            else QtCore.Qt.ArrowType.RightArrow
         )
 
         for w in (
@@ -644,9 +650,13 @@ class CleanTabMixin:
     def _on_clean_options_toggled(self, expanded: bool) -> None:
         self.clean_options_panel.setVisible(expanded)
         self.btn_clean_options_toggle.setArrowType(
-            QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow
+            QtCore.Qt.ArrowType.DownArrow
+            if expanded
+            else QtCore.Qt.ArrowType.RightArrow
         )
-        if hasattr(self, "_settings") and not getattr(self, "_restoring_settings", False):
+        if hasattr(self, "_settings") and not getattr(
+            self, "_restoring_settings", False
+        ):
             self._settings.setValue("clean/options_expanded", expanded)
 
     def _mark_clean_preview_stale(self) -> None:
@@ -828,9 +838,13 @@ class CleanTabMixin:
         self.clean_format_preset.setItemText(2, self.ui_tr("clean.preset_custom"))
         self.clean_format_preset.blockSignals(False)
         self.clean_prefix_use_separator.setText(self.ui_tr("clean.prefix_spacer"))
-        self.clean_prefix_use_separator.setToolTip(self.ui_tr("clean.prefix_spacer_tip"))
+        self.clean_prefix_use_separator.setToolTip(
+            self.ui_tr("clean.prefix_spacer_tip")
+        )
         self.clean_double_comment_import.setText(self.ui_tr("clean.double_comment"))
-        self.clean_double_comment_import.setToolTip(self.ui_tr("clean.double_comment_tip"))
+        self.clean_double_comment_import.setToolTip(
+            self.ui_tr("clean.double_comment_tip")
+        )
         self.lbl_clean_double_join.setText(self.ui_tr("clean.double_join"))
         if hasattr(self, "btn_clean_pn_join_help"):
             self.btn_clean_pn_join_help.setToolTip(
@@ -839,7 +853,9 @@ class CleanTabMixin:
         self.btn_clean_debug.setText(self.ui_tr("clean.advanced_debug"))
         self.btn_clean_debug.setToolTip(self.ui_tr("clean.advanced_debug_tip"))
         self.clean_hanwha_partial_match.setText(self.ui_tr("clean.partial_match"))
-        self.clean_hanwha_partial_match.setToolTip(self.ui_tr("clean.partial_match_tip"))
+        self.clean_hanwha_partial_match.setToolTip(
+            self.ui_tr("clean.partial_match_tip")
+        )
         self.clean_regex_master.setText(self.ui_tr("clean.regex_master"))
         self.clean_regex_master.setToolTip(self.ui_tr("clean.regex_master_tip"))
         self.clean_regex_master_scores.setText(self.ui_tr("clean.regex_master_scores"))
@@ -1256,9 +1272,7 @@ class CleanTabMixin:
         n = len(self._clean_imported_comments)
         joined = "», «".join(str(c) for c in comment_cols)
         col_desc = (
-            "«" + joined + "» (merged)"
-            if len(comment_cols) > 1
-            else f"«{primary_col}»"
+            "«" + joined + "» (merged)" if len(comment_cols) > 1 else f"«{primary_col}»"
         )
         logger.info("Imported %d comments from BOM columns %s", n, comment_cols)
         self._log(
@@ -1770,12 +1784,8 @@ class CleanTabMixin:
             res_out = format_resistor_fields(
                 {"pack": "0402", "nom": "12K", "%": "1%"}, cfg
             )
-            cap_out = format_cap_fields(
-                {"pack": "0402", "nom": "12pF", "%": "5%"}, cfg
-            )
-            ind_out = format_inductor_fields(
-                {"pack": "0805", "nom": "4.7uH"}, cfg
-            )
+            cap_out = format_cap_fields({"pack": "0402", "nom": "12pF", "%": "5%"}, cfg)
+            ind_out = format_inductor_fields({"pack": "0805", "nom": "4.7uH"}, cfg)
         except Exception:
             res_out = cap_out = ind_out = ""
         self.lbl_clean_res_example.setText(

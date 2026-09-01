@@ -109,6 +109,8 @@ M02*
     img, vb = rasterize_gerber_svg(payload.svg, px_per_mm=8.0)
     assert img is not None
     assert img.width() > 1 and img.height() > 1
+
+
 def test_gerber_to_scene_mm_scale_matches_pnp_factors() -> None:
     from pcb_preview.gerber_io import gerber_to_scene_mm_scale
 

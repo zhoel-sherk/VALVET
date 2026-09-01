@@ -76,7 +76,9 @@ def build_clean_config(
         output_separator=output_separator,
         resistor_template=res_template,
         cap_template=cap_template,
-        inductor_template=ind_template if ind_template else CleanConfig.inductor_template,
+        inductor_template=ind_template
+        if ind_template
+        else CleanConfig.inductor_template,
         resistor_prefix=res_prefix,
         cap_prefix=cap_prefix,
         inductor_prefix=ind_prefix,
@@ -87,7 +89,9 @@ def build_clean_config(
         hanwha_partnames=hanwha_partnames,
         clean_pipeline_order=pipe_order,
         clean_pipeline_disabled=tuple(sorted(pipe_disabled)),
-        component_library_path=component_library_path if component_library_path else None,
+        component_library_path=component_library_path
+        if component_library_path
+        else None,
         regex_master_enabled=regex_master_enabled,
         regex_master_preview_scores=regex_master_preview_scores,
     )

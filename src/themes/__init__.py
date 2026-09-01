@@ -80,4 +80,22 @@ def extra_application_stylesheet() -> str:
     QPushButton#cleanSecondaryAction {{
         font-weight: 600;
     }}
+    QCheckBox#valvetSwitch {{
+        spacing: 8px;
+    }}
+    QCheckBox#valvetSwitch::indicator {{
+        width: 38px;
+        height: 20px;
+        border-radius: 10px;
+        border: 1px solid #616161;
+        background-color: #424242;
+    }}
+    QCheckBox#valvetSwitch::indicator:checked {{
+        border: 1px solid #66bb6a;
+        background-color: #2e7d32;
+    }}
+    QCheckBox#valvetSwitch::indicator:disabled {{
+        background-color: #333333;
+        border: 1px solid #444444;
+    }}
     """

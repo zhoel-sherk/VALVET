@@ -34,9 +34,7 @@ def test_outline_from_name_1206() -> None:
 
 def test_outline_from_real_tou_1206() -> None:
     recs = [
-        rec
-        for rec in iter_tou_records(YAMAHA_TOU_TOP)
-        if "1206" in rec.name.upper()
+        rec for rec in iter_tou_records(YAMAHA_TOU_TOP) if "1206" in rec.name.upper()
     ]
     assert recs
     r = build_outline_from_tou_record(recs[0])

@@ -93,8 +93,8 @@ def resolve_unique_packages(
         value = _cell(grows[0].get(value_key))
         fps = [_cell(r.get(footprint_key)) for r in grows]
         refs = [_cell(r.get(ref_key)) for r in grows]
-        identity = value or next((f for f in fps if f), "") or next(
-            (r for r in refs if r), ""
+        identity = (
+            value or next((f for f in fps if f), "") or next((r for r in refs if r), "")
         )
 
         vid: Optional[str] = None

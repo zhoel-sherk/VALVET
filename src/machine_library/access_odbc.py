@@ -102,9 +102,7 @@ def format_access_odbc_connection_string(
     """Build a classic ODBC connection string for a file-backed Access database."""
     prefer_jet = mdb_path.suffix.lower() == ".mdb"
     drv = (
-        driver
-        if driver is not None
-        else pick_access_odbc_driver(prefer_jet=prefer_jet)
+        driver if driver is not None else pick_access_odbc_driver(prefer_jet=prefer_jet)
     )
     if not drv:
         raise AccessOdbcError(
@@ -115,11 +113,7 @@ def format_access_odbc_connection_string(
     extra = ""
     if read_only:
         extra += "ReadOnly=1;"
-    return (
-        f"DRIVER={{{drv}}};"
-        f"DBQ={mdb_path.resolve()};"
-        f"{extra}"
-    )
+    return f"DRIVER={{{drv}}};DBQ={mdb_path.resolve()};{extra}"
 
 
 def _short_win_path(path: Path) -> Path | None:
