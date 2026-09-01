@@ -15,10 +15,14 @@ class PackageOutlineThread(QtCore.QThread):
     result_ready = QtCore.Signal(object)
 
     def __init__(
-        self, names: list[str], parent: Optional[QtCore.QObject] = None
+        self,
+        names: list[str],
+        epoch: int,
+        parent: Optional[QtCore.QObject] = None,
     ) -> None:
         super().__init__(parent)
         self._names = list(names)
+        self._epoch = int(epoch)
 
     def run(self) -> None:
         if self.isInterruptionRequested():
@@ -27,4 +31,4 @@ class PackageOutlineThread(QtCore.QThread):
             self._names, should_stop=self.isInterruptionRequested
         )
         if not self.isInterruptionRequested():
-            self.result_ready.emit(packed)
+            self.result_ready.emit((self._epoch, packed))
