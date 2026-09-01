@@ -202,6 +202,21 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         assert rail.itemAt(0).widget() is win.gb_merge
         assert rail.itemAt(1).widget() is win.btn_cross_check.parentWidget()
         assert rail.itemAt(2).widget() is win.gb_merge_files
+        assert not hasattr(win, "lbl_pnp_topbot_help")
+        assert win.project_hanwha_group.acceptDrops()
+        assert win.yamaha_tou_path_label.parent().acceptDrops()
+        assert win.yamaha_lib_path_label.parent().acceptDrops()
+        ml = win._machine_library_tab
+        assert not hasattr(ml, "_btn_open_mdb")
+        texts = [b.text() for b in ml.findChildren(QtWidgets.QPushButton)]
+        assert "Open .mdb…" not in texts
+        assert "Open .tou…" not in texts
+        assert "Access ODBC (ACE)…" not in texts
+        pnp2 = win.pnp_path2_label.parentWidget().layout().itemAt(1).layout()
+        assert pnp2.itemAt(0).widget() is win.btn_clear_pnp_optional
+        assert pnp2.itemAt(1).widget() is win.btn_browse_pnp2
+        assert pnp2.itemAt(2).widget() is win.btn_pnp2_help
+        assert win.btn_pnp2_help.text() == "?"
     finally:
         win.close()
 

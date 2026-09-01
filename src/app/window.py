@@ -332,9 +332,34 @@ class MainWindow(
         if hasattr(self, "btn_browse_pnp2"):
             self.btn_browse_pnp2.setText(self.ui_tr("project.browse_pnp2"))
         if hasattr(self, "btn_clear_pnp_optional"):
-            self.btn_clear_pnp_optional.setText(
-                self.ui_tr("project.pnp_clear_optional")
+            clr = self.ui_tr("project.pnp_clear_optional")
+            self.btn_clear_pnp_optional.setText(clr)
+            if hasattr(self, "btn_clear_bom_file"):
+                self.btn_clear_bom_file.setText(clr)
+            if hasattr(self, "btn_clear_pnp_file"):
+                self.btn_clear_pnp_file.setText(clr)
+            if hasattr(self, "btn_clear_hanwha_mdb"):
+                self.btn_clear_hanwha_mdb.setText(clr)
+            if hasattr(self, "btn_clear_yamaha_tou"):
+                self.btn_clear_yamaha_tou.setText(clr)
+            if hasattr(self, "btn_clear_yamaha_lib"):
+                self.btn_clear_yamaha_lib.setText(clr)
+        if hasattr(self, "btn_pnp2_help"):
+            self.btn_pnp2_help.setToolTip(self.ui_tr("project.pnp2_help_title"))
+        if hasattr(self, "project_hanwha_group"):
+            self.project_hanwha_group.setTitle(self.ui_tr("project.hanwha_mdb"))
+            self.btn_open_mdb.setText(self.ui_tr("project.open_mdb"))
+            self.project_yamaha_group.setTitle(self.ui_tr("project.yamaha_libs"))
+            self.btn_open_tou.setText(self.ui_tr("project.open_tou"))
+            self.btn_open_tou_folder.setText(self.ui_tr("project.open_tou_folder"))
+            self.btn_open_tou_folder.setToolTip(
+                self.ui_tr("project.open_tou_folder_tip")
             )
+            self.btn_open_lib.setText(self.ui_tr("project.open_lib"))
+            if self.btn_access_odbc is not None:
+                self.btn_access_odbc.setText(self.ui_tr("project.access_odbc"))
+                self.btn_access_odbc.setToolTip(self.ui_tr("project.access_odbc_tip"))
+            self._sync_machine_lib_project_labels()
         if hasattr(self, "chk_pnp_layer_override"):
             self.chk_pnp_layer_override.setText(
                 self.ui_tr("project.pnp_layer_override")
@@ -348,8 +373,6 @@ class MainWindow(
             self.edit_pnp_layer_tokens.setToolTip(
                 self.ui_tr("project.pnp_layer_override_tip")
             )
-        if hasattr(self, "lbl_pnp_topbot_help"):
-            self.lbl_pnp_topbot_help.setText(self.ui_tr("project.pnp_topbot_help"))
         if hasattr(self, "btn_bom_undo"):
             self.btn_bom_undo.setText(self.ui_tr("bom.undo"))
             self.btn_bom_redo.setText(self.ui_tr("bom.redo"))
