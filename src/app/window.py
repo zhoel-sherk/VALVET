@@ -376,6 +376,11 @@ class MainWindow(
         if hasattr(self, "btn_find_package"):
             self.btn_find_package.setText(self.ui_tr("package.find"))
             self.btn_find_package.setToolTip(self.ui_tr("package.find_tip"))
+        if hasattr(self, "gb_merge"):
+            self.gb_merge.setTitle(self.ui_tr("merge.group"))
+            self.btn_merge_help.setToolTip(self.ui_tr("merge.help_title"))
+        if hasattr(self, "gb_merge_files"):
+            self.gb_merge_files.setTitle(self.ui_tr("merge.files_group"))
         if hasattr(self, "btn_apply_package_table"):
             self.btn_apply_package_table.setText(self.ui_tr("package.apply_table"))
             self.btn_apply_package_table.setToolTip(

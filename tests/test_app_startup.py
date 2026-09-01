@@ -189,11 +189,19 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         for w in (
             win.gb_bom_file.parentWidget(),
             win.gb_pnp_file.parentWidget(),
-            win.btn_merge.parentWidget(),
+            win.gb_merge.parentWidget(),
             win.btn_cross_check.parentWidget().parentWidget(),
         ):
             assert w is not None
             assert w.width() == LEFT_RAIL_W
+        merge_row = win.gb_merge.layout().itemAt(0).layout()
+        assert merge_row.itemAt(0).widget() is win.btn_merge
+        assert merge_row.itemAt(1).widget() is win.btn_merge_help
+        assert win.btn_merge_help.text() == "?"
+        rail = win.gb_merge.parentWidget().layout()
+        assert rail.itemAt(0).widget() is win.gb_merge
+        assert rail.itemAt(1).widget() is win.btn_cross_check.parentWidget()
+        assert rail.itemAt(2).widget() is win.gb_merge_files
     finally:
         win.close()
 

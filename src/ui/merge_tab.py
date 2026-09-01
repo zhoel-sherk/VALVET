@@ -53,10 +53,12 @@ class MergeTabMixin:
         self._register_main_tab("merge", tab)
 
         from ui.chrome import (
+            ACTION_BTN_MIN_H,
             CHROME_MARGIN,
             CHROME_SPACING,
             action_button,
             apply_equal_widths,
+            help_button,
             left_rail_widget,
             segmented_control,
             switch_checkbox,
@@ -73,9 +75,52 @@ class MergeTabMixin:
         left_l.setContentsMargins(0, 0, 8, 0)
         left_l.setSpacing(CHROME_SPACING)
 
-        info = QtWidgets.QLabel("Merge uses column settings from BOM and PnP tabs")
-        info.setWordWrap(True)
-        left_l.addWidget(info)
+        merge_group = QtWidgets.QGroupBox(self.ui_tr("merge.group"))
+        self.gb_merge = merge_group
+        merge_l = QtWidgets.QVBoxLayout(merge_group)
+        merge_row = QtWidgets.QHBoxLayout()
+        merge_row.setSpacing(CHROME_SPACING)
+        self.btn_merge = action_button("Merge")
+        self.btn_merge.clicked.connect(self._run_merge)
+        merge_row.addWidget(self.btn_merge, 1)
+        self.btn_merge_help = help_button(self._show_merge_help)
+        self.btn_merge_help.setToolTip(self.ui_tr("merge.help_title"))
+        self.btn_merge_help.setMinimumHeight(ACTION_BTN_MIN_H)
+        merge_row.addWidget(self.btn_merge_help)
+        merge_l.addLayout(merge_row)
+        self.merge_delete_dnp = switch_checkbox("Delete DNP")
+        self.merge_delete_dnp.setToolTip(
+            "When merging, drop PnP placements that are not in the BOM "
+            "(unused / extra refs) and rows whose value is DNP or DNP_FROM_BOM."
+        )
+        self.merge_delete_dnp.stateChanged.connect(self._on_merge_settings_changed)
+        merge_l.addWidget(self.merge_delete_dnp)
+        xy_row = QtWidgets.QHBoxLayout()
+        xy_row.addWidget(QtWidgets.QLabel("PnP XY:"))
+        merge_seg, _, merge_btns = segmented_control(("mm", "mil"), parent=merge_group)
+        self.merge_pnp_units_mm, self.merge_pnp_units_mils = merge_btns
+        self.merge_pnp_units_mm.setChecked(True)
+        self.merge_pnp_units_mm.setToolTip(self.pnp_units_mm.toolTip())
+        self.merge_pnp_units_mils.setToolTip(self.pnp_units_mils.toolTip())
+        self.merge_pnp_units_mm.toggled.connect(
+            lambda on: on and self._on_user_pnp_xy_unit_choice(True)
+        )
+        self.merge_pnp_units_mils.toggled.connect(
+            lambda on: on and self._on_user_pnp_xy_unit_choice(False)
+        )
+        xy_row.addWidget(merge_seg, 1)
+        merge_l.addLayout(xy_row)
+        self.btn_replace_pnp_from_merge = action_button("Replace PNP")
+        self.btn_replace_pnp_from_merge.setToolTip(
+            "Replace all rows/columns on the PnP tab with the current Merge result."
+        )
+        self.btn_replace_pnp_from_merge.clicked.connect(self._replace_pnp_from_merge)
+        merge_l.addWidget(self.btn_replace_pnp_from_merge)
+        self.btn_find_package = action_button(self.ui_tr("package.find"))
+        self.btn_find_package.setToolTip(self.ui_tr("package.find_tip"))
+        self.btn_find_package.clicked.connect(self._find_package)
+        merge_l.addWidget(self.btn_find_package)
+        left_l.addWidget(merge_group)
 
         cc_group = QtWidgets.QGroupBox("Cross-check")
         cc_l = QtWidgets.QVBoxLayout(cc_group)
@@ -114,44 +159,8 @@ class MergeTabMixin:
         cc_l.addWidget(self.spin_overlap_mm)
         left_l.addWidget(cc_group)
 
-        self.merge_delete_dnp = switch_checkbox("Delete DNP")
-        self.merge_delete_dnp.setToolTip(
-            "When merging, drop PnP placements that are not in the BOM "
-            "(unused / extra refs) and rows whose value is DNP or DNP_FROM_BOM."
-        )
-        self.merge_delete_dnp.stateChanged.connect(self._on_merge_settings_changed)
-        left_l.addWidget(self.merge_delete_dnp)
-        xy_row = QtWidgets.QHBoxLayout()
-        xy_row.addWidget(QtWidgets.QLabel("PnP XY:"))
-        merge_seg, _, merge_btns = segmented_control(("mm", "mil"), parent=tab)
-        self.merge_pnp_units_mm, self.merge_pnp_units_mils = merge_btns
-        self.merge_pnp_units_mm.setChecked(True)
-        self.merge_pnp_units_mm.setToolTip(self.pnp_units_mm.toolTip())
-        self.merge_pnp_units_mils.setToolTip(self.pnp_units_mils.toolTip())
-        self.merge_pnp_units_mm.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(True)
-        )
-        self.merge_pnp_units_mils.toggled.connect(
-            lambda on: on and self._on_user_pnp_xy_unit_choice(False)
-        )
-        xy_row.addWidget(merge_seg, 1)
-        left_l.addLayout(xy_row)
-
-        self.btn_merge = action_button("Merge")
-        self.btn_merge.clicked.connect(self._run_merge)
-        left_l.addWidget(self.btn_merge)
-        self.btn_replace_pnp_from_merge = action_button("Replace PNP")
-        self.btn_replace_pnp_from_merge.setToolTip(
-            "Replace all rows/columns on the PnP tab with the current Merge result."
-        )
-        self.btn_replace_pnp_from_merge.clicked.connect(self._replace_pnp_from_merge)
-        left_l.addWidget(self.btn_replace_pnp_from_merge)
-        self.btn_find_package = action_button(self.ui_tr("package.find"))
-        self.btn_find_package.setToolTip(self.ui_tr("package.find_tip"))
-        self.btn_find_package.clicked.connect(self._find_package)
-        left_l.addWidget(self.btn_find_package)
-
         files_group = QtWidgets.QGroupBox(self.ui_tr("merge.files_group"))
+        self.gb_merge_files = files_group
         files_l = QtWidgets.QVBoxLayout(files_group)
         self.btn_save_merge_csv = action_button("Save CSV")
         self.btn_save_merge_csv.clicked.connect(self._save_merge_csv)
@@ -196,8 +205,8 @@ class MergeTabMixin:
         left_l.addWidget(files_group)
         apply_equal_widths(
             (
-                self.btn_cross_check,
                 self.btn_merge,
+                self.btn_cross_check,
                 self.btn_replace_pnp_from_merge,
                 self.btn_find_package,
                 self.btn_save_merge_csv,
@@ -233,7 +242,7 @@ class MergeTabMixin:
             "color: #c8e6c9; font-weight: bold; border: none; background: transparent;"
         )
         self.merge_cc_ok_hint = QtWidgets.QLabel(
-            "Cross-check reported no issues — run Merge below, then save or export."
+            "Cross-check reported no issues — run Merge, then save or export."
         )
         self.merge_cc_ok_hint.setStyleSheet(
             "color: #a5d6a7; border: none; background: transparent;"
@@ -293,6 +302,13 @@ class MergeTabMixin:
         self._cc_window: Optional[Any] = None
         self._cc_full_df: Optional[pd.DataFrame] = None
         self._cc_user_accepted: bool = False
+
+    def _show_merge_help(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            self.ui_tr("merge.help_title"),
+            self.ui_tr("merge.help_body"),
+        )
 
     def _on_merge_settings_changed(self) -> None:
         if not self._restoring_settings and hasattr(self, "merge_delete_dnp"):
