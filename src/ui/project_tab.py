@@ -164,7 +164,12 @@ class DropRowWidget(QtWidgets.QWidget):
 
 def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     """Populate ``layout`` on the Project tab; attributes live on ``win`` (MainWindow)."""
-    from ui.chrome import CHROME_SPACING, action_button, apply_equal_widths
+    from ui.chrome import (
+        CHROME_SPACING,
+        action_button,
+        apply_equal_widths,
+        switch_checkbox,
+    )
 
     top = QtWidgets.QGridLayout()
     top.setSpacing(CHROME_SPACING)
@@ -256,11 +261,6 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     settings_layout = QtWidgets.QVBoxLayout(win.project_settings_group)
     settings_layout.setSpacing(CHROME_SPACING)
 
-    win.chk_colorful = QtWidgets.QCheckBox(win.ui_tr("project.debug_logs"))
-    win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
-    win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
-    settings_layout.addWidget(win.chk_colorful)
-
     win.btn_project_debug = action_button(win.ui_tr("project.advanced"))
     win.btn_project_debug.clicked.connect(win._open_debug_settings)
     settings_layout.addWidget(win.btn_project_debug)
@@ -317,15 +317,28 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     prefs_host_l.addLayout(row_ui)
     win._prefs_host.hide()
 
-    win.project_console_group = QtWidgets.QGroupBox(win.ui_tr("project.console"))
-    console_outer = QtWidgets.QVBoxLayout(win.project_console_group)
+    log_row = QtWidgets.QHBoxLayout()
+    win.chk_colorful = switch_checkbox(win.ui_tr("project.debug_logs"))
+    win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
+    win.chk_colorful.setChecked(True)
+    win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
+    log_row.addWidget(win.chk_colorful)
+    win.chk_session_log = switch_checkbox(win.ui_tr("project.session_log"))
+    win.chk_session_log.setToolTip(win.ui_tr("project.session_log_hint"))
+    win.chk_session_log.setChecked(True)
+    win.chk_session_log.toggled.connect(win._on_session_log_toggled)
+    log_row.addWidget(win.chk_session_log)
+    win.btn_project_console = action_button(win.ui_tr("project.console"))
+    win.btn_project_console.clicked.connect(win._show_project_console)
+    log_row.addWidget(win.btn_project_console)
+    log_row.addStretch(1)
+    layout.addLayout(log_row)
 
     win.console = QtWidgets.QTextEdit()
     win.console.setObjectName("project_console")
     win.console.setFont(build_mono_font(win._settings))
     win.console.setReadOnly(True)
-    console_outer.addWidget(win.console)
-
-    layout.addWidget(win.project_console_group, 1)
+    win.console.hide()
+    win._console_window = None
 
     win.log_message.connect(win._on_log_message)

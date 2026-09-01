@@ -299,6 +299,15 @@ class MachineLibraryTab(QtWidgets.QWidget):
         out = re.sub(r"[^a-zA-Z0-9_-]", "", t)
         return out[:64] or "default"
 
+    def _host_log(self, message: str, level: str = "info") -> None:
+        w: Optional[QtWidgets.QWidget] = self.parent()
+        while w is not None:
+            fn = getattr(w, "_log", None)
+            if callable(fn):
+                fn(message, level)
+                return
+            w = w.parent()
+
     def loaded_mdb_path(self) -> str:
         """Absolute path of the Hanwha library opened on this tab, or empty."""
         return self._mdb_path or ""
@@ -498,6 +507,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._set_mdb_busy(False)
         if err:
             self._tables_label.setText(err.split("\n", 1)[0])
+            self._host_log(
+                f"Opened MDB {os.path.abspath(self._mdb_path)} failed: {err}",
+                "error",
+            )
             QtWidgets.QMessageBox.warning(self, "Machine library", err)
             return
         frame = df if isinstance(df, pd.DataFrame) else part_det_rows_to_dataframe([])
@@ -505,6 +518,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._show_hanwha_preview(frame)
         n = 0 if frame is None else len(frame)
         self._tables_label.setText(f"PART_Det: {n} rows (SQLite cache)")
+        self._host_log(
+            f"Opened MDB {os.path.abspath(self._mdb_path)} ({n} PART_Det rows)",
+            "info",
+        )
 
     def _on_mdb_load_thread_finished(self) -> None:
         t = self._mdb_load_thread

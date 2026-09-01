@@ -54,6 +54,14 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
         assert "pcb_preview" in win._tab_keys_in_order
         assert "step_3d" not in win._tab_keys_in_order
         assert hasattr(win._machine_library_tab, "_fp_preview")
+        assert isinstance(win.chk_colorful, QtWidgets.QCheckBox)
+        assert isinstance(win.chk_session_log, QtWidgets.QCheckBox)
+        sheet = QtWidgets.QApplication.instance().styleSheet()
+        assert "switch_on.svg" in sheet
+        win.chk_colorful.setChecked(False)
+        assert win.chk_colorful.isChecked() is False
+        win.chk_colorful.setChecked(True)
+        assert win.chk_colorful.isChecked() is True
     finally:
         win.close()
 
@@ -170,6 +178,10 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         assert win.ui_tr("status.no_bom") in status
         assert win.findChild(QtWidgets.QLabel, "WipBanner") is None
         assert win.chk_colorful.text() == win.ui_tr("project.debug_logs")
+        assert win.chk_session_log.text() == win.ui_tr("project.session_log")
+        assert win.chk_colorful.isChecked() is True
+        assert win.chk_session_log.isChecked() is True
+        assert win.btn_project_console.text() == win.ui_tr("project.console")
         assert win.btn_browse_bom.text() == win.ui_tr("project.browse_bom")
         from ui.chrome import LEFT_RAIL_W
 
@@ -189,29 +201,20 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
 def test_debug_logs_checkbox_calls_set_debug_mode(
     import_parsers, qapp, tmp_path, mocker
 ) -> None:
-    import logger
     from app.window import MainWindow
 
-    spy = mocker.spy(logger, "set_debug_mode")
+    mock = mocker.patch("logger.set_debug_mode")
     settings = _ini_settings(tmp_path)
     _set_experimental(settings, enabled=False)
     win = MainWindow(settings=settings)
     try:
-        assert win.chk_colorful.isChecked() is False
-        win.chk_colorful.setChecked(True)
-        on_arg = (
-            spy.call_args[0][0]
-            if spy.call_args.args
-            else spy.call_args.kwargs.get("on")
-        )
-        assert on_arg is True
+        assert win.chk_colorful.isChecked() is True
         win.chk_colorful.setChecked(False)
-        on_arg = (
-            spy.call_args[0][0]
-            if spy.call_args.args
-            else spy.call_args.kwargs.get("on")
-        )
+        on_arg = mock.call_args[0][0]
         assert on_arg is False
+        win.chk_colorful.setChecked(True)
+        on_arg = mock.call_args[0][0]
+        assert on_arg is True
     finally:
         win.close()
 
@@ -227,6 +230,36 @@ def test_cli_debug_checks_project_debug_logs(
     win = MainWindow(settings=settings, debug=True)
     try:
         assert win.chk_colorful.isChecked() is True
+    finally:
+        win.close()
+
+
+def test_session_file_records_error_and_hidden_debug(
+    import_parsers, qapp, tmp_path
+) -> None:
+    from app.window import MainWindow
+
+    settings = _ini_settings(tmp_path)
+    _set_experimental(settings, enabled=False)
+    win = MainWindow(settings=settings)
+    try:
+        win.chk_colorful.setChecked(False)
+        assert win.chk_session_log.isChecked() is True
+        win._log("hidden-debug-line", "debug")
+        win._log("visible-error-line", "error")
+        assert win._session_log_path is not None
+        text = win._session_log_path.read_text(encoding="utf-8")
+        assert "DEBUG hidden-debug-line" in text
+        assert "ERROR visible-error-line" in text
+        html = win.console.toHtml()
+        assert "visible-error-line" in html
+        assert "hidden-debug-line" not in html
+        win._show_project_console()
+        assert win._console_window is not None
+        assert win._console_window.isVisible()
+        win._console_window.close()
+        assert win._console_window.isVisible() is False
+        assert win.console.toPlainText()  # still alive after hide
     finally:
         win.close()
 

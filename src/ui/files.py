@@ -202,7 +202,8 @@ class FilesMixin:
                     self._recent_bom.pop()
 
             self._log(
-                f"Loaded BOM ({recovered_note}): {len(self._bom_df)} rows, {len(self._bom_df.columns)} cols",
+                f"Loaded BOM ({recovered_note}): {len(self._bom_df)} rows, "
+                f"{len(self._bom_df.columns)} cols from {os.path.abspath(path)}",
                 "info",
             )
             self._log(f"Columns: {list(self._bom_df.columns)}", "debug")
@@ -306,7 +307,8 @@ class FilesMixin:
                     self._recent_pnp.pop()
 
             self._log(
-                f"Loaded PnP ({recovered_note}): {len(self._pnp_df)} rows, {len(self._pnp_df.columns)} cols",
+                f"Loaded PnP ({recovered_note}): {len(self._pnp_df)} rows, "
+                f"{len(self._pnp_df.columns)} cols from {os.path.abspath(path)}",
                 "info",
             )
             self._log(f"Columns: {list(self._pnp_df.columns)}", "debug")
