@@ -97,6 +97,22 @@ def body_rect_lines(size_x_mm: float, size_y_mm: float) -> tuple[StrokeLineMM, .
     )
 
 
+def is_chip_circle(partgroup_name: str) -> bool:
+    """Hanwha part group CHIP-Circle: round body (nuts, washers, fiducials)."""
+    g = (partgroup_name or "").upper().replace(" ", "")
+    return "CIRCLE" in g
+
+
+def chip_circle_body(
+    size_x_mm: float, size_y_mm: float
+) -> tuple[StrokeCircleMM, ...]:
+    """Circle inscribed in the chip TYPSIZE / SIZE box (diameter = min axis)."""
+    d = min(abs(size_x_mm), abs(size_y_mm))
+    if d <= 0:
+        return ()
+    return (StrokeCircleMM(0.0, 0.0, d / 2.0, _LINE_W),)
+
+
 def chip_heuristic_pads(size_x_mm: float, size_y_mm: float) -> tuple[PadRectMM, ...]:
     """Two end pads along X — MDB has no chip land pattern.
 
@@ -644,6 +660,15 @@ def build_from_snapshot(snap: UpdProfileSnapshot) -> FootprintBuildResult:
         by = um_to_mm(_row_get(whole, "TYPSIZEY")) or fy
         if bx <= 0 or by <= 0:
             return _empty_result(snap, error="chip body size is zero")
+        if is_chip_circle(snap.partgroup_name):
+            circles = chip_circle_body(bx, by)
+            outline = FootprintOutlineMM(
+                circles=circles,
+                bbox=_bbox_from_primitives((), circles, (), bx, by),
+                source="hanwha_upd",
+            )
+            warnings.append("body: circle (CHIP-Circle); no chip lands")
+            return _ok(snap, outline, warnings)
         lines = body_rect_lines(bx, by)
         lead_pads = chip_lead_pads_from_exparam(whole, bx, by)
         if lead_pads:

@@ -34,6 +34,27 @@ def test_chip_0402_body() -> None:
     assert r.pin1_kind == "none"
 
 
+def test_chip_circle_body_not_rect() -> None:
+    snap = upd_fp.UpdProfileSnapshot(
+        profilename="_NewCircle",
+        vision_type=3,
+        partgroup_name="CHIP-Circle",
+        size_x_um=3000,
+        size_y_um=3000,
+        size_z_um=500,
+        chip_whole={"TYPSIZEX": 3000, "TYPSIZEY": 3000},
+    )
+    r = upd_fp.build_from_snapshot(snap)
+    assert r.error == ""
+    assert r.outline.lines == ()
+    assert r.outline.pads == ()
+    assert len(r.outline.circles) == 1
+    assert r.outline.circles[0].radius_mm == pytest.approx(1.5)
+    assert any("circle" in w.lower() for w in r.warnings)
+    assert not upd_fp.is_chip_circle("Chip-C3216(1206)")
+    assert upd_fp.is_chip_circle("CHIP-Circle")
+
+
 def test_chip_heuristic_pads_scale() -> None:
     p0805 = upd_fp.chip_heuristic_pads(2.0, 1.25)
     assert len(p0805) == 2

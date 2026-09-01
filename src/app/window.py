@@ -1,4 +1,5 @@
 """Main application window (mixins + shell)."""
+
 from __future__ import annotations
 
 import json
@@ -70,7 +71,9 @@ class MainWindow(
 
     log_message = QtCore.Signal(str, str)  # message, level
 
-    def __init__(self, *, settings: QtCore.QSettings | None = None, debug: bool = False):
+    def __init__(
+        self, *, settings: QtCore.QSettings | None = None, debug: bool = False
+    ):
         super().__init__()
         self.setMinimumSize(900, 600)
         self.resize(1400, 900)
@@ -203,8 +206,10 @@ class MainWindow(
             self.tabs.setTabText(i, title.upper())
 
     def _refresh_shell_status(self) -> None:
-        bom = Path(self._bom_source_path).name if self._bom_source_path else self.ui_tr(
-            "status.no_bom"
+        bom = (
+            Path(self._bom_source_path).name
+            if self._bom_source_path
+            else self.ui_tr("status.no_bom")
         )
         comment = self.ui_tr("status.comment_unmapped")
         if hasattr(self, "_get_bom_comment_column_names"):
@@ -415,6 +420,8 @@ class MainWindow(
 
         self._pcb_tab = PcbPreviewTab(self, settings=self._settings)
         self._pcb_tab.pnp_xy_unit_mm_selected.connect(self._on_user_pnp_xy_unit_choice)
+        self._pcb_tab.showFromPnpRequested.connect(self._pcb_preview_show_from_pnp)
+        self._pcb_tab.showFromMergeRequested.connect(self._pcb_preview_show_from_merge)
         self._pcb_tab.sync_pnp_xy_units_ui(mm=self._pnp_xy_stored_in_mm())
         self._register_main_tab("pcb_preview", self._pcb_tab)
 
@@ -450,6 +457,39 @@ class MainWindow(
         ):
             self._refresh_pcb_preview_from_ui(force=False)
 
+    def _pcb_preview_merge_bridge_kwargs(self) -> Optional[dict]:
+        df = getattr(self, "_last_merge_df", None)
+        if df is None or getattr(df, "empty", True):
+            return None
+
+        def _col(*names: str) -> Optional[str]:
+            cols = list(df.columns)
+            lower = {str(c).strip().lower(): c for c in cols}
+            for n in names:
+                if n in df.columns:
+                    return n
+                hit = lower.get(n.lower())
+                if hit is not None:
+                    return str(hit)
+            return None
+
+        ref = _col("Ref", "REF", "Designator")
+        xc = _col("X")
+        yc = _col("Y")
+        if not ref or not xc or not yc:
+            return None
+        return {
+            "designator_col": ref,
+            "x_col": xc,
+            "y_col": yc,
+            "rot_col": _col("Rotation"),
+            "layer_col": _col("Layer"),
+            "footprint_col": _col("Footprint"),
+            "value_col": _col("Value"),
+            "comment_col": _col("Comment"),
+            "coord_unit_mm": self._pnp_xy_stored_in_mm(),
+        }
+
     def _pcb_preview_bridge_kwargs(self) -> Optional[dict]:
         self._sync_pnp_df_from_model()
         if (
@@ -482,13 +522,28 @@ class MainWindow(
         }
 
     def _refresh_pcb_preview_from_ui(self, *, force: bool = True) -> None:
+        if not hasattr(self, "_pcb_tab"):
+            return
+        pnp_ok = self._pcb_preview_bridge_kwargs() is not None
+        merge_ok = self._pcb_preview_merge_bridge_kwargs() is not None
+        self._pcb_tab.set_source_enabled(pnp=pnp_ok, merge=merge_ok)
+
+    def _pcb_preview_show_from_pnp(self) -> None:
         kwargs = self._pcb_preview_bridge_kwargs()
         if kwargs is None:
-            return
-        if hasattr(self, "_pcb_tab"):
-            self._pcb_tab.set_placements_from_dataframe(
-                self._pnp_df, force=force, **kwargs
+            self._pcb_tab._append_log(
+                "Show from PnP: map REF/X/Y on the PnP tab first."
             )
+            return
+        self._pcb_tab.set_placements_from_dataframe(self._pnp_df, force=True, **kwargs)
+
+    def _pcb_preview_show_from_merge(self) -> None:
+        kwargs = self._pcb_preview_merge_bridge_kwargs()
+        df = getattr(self, "_last_merge_df", None)
+        if kwargs is None or df is None:
+            self._pcb_tab._append_log("Show from Merge: run Merge first.")
+            return
+        self._pcb_tab.set_placements_from_dataframe(df, force=True, **kwargs)
 
     def _create_menus(self) -> None:
         # File menu removed — same actions live as buttons on the Project tab (right of Settings).
@@ -678,7 +733,10 @@ class MainWindow(
         }.get(level, "#d8dee9")
 
         if level == "debug":
-            if not getattr(self, "chk_colorful", None) or not self.chk_colorful.isChecked():
+            if (
+                not getattr(self, "chk_colorful", None)
+                or not self.chk_colorful.isChecked()
+            ):
                 return
 
         self.console.append(f'<span style="color:{color}">{message}</span>')
