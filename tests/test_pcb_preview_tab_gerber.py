@@ -60,6 +60,8 @@ def test_pcb_preview_tab_loads_gerber_layer(tmp_path: Path) -> None:
         _wait_thread(thread, qapp)
         assert len(tab._layers) >= 1
         assert tab._scene.items()
+        log_text = tab._log.toPlainText().lower()
+        assert "implicit" not in log_text
     finally:
         tab.close()
 

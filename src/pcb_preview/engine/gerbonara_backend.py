@@ -84,12 +84,12 @@ def load_via_gerbonara(path: str) -> GerberSvgPayload:
         bbox = BBoxMM(float(x0), float(y0), float(x1), float(y1))
         svg = str(gbr.to_svg())
     except Exception as e:
-        notes.append(f"Gerber SVG/bbox failed: {e}")
         return GerberSvgPayload(
             source_path=path,
             svg="",
             bbox_mm=BBoxMM(0.0, 0.0, 0.0, 0.0),
-            errors=tuple(notes),
+            errors=(f"Gerber SVG/bbox failed: {e}",),
+            notes=tuple(notes),
             backend_name="gerbonara",
         )
     vb = bbox_from_svg_viewbox(svg)
@@ -99,6 +99,7 @@ def load_via_gerbonara(path: str) -> GerberSvgPayload:
         source_path=path,
         svg=svg,
         bbox_mm=bbox,
-        errors=tuple(notes),
+        errors=(),
+        notes=tuple(notes),
         backend_name="gerbonara",
     )

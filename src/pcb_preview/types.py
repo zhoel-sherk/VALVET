@@ -48,6 +48,7 @@ class GerberSvgPayload:
     svg: str
     bbox_mm: BBoxMM
     errors: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
     backend_name: str = ""
 
 

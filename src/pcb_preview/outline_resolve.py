@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
+import logger
 from package_vspd.outline import heuristic_outline
 from package_vspd.parse import parse_package
 from pcb_preview.types import FootprintOutlineMM
@@ -61,10 +62,48 @@ def outline_for_footprint_name(name: str) -> FootprintOutlineMM:
     return out
 
 
+def _hanwha_outline_for_name(
+    name: str,
+    cache_dir: str,
+    group_to_profile: Mapping[str, str],
+) -> FootprintOutlineMM | None:
+    """Lookup Hanwha UPD geometry: footprint keys as PROFILE, then group map."""
+    import machine_library.hanwha_sqlite_cache as hanwha_cache
+
+    profiles: list[str] = []
+    for cand in footprint_name_keys(name):
+        if cand and cand not in profiles:
+            profiles.append(cand)
+        mapped = str(group_to_profile.get(cand, "") or "").strip()
+        if mapped and mapped not in profiles:
+            profiles.append(mapped)
+    for profile in profiles:
+        try:
+            built = hanwha_cache.build_outline_from_sqlite(cache_dir, profile)
+        except (OSError, ValueError, TypeError) as e:
+            logger.warning(
+                "PCB package outline: hanwha_upd sqlite failed (%s); skipped profile %s",
+                e,
+                profile,
+            )
+            continue
+        ol = built.outline
+        if (
+            built.error
+            or ol.source in ("none", "")
+            or not (ol.lines or ol.pads or ol.circles)
+        ):
+            continue
+        return ol
+    return None
+
+
 def resolve_named_outlines(
     names: list[str],
     *,
     should_stop: Callable[[], bool] | None = None,
+    mdb_cache_dir: str | None = None,
+    group_to_profile: Mapping[str, str] | None = None,
 ) -> dict[str, FootprintOutlineMM]:
     """Unique names only; same VSPD id shares one outline object."""
     by_vspd: dict[str, FootprintOutlineMM] = {}
@@ -94,4 +133,48 @@ def resolve_named_outlines(
         packed = by_vspd[vid]
         for cand in chain:
             result[cand] = packed
+    cache = (mdb_cache_dir or "").strip()
+    if cache:
+        _apply_hanwha_mdb_fallback(
+            result,
+            cache_dir=cache,
+            group_to_profile=group_to_profile or {},
+            should_stop=should_stop,
+        )
     return result
+
+
+def _apply_hanwha_mdb_fallback(
+    result: dict[str, FootprintOutlineMM],
+    *,
+    cache_dir: str,
+    group_to_profile: Mapping[str, str],
+    should_stop: Callable[[], bool] | None = None,
+) -> None:
+    import machine_library.hanwha_sqlite_cache as hanwha_cache
+
+    pending = [k for k, o in result.items() if o.source == "none"]
+    if not pending:
+        return
+    if not hanwha_cache.sqlite_path(cache_dir).is_file():
+        logger.warning(
+            "PCB package outline: VSPD unmatched; hanwha sqlite cache missing (%s)",
+            cache_dir,
+        )
+        return
+    for key in pending:
+        if should_stop is not None and should_stop():
+            break
+        if result.get(key) is None or result[key].source != "none":
+            continue
+        hit = _hanwha_outline_for_name(key, cache_dir, group_to_profile)
+        if hit is None:
+            continue
+        logger.info(
+            "PCB package outline: VSPD unmatched; using hanwha_upd sqlite for %s",
+            key,
+        )
+        for cand in footprint_name_keys(key):
+            cur = result.get(cand)
+            if cur is None or cur.source == "none":
+                result[cand] = hit

@@ -320,6 +320,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
         """Absolute path of the Hanwha library opened on this tab, or empty."""
         return self._mdb_path or ""
 
+    def hanwha_cache_dir(self) -> str:
+        """SQLite cache directory built from the last opened Hanwha .mdb, or empty."""
+        return self._hanwha_cache_dir or ""
+
     def loaded_yamaha_tou_path(self) -> str:
         return self._yam_tou_path or ""
 
