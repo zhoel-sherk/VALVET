@@ -477,6 +477,35 @@ class MachineLibraryTab(QtWidgets.QWidget):
         if not switched:
             self._start_mdb_load()
 
+    def apply_restored_hanwha_cache(
+        self, cache_dir: str, *, mdb_path: str = ""
+    ) -> None:
+        """Point Machine lib at a restored vision.sqlite cache (no ODBC reimport)."""
+        from machine_library.hanwha_sqlite_cache import (
+            load_preview_dataframe_from_sqlite,
+        )
+
+        if not cache_dir:
+            return
+        self._hanwha_cache_dir = cache_dir
+        if mdb_path and os.path.isfile(mdb_path):
+            self._mdb_path = mdb_path
+        self._stack.setCurrentIndex(0)
+        try:
+            frame = load_preview_dataframe_from_sqlite(cache_dir)
+        except Exception:
+            frame = pd.DataFrame()
+        self._hanwha_df = frame
+        self._show_hanwha_preview(frame)
+        n = 0 if frame is None else len(frame)
+        self._tables_label.setText(f"PART_Det: {n} rows (SQLite cache)")
+        self._notify_project_paths()
+        win = self.window()
+        pcb = getattr(win, "_pcb_tab", None)
+        retry = getattr(pcb, "retry_hanwha_outlines_after_library_load", None)
+        if callable(retry):
+            retry()
+
     def clear_mdb(self) -> None:
         self._mdb_path = ""
         self._hanwha_df = part_det_rows_to_dataframe([])

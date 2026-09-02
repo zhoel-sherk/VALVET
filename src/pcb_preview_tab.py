@@ -442,6 +442,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._placements_fp: tuple[Any, ...] | None = None
         self._did_initial_fit = False
         self._gerber_thread: Any = None
+        self._gerber_queue: list[str] = []
         self._outline_thread: Any = None
         self._outline_restart = False
         self._outline_epoch = 0
@@ -1217,6 +1218,19 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._settings.setValue(
                 "pcb_preview/last_gerber_dir", os.path.dirname(path)
             )
+        self.load_gerber_file(path)
+
+    def load_gerber_paths(self, paths: list[str]) -> None:
+        for p in paths:
+            if p:
+                self.load_gerber_file(p)
+
+    def load_gerber_file(self, path: str) -> None:
+        if not path or not os.path.isfile(path):
+            return
+        if self._gerber_thread is not None and self._gerber_thread.isRunning():
+            self._gerber_queue.append(path)
+            return
         self._btn_gerber.setEnabled(False)
         self._append_log(self._tr("pcb.gerber_loading"))
         thread = GerberLoadThread(path, self._px_per_mm, self)
@@ -1238,6 +1252,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
         if t is not None:
             t.wait(5000)
             t.deleteLater()
+        if self._gerber_queue:
+            nxt = self._gerber_queue.pop(0)
+            self.load_gerber_file(nxt)
 
     def _on_gerber_loaded(self, packed: object) -> None:
         if not isinstance(packed, tuple) or len(packed) != 3:

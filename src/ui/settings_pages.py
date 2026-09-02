@@ -37,6 +37,7 @@ from themes.fonts_loader import (
     read_ui_family,
     read_ui_style,
 )
+from ui.chrome import switch_checkbox
 from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 from working_copy import SnapshotIndex, delete_snapshot_pair, list_snapshot_indices
 
@@ -123,6 +124,29 @@ class SettingsPages(QtCore.QObject):
         self._session_note = QtWidgets.QLabel(main.ui_tr("settings.session_note"))
         self._session_note.setWordWrap(True)
         bundle_l.addWidget(self._session_note)
+        self._session_include_cap = QtWidgets.QLabel(
+            main.ui_tr("settings.session_include")
+        )
+        bundle_l.addWidget(self._session_include_cap)
+        from valvetpack import PACK_INCLUDE_DEFAULTS, PACK_INCLUDE_KEYS
+
+        self._pack_include: dict[str, QtWidgets.QCheckBox] = {}
+        s = main._settings
+        for key in PACK_INCLUDE_KEYS:
+            chk = switch_checkbox(main.ui_tr(f"settings.pack_{key}"))
+            default = PACK_INCLUDE_DEFAULTS[key]
+            chk.setChecked(
+                _prefs_profile_bool(
+                    s.value(f"session_pack/include_{key}", default), default
+                )
+            )
+            chk.toggled.connect(
+                lambda on, k=key: main._settings.setValue(
+                    f"session_pack/include_{k}", bool(on)
+                )
+            )
+            bundle_l.addWidget(chk)
+            self._pack_include[key] = chk
         row_b = QtWidgets.QHBoxLayout()
         self._btn_save_pack = QtWidgets.QPushButton(main.ui_tr("debug.save_boomerpack"))
         self._btn_load_pack = QtWidgets.QPushButton(main.ui_tr("debug.load_boomerpack"))
@@ -404,6 +428,10 @@ class SettingsPages(QtCore.QObject):
         self._btn_recover_all.setText(tr("debug.recover_all_dirty"))
         self._btn_clear_autosave.setText(tr("debug.clear_autosave_dir"))
         self._session_note.setText(tr("settings.session_note"))
+        if hasattr(self, "_session_include_cap"):
+            self._session_include_cap.setText(tr("settings.session_include"))
+        for key, chk in getattr(self, "_pack_include", {}).items():
+            chk.setText(tr(f"settings.pack_{key}"))
         self._btn_save_pack.setText(tr("debug.save_boomerpack"))
         self._btn_load_pack.setText(tr("debug.load_boomerpack"))
         self._fonts_note.setText(tr("debug.fonts_note"))
