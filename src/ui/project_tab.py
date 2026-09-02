@@ -80,6 +80,34 @@ def configure_path_label(
         label.setToolTip("")
 
 
+def _drop_local_path(
+    event: QtGui.QDropEvent | QtGui.QDragEnterEvent | QtGui.QDragMoveEvent,
+    *,
+    allow_dirs: bool = False,
+    suffixes: tuple[str, ...] | None = None,
+) -> str:
+    """First local path that matches file/dir rules, or empty."""
+    if not event.mimeData().hasUrls():
+        return ""
+    for url in event.mimeData().urls():
+        if not url.isLocalFile():
+            continue
+        path = url.toLocalFile()
+        if not path:
+            continue
+        if os.path.isdir(path):
+            if allow_dirs:
+                return path
+            continue
+        if os.path.isfile(path):
+            if suffixes:
+                low = path.lower()
+                if not any(low.endswith(s) for s in suffixes):
+                    continue
+            return path
+    return ""
+
+
 class DropGroupBox(QtWidgets.QGroupBox):
     """Group box that accepts file drops and forwards them to MainWindow handlers."""
 
@@ -90,40 +118,45 @@ class DropGroupBox(QtWidgets.QGroupBox):
         on_drop: Callable[[str], None],
         *,
         parent: QtWidgets.QWidget | None = None,
+        allow_dirs: bool = False,
+        suffixes: tuple[str, ...] | None = None,
     ) -> None:
         super().__init__(title, parent)
         self._win = win
         self._on_drop = on_drop
+        self._allow_dirs = allow_dirs
+        self._suffixes = suffixes
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            for url in event.mimeData().urls():
-                if url.isLocalFile():
-                    event.acceptProposedAction()
-                    return
-        event.ignore()
+        if _drop_local_path(
+            event, allow_dirs=self._allow_dirs, suffixes=self._suffixes
+        ):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
 
     def dragMoveEvent(self, event: QtGui.QDragMoveEvent) -> None:
-        if event.mimeData().hasUrls():
+        if _drop_local_path(
+            event, allow_dirs=self._allow_dirs, suffixes=self._suffixes
+        ):
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        for url in event.mimeData().urls():
-            if not url.isLocalFile():
-                continue
-            path = url.toLocalFile()
-            if path and os.path.isfile(path):
-                self._on_drop(path)
-                event.acceptProposedAction()
-                return
+        path = _drop_local_path(
+            event, allow_dirs=self._allow_dirs, suffixes=self._suffixes
+        )
+        if path:
+            self._on_drop(path)
+            event.acceptProposedAction()
+            return
         event.ignore()
 
 
 class DropRowWidget(QtWidgets.QWidget):
-    """Horizontal row inside the PnP group — drop target for primary or secondary file."""
+    """Drop target row (PnP slots, Yamaha tou/lib)."""
 
     def __init__(
         self,
@@ -131,40 +164,61 @@ class DropRowWidget(QtWidgets.QWidget):
         on_drop: Callable[[str], None],
         *,
         parent: QtWidgets.QWidget | None = None,
+        allow_dirs: bool = False,
+        suffixes: tuple[str, ...] | None = None,
     ) -> None:
         super().__init__(parent)
         self._on_drop = on_drop
+        self._allow_dirs = allow_dirs
+        self._suffixes = suffixes
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            for url in event.mimeData().urls():
-                if url.isLocalFile():
-                    event.acceptProposedAction()
-                    return
-        event.ignore()
+        if _drop_local_path(
+            event, allow_dirs=self._allow_dirs, suffixes=self._suffixes
+        ):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
 
     def dragMoveEvent(self, event: QtGui.QDragMoveEvent) -> None:
-        if event.mimeData().hasUrls():
+        if _drop_local_path(
+            event, allow_dirs=self._allow_dirs, suffixes=self._suffixes
+        ):
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        for url in event.mimeData().urls():
-            if not url.isLocalFile():
-                continue
-            path = url.toLocalFile()
-            if path and os.path.isfile(path):
-                self._on_drop(path)
-                event.acceptProposedAction()
-                return
+        path = _drop_local_path(
+            event, allow_dirs=self._allow_dirs, suffixes=self._suffixes
+        )
+        if path:
+            self._on_drop(path)
+            event.acceptProposedAction()
+            return
         event.ignore()
+
+
+def _clear_file_button(win: Any, slot: Callable[[], None]) -> QtWidgets.QPushButton:
+    btn = QtWidgets.QPushButton(win.ui_tr("project.pnp_clear_optional"))
+    btn.setMaximumWidth(88)
+    btn.clicked.connect(slot)
+    return btn
 
 
 def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     """Populate ``layout`` on the Project tab; attributes live on ``win`` (MainWindow)."""
-    from ui.chrome import CHROME_SPACING, action_button, apply_equal_widths
+    import sys
+
+    from ui.chrome import (
+        ACTION_BTN_MIN_H,
+        CHROME_SPACING,
+        action_button,
+        apply_equal_widths,
+        help_button,
+        switch_checkbox,
+    )
 
     top = QtWidgets.QGridLayout()
     top.setSpacing(CHROME_SPACING)
@@ -181,9 +235,13 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     bom_layout = QtWidgets.QVBoxLayout(win.project_bom_group)
     win.bom_path_label = PathLabel(win.ui_tr("project.no_file"))
     bom_layout.addWidget(win.bom_path_label)
+    bom_btns = QtWidgets.QHBoxLayout()
+    win.btn_clear_bom_file = _clear_file_button(win, win._confirm_clear_bom_workspace)
+    bom_btns.addWidget(win.btn_clear_bom_file)
     win.btn_browse_bom = action_button(win.ui_tr("project.browse_bom"))
     win.btn_browse_bom.clicked.connect(win._browse_bom)
-    bom_layout.addWidget(win.btn_browse_bom)
+    bom_btns.addWidget(win.btn_browse_bom, 1)
+    bom_layout.addLayout(bom_btns)
 
     load_inner.addWidget(win.project_bom_group)
 
@@ -197,9 +255,13 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     row1_layout.setContentsMargins(0, 0, 0, 0)
     win.pnp_path_label = PathLabel(win.ui_tr("project.no_file"))
     row1_layout.addWidget(win.pnp_path_label)
+    pnp_btns = QtWidgets.QHBoxLayout()
+    win.btn_clear_pnp_file = _clear_file_button(win, win._confirm_clear_pnp_workspace)
+    pnp_btns.addWidget(win.btn_clear_pnp_file)
     win.btn_browse_pnp = action_button(win.ui_tr("project.browse_pnp"))
     win.btn_browse_pnp.clicked.connect(win._browse_pnp)
-    row1_layout.addWidget(win.btn_browse_pnp)
+    pnp_btns.addWidget(win.btn_browse_pnp, 1)
+    row1_layout.addLayout(pnp_btns)
     pnp_outer.addWidget(row1)
 
     row2 = DropRowWidget(win, win._drop_pnp_secondary)
@@ -208,15 +270,15 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.pnp_path2_label = PathLabel(win.ui_tr("project.no_file"))
     row2_layout.addWidget(win.pnp_path2_label)
     pnp2_btns = QtWidgets.QHBoxLayout()
-    win.btn_clear_pnp_optional = QtWidgets.QPushButton(
-        win.ui_tr("project.pnp_clear_optional")
-    )
-    win.btn_clear_pnp_optional.setMaximumWidth(88)
-    win.btn_clear_pnp_optional.clicked.connect(win._clear_pnp_secondary_only)
+    win.btn_clear_pnp_optional = _clear_file_button(win, win._clear_pnp_secondary_only)
     pnp2_btns.addWidget(win.btn_clear_pnp_optional)
     win.btn_browse_pnp2 = action_button(win.ui_tr("project.browse_pnp2"))
     win.btn_browse_pnp2.clicked.connect(win._browse_pnp_secondary)
     pnp2_btns.addWidget(win.btn_browse_pnp2, 1)
+    win.btn_pnp2_help = help_button(win._show_pnp2_help)
+    win.btn_pnp2_help.setToolTip(win.ui_tr("project.pnp2_help_title"))
+    win.btn_pnp2_help.setMinimumHeight(ACTION_BTN_MIN_H)
+    pnp2_btns.addWidget(win.btn_pnp2_help)
     row2_layout.addLayout(pnp2_btns)
     pnp_outer.addWidget(row2)
 
@@ -246,20 +308,75 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
 
     load_inner.addWidget(win.project_pnp_group)
 
-    win.lbl_pnp_topbot_help = QtWidgets.QLabel(win.ui_tr("project.pnp_topbot_help"))
-    win.lbl_pnp_topbot_help.setWordWrap(True)
-    load_inner.addWidget(win.lbl_pnp_topbot_help)
+    win.project_hanwha_group = DropGroupBox(
+        win.ui_tr("project.hanwha_mdb"),
+        win,
+        win._drop_hanwha_mdb,
+        suffixes=(".mdb",),
+    )
+    han_l = QtWidgets.QVBoxLayout(win.project_hanwha_group)
+    win.hanwha_mdb_path_label = PathLabel(win.ui_tr("project.no_file"))
+    han_l.addWidget(win.hanwha_mdb_path_label)
+    han_btns = QtWidgets.QHBoxLayout()
+    win.btn_clear_hanwha_mdb = _clear_file_button(win, win._clear_hanwha_mdb)
+    han_btns.addWidget(win.btn_clear_hanwha_mdb)
+    win.btn_open_mdb = action_button(win.ui_tr("project.open_mdb"))
+    win.btn_open_mdb.clicked.connect(win._browse_hanwha_mdb)
+    han_btns.addWidget(win.btn_open_mdb, 1)
+    han_l.addLayout(han_btns)
+    win.btn_access_odbc = None
+    if sys.platform == "win32":
+        win.btn_access_odbc = action_button(win.ui_tr("project.access_odbc"))
+        win.btn_access_odbc.setToolTip(win.ui_tr("project.access_odbc_tip"))
+        win.btn_access_odbc.clicked.connect(win._show_access_odbc_help)
+        han_l.addWidget(win.btn_access_odbc)
+    load_inner.addWidget(win.project_hanwha_group)
+
+    win.project_yamaha_group = QtWidgets.QGroupBox(win.ui_tr("project.yamaha_libs"))
+    yam_outer = QtWidgets.QVBoxLayout(win.project_yamaha_group)
+    yam_tou_row = DropRowWidget(
+        win,
+        win._drop_yamaha_tou,
+        allow_dirs=True,
+        suffixes=(".tou",),
+    )
+    yam_tou_l = QtWidgets.QVBoxLayout(yam_tou_row)
+    yam_tou_l.setContentsMargins(0, 0, 0, 0)
+    win.yamaha_tou_path_label = PathLabel(win.ui_tr("project.no_file"))
+    yam_tou_l.addWidget(win.yamaha_tou_path_label)
+    tou_btns = QtWidgets.QHBoxLayout()
+    win.btn_clear_yamaha_tou = _clear_file_button(win, win._clear_yamaha_tou)
+    tou_btns.addWidget(win.btn_clear_yamaha_tou)
+    win.btn_open_tou = action_button(win.ui_tr("project.open_tou"))
+    win.btn_open_tou.clicked.connect(win._browse_yamaha_tou)
+    tou_btns.addWidget(win.btn_open_tou, 1)
+    yam_tou_l.addLayout(tou_btns)
+    win.btn_open_tou_folder = action_button(win.ui_tr("project.open_tou_folder"))
+    win.btn_open_tou_folder.setToolTip(win.ui_tr("project.open_tou_folder_tip"))
+    win.btn_open_tou_folder.clicked.connect(win._browse_yamaha_tou_folder)
+    yam_tou_l.addWidget(win.btn_open_tou_folder)
+    yam_outer.addWidget(yam_tou_row)
+
+    yam_lib_row = DropRowWidget(win, win._drop_yamaha_lib, suffixes=(".lib",))
+    yam_lib_l = QtWidgets.QVBoxLayout(yam_lib_row)
+    yam_lib_l.setContentsMargins(0, 0, 0, 0)
+    win.yamaha_lib_path_label = PathLabel(win.ui_tr("project.no_file"))
+    yam_lib_l.addWidget(win.yamaha_lib_path_label)
+    lib_btns = QtWidgets.QHBoxLayout()
+    win.btn_clear_yamaha_lib = _clear_file_button(win, win._clear_yamaha_lib)
+    lib_btns.addWidget(win.btn_clear_yamaha_lib)
+    win.btn_open_lib = action_button(win.ui_tr("project.open_lib"))
+    win.btn_open_lib.clicked.connect(win._browse_yamaha_lib)
+    lib_btns.addWidget(win.btn_open_lib, 1)
+    yam_lib_l.addLayout(lib_btns)
+    yam_outer.addWidget(yam_lib_row)
+    load_inner.addWidget(win.project_yamaha_group)
 
     top.addWidget(win.project_load_group, 0, 0)
 
     win.project_settings_group = QtWidgets.QGroupBox(win.ui_tr("project.settings"))
     settings_layout = QtWidgets.QVBoxLayout(win.project_settings_group)
     settings_layout.setSpacing(CHROME_SPACING)
-
-    win.chk_colorful = QtWidgets.QCheckBox(win.ui_tr("project.debug_logs"))
-    win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
-    win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
-    settings_layout.addWidget(win.chk_colorful)
 
     win.btn_project_debug = action_button(win.ui_tr("project.advanced"))
     win.btn_project_debug.clicked.connect(win._open_debug_settings)
@@ -270,16 +387,21 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.btn_project_load_pack = action_button(win.ui_tr("project.load_session"))
     win.btn_project_load_pack.clicked.connect(win._menu_load_boomerpack)
     settings_layout.addWidget(win.btn_project_load_pack)
-    apply_equal_widths(
-        (
-            win.btn_browse_bom,
-            win.btn_browse_pnp,
-            win.btn_browse_pnp2,
-            win.btn_project_debug,
-            win.btn_project_save_pack,
-            win.btn_project_load_pack,
-        )
-    )
+    equal = [
+        win.btn_browse_bom,
+        win.btn_browse_pnp,
+        win.btn_browse_pnp2,
+        win.btn_open_mdb,
+        win.btn_open_tou,
+        win.btn_open_tou_folder,
+        win.btn_open_lib,
+        win.btn_project_debug,
+        win.btn_project_save_pack,
+        win.btn_project_load_pack,
+    ]
+    if win.btn_access_odbc is not None:
+        equal.append(win.btn_access_odbc)
+    apply_equal_widths(equal)
     settings_layout.addStretch(1)
     top.addWidget(win.project_settings_group, 0, 1)
     layout.addLayout(top)
@@ -317,15 +439,28 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     prefs_host_l.addLayout(row_ui)
     win._prefs_host.hide()
 
-    win.project_console_group = QtWidgets.QGroupBox(win.ui_tr("project.console"))
-    console_outer = QtWidgets.QVBoxLayout(win.project_console_group)
+    log_row = QtWidgets.QHBoxLayout()
+    win.chk_colorful = switch_checkbox(win.ui_tr("project.debug_logs"))
+    win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
+    win.chk_colorful.setChecked(True)
+    win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
+    log_row.addWidget(win.chk_colorful)
+    win.chk_session_log = switch_checkbox(win.ui_tr("project.session_log"))
+    win.chk_session_log.setToolTip(win.ui_tr("project.session_log_hint"))
+    win.chk_session_log.setChecked(True)
+    win.chk_session_log.toggled.connect(win._on_session_log_toggled)
+    log_row.addWidget(win.chk_session_log)
+    win.btn_project_console = action_button(win.ui_tr("project.console"))
+    win.btn_project_console.clicked.connect(win._show_project_console)
+    log_row.addWidget(win.btn_project_console)
+    log_row.addStretch(1)
+    layout.addLayout(log_row)
 
     win.console = QtWidgets.QTextEdit()
     win.console.setObjectName("project_console")
     win.console.setFont(build_mono_font(win._settings))
     win.console.setReadOnly(True)
-    console_outer.addWidget(win.console)
-
-    layout.addWidget(win.project_console_group, 1)
+    win.console.hide()
+    win._console_window = None
 
     win.log_message.connect(win._on_log_message)

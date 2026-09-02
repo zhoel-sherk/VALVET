@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from themes.apple_switch import switch_qss
+from themes.segmented import segmented_qss
+
 
 def _token_path() -> Path:
     return Path(__file__).resolve().with_name("design_tokens.json")
@@ -31,7 +34,7 @@ def extra_application_stylesheet() -> str:
     fg = colors.get("wip_banner_fg", "#664d03")
     r = int(t.get("radius_sm_px", 4))
     m = int(t.get("groupbox_margin_px", 10))
-    return f"""
+    base = f"""
     QLabel#WipBanner {{
         padding: {m}px;
         background-color: {bg};
@@ -80,22 +83,5 @@ def extra_application_stylesheet() -> str:
     QPushButton#cleanSecondaryAction {{
         font-weight: 600;
     }}
-    QCheckBox#valvetSwitch {{
-        spacing: 8px;
-    }}
-    QCheckBox#valvetSwitch::indicator {{
-        width: 38px;
-        height: 20px;
-        border-radius: 10px;
-        border: 1px solid #616161;
-        background-color: #424242;
-    }}
-    QCheckBox#valvetSwitch::indicator:checked {{
-        border: 1px solid #66bb6a;
-        background-color: #2e7d32;
-    }}
-    QCheckBox#valvetSwitch::indicator:disabled {{
-        background-color: #333333;
-        border: 1px solid #444444;
-    }}
     """
+    return base + switch_qss() + segmented_qss()

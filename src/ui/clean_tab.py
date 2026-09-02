@@ -1276,7 +1276,7 @@ class CleanTabMixin:
         )
         logger.info("Imported %d comments from BOM columns %s", n, comment_cols)
         self._log(
-            f"Clean BOM: imported {n} row(s) from column(s) {col_desc} using active BOM range",
+            f"BOM → Clean: imported {n} row(s) from column(s) {col_desc} using active BOM range",
             "info",
         )
         for i, c in enumerate(self._clean_imported_comments[:5], start=1):
@@ -1530,7 +1530,7 @@ class CleanTabMixin:
                 "clean.apply_added",
                 count=len(self._clean_last_preview),
             )
-        self._log(msg, "info")
+        self._log(f"Clean Apply → BOM: {msg}", "info")
         logger.info("Applied clean to BOM: %s", msg)
         self._mark_working_dirty("bom")
         self._show_clean_apply_banner(self.ui_tr("clean.apply_ok_banner"))

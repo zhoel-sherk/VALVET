@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 
 from pcb_preview.engine.identify import layer_default_rgb
-from pcb_preview.outline_resolve import resolve_named_outlines
-from pcb_preview.types import BBoxMM, PlacementRecord
+from pcb_preview.outline_resolve import footprint_name_keys, resolve_named_outlines
+from pcb_preview.types import BBoxMM, FootprintOutlineMM, PlacementRecord
 
 
 def test_layer_default_rgb_yellowish() -> None:
@@ -24,6 +24,26 @@ def test_resolve_named_outlines_unique_vspd() -> None:
     assert a.source != "none"
     assert a is b
     assert out["mystery-xyz"].source == "none"
+
+
+def test_footprint_name_keys_path_and_kicad() -> None:
+    path_keys = footprint_name_keys(r"lib\CHIP-0402")
+    assert path_keys[0] == r"lib\CHIP-0402"
+    assert "CHIP-0402" in path_keys
+    lib_keys = footprint_name_keys("Resistor_SMD:CHIP-0402")
+    assert "Resistor_SMD:CHIP-0402" in lib_keys
+    assert "CHIP-0402" in lib_keys
+
+
+def test_resolve_named_outlines_path_and_lib_alias() -> None:
+    out = resolve_named_outlines(["foo/bar/CHIP-0402"])
+    body = out["foo/bar/CHIP-0402"]
+    assert body.source != "none"
+    assert out["CHIP-0402"] is body
+    lib = resolve_named_outlines(["Lib:CHIP-0402"])
+    assert lib["Lib:CHIP-0402"].source != "none"
+    assert lib["CHIP-0402"] is lib["Lib:CHIP-0402"]
+    assert lib["CHIP-0402"].source == body.source
 
 
 def _qapp():
@@ -78,6 +98,39 @@ def test_no_placements_until_show_and_outline_default_off(tmp_path: Path) -> Non
         )
         assert "U1" in tab._items
         assert tab._items["U1"].path_item().isVisible() is False
+    finally:
+        tab.close()
+
+
+def test_stale_outline_epoch_ignored(tmp_path: Path) -> None:
+    _qapp()
+    tab = _tab(tmp_path)
+    try:
+        df = pd.DataFrame(
+            {
+                "REF": ["U1"],
+                "X": [1.0],
+                "Y": [2.0],
+                "Footprint": ["CHIP-0402"],
+            }
+        )
+        tab.set_placements_from_dataframe(
+            df,
+            force=True,
+            designator_col="REF",
+            x_col="X",
+            y_col="Y",
+            rot_col=None,
+            footprint_col="Footprint",
+            coord_unit_mm=True,
+        )
+        tab._outline_cache.clear()
+        stale = FootprintOutlineMM(source="heuristic")
+        tab._on_outlines_ready((tab._outline_epoch - 1, {"CHIP-0402": stale}))
+        assert "CHIP-0402" not in tab._outline_cache
+        tab._on_outlines_ready((tab._outline_epoch, {"CHIP-0402": stale}))
+        assert tab._outline_cache["CHIP-0402"] is stale
+        tab.append_log("ok")
     finally:
         tab.close()
 

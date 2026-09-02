@@ -11,6 +11,7 @@ import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
 import logger
+import session_file_log
 from app.constants import SETTINGS_APP, SETTINGS_ORG
 from app.prefs import _prefs_profile_bool
 from app.workers import CrossCheckThread
@@ -137,6 +138,8 @@ class MainWindow(
         self.pnp_col_combos: list = []
 
         self._clean_preview_stale: bool = False
+        self._session_log_path: Path | None = None
+        self._console_window = None
 
         self._ui_colours: dict[str, str] = dict(DEFAULT_UI_COLOURS)
         self._table_colours: dict[str, str] = dict(DEFAULT_TABLE_COLOURS)
@@ -151,6 +154,7 @@ class MainWindow(
         if self._cli_debug or logger.env_debug_enabled():
             self.chk_colorful.setChecked(True)
         self._sync_file_debug_logger()
+        self._ensure_session_log_file()
         self._session_geometry_restored = False
         self._log(self.ui_tr("msg.app_ready"), "info")
 
@@ -279,7 +283,6 @@ class MainWindow(
         self.project_bom_group.setTitle(self.ui_tr("project.bom_file"))
         self.project_pnp_group.setTitle(self.ui_tr("project.pnp_file"))
         self.project_settings_group.setTitle(self.ui_tr("project.settings"))
-        self.project_console_group.setTitle(self.ui_tr("project.console"))
         self.btn_browse_bom.setText(self.ui_tr("project.browse_bom"))
         self.btn_browse_pnp.setText(self.ui_tr("project.browse_pnp"))
         self.profile_label.setText(self.ui_tr("project.profile"))
@@ -287,6 +290,14 @@ class MainWindow(
         self.btn_profile_delete.setText(self.ui_tr("project.profile_delete"))
         self.chk_colorful.setText(self.ui_tr("project.debug_logs"))
         self.chk_colorful.setToolTip(self.ui_tr("project.debug_logs_hint"))
+        if hasattr(self, "chk_session_log"):
+            self.chk_session_log.setText(self.ui_tr("project.session_log"))
+            self.chk_session_log.setToolTip(self.ui_tr("project.session_log_hint"))
+        if hasattr(self, "btn_project_console"):
+            self.btn_project_console.setText(self.ui_tr("project.console"))
+        w = getattr(self, "_console_window", None)
+        if w is not None:
+            w.setWindowTitle(self.ui_tr("project.console"))
         self.lang_label.setText(self.ui_tr("project.language"))
         if self._bom_source_path:
             configure_path_label(
@@ -321,9 +332,34 @@ class MainWindow(
         if hasattr(self, "btn_browse_pnp2"):
             self.btn_browse_pnp2.setText(self.ui_tr("project.browse_pnp2"))
         if hasattr(self, "btn_clear_pnp_optional"):
-            self.btn_clear_pnp_optional.setText(
-                self.ui_tr("project.pnp_clear_optional")
+            clr = self.ui_tr("project.pnp_clear_optional")
+            self.btn_clear_pnp_optional.setText(clr)
+            if hasattr(self, "btn_clear_bom_file"):
+                self.btn_clear_bom_file.setText(clr)
+            if hasattr(self, "btn_clear_pnp_file"):
+                self.btn_clear_pnp_file.setText(clr)
+            if hasattr(self, "btn_clear_hanwha_mdb"):
+                self.btn_clear_hanwha_mdb.setText(clr)
+            if hasattr(self, "btn_clear_yamaha_tou"):
+                self.btn_clear_yamaha_tou.setText(clr)
+            if hasattr(self, "btn_clear_yamaha_lib"):
+                self.btn_clear_yamaha_lib.setText(clr)
+        if hasattr(self, "btn_pnp2_help"):
+            self.btn_pnp2_help.setToolTip(self.ui_tr("project.pnp2_help_title"))
+        if hasattr(self, "project_hanwha_group"):
+            self.project_hanwha_group.setTitle(self.ui_tr("project.hanwha_mdb"))
+            self.btn_open_mdb.setText(self.ui_tr("project.open_mdb"))
+            self.project_yamaha_group.setTitle(self.ui_tr("project.yamaha_libs"))
+            self.btn_open_tou.setText(self.ui_tr("project.open_tou"))
+            self.btn_open_tou_folder.setText(self.ui_tr("project.open_tou_folder"))
+            self.btn_open_tou_folder.setToolTip(
+                self.ui_tr("project.open_tou_folder_tip")
             )
+            self.btn_open_lib.setText(self.ui_tr("project.open_lib"))
+            if self.btn_access_odbc is not None:
+                self.btn_access_odbc.setText(self.ui_tr("project.access_odbc"))
+                self.btn_access_odbc.setToolTip(self.ui_tr("project.access_odbc_tip"))
+            self._sync_machine_lib_project_labels()
         if hasattr(self, "chk_pnp_layer_override"):
             self.chk_pnp_layer_override.setText(
                 self.ui_tr("project.pnp_layer_override")
@@ -337,8 +373,6 @@ class MainWindow(
             self.edit_pnp_layer_tokens.setToolTip(
                 self.ui_tr("project.pnp_layer_override_tip")
             )
-        if hasattr(self, "lbl_pnp_topbot_help"):
-            self.lbl_pnp_topbot_help.setText(self.ui_tr("project.pnp_topbot_help"))
         if hasattr(self, "btn_bom_undo"):
             self.btn_bom_undo.setText(self.ui_tr("bom.undo"))
             self.btn_bom_redo.setText(self.ui_tr("bom.redo"))
@@ -365,6 +399,11 @@ class MainWindow(
         if hasattr(self, "btn_find_package"):
             self.btn_find_package.setText(self.ui_tr("package.find"))
             self.btn_find_package.setToolTip(self.ui_tr("package.find_tip"))
+        if hasattr(self, "gb_merge"):
+            self.gb_merge.setTitle(self.ui_tr("merge.group"))
+            self.btn_merge_help.setToolTip(self.ui_tr("merge.help_title"))
+        if hasattr(self, "gb_merge_files"):
+            self.gb_merge_files.setTitle(self.ui_tr("merge.files_group"))
         if hasattr(self, "btn_apply_package_table"):
             self.btn_apply_package_table.setText(self.ui_tr("package.apply_table"))
             self.btn_apply_package_table.setToolTip(
@@ -532,9 +571,7 @@ class MainWindow(
     def _pcb_preview_show_from_pnp(self) -> None:
         kwargs = self._pcb_preview_bridge_kwargs()
         if kwargs is None:
-            self._pcb_tab._append_log(
-                "Show from PnP: map REF/X/Y on the PnP tab first."
-            )
+            self._pcb_tab.append_log("Show from PnP: map REF/X/Y on the PnP tab first.")
             return
         self._pcb_tab.set_placements_from_dataframe(self._pnp_df, force=True, **kwargs)
 
@@ -543,7 +580,7 @@ class MainWindow(
         kwargs = self._pcb_preview_merge_bridge_kwargs()
         df = getattr(self, "_last_merge_df", None)
         if kwargs is None or df is None:
-            self._pcb_tab._append_log("Show from Merge: run Merge first.")
+            self._pcb_tab.append_log("Show from Merge: run Merge first.")
             return
         self._pcb_tab.set_placements_from_dataframe(df, force=True, **kwargs)
 
@@ -629,6 +666,48 @@ class MainWindow(
         self._settings.setValue("ui/colorful_logs", self.chk_colorful.isChecked())
         self._sync_file_debug_logger()
 
+    def _on_session_log_toggled(self, *_args) -> None:
+        if self._restoring_settings or not hasattr(self, "_settings"):
+            return
+        on = bool(self.chk_session_log.isChecked())
+        self._settings.setValue("ui/session_file_log", on)
+        if on:
+            self._ensure_session_log_file()
+
+    def _session_file_log_enabled(self) -> bool:
+        chk = getattr(self, "chk_session_log", None)
+        return bool(chk is not None and chk.isChecked())
+
+    def _ensure_session_log_file(self) -> None:
+        if not self._session_file_log_enabled():
+            return
+        if self._session_log_path is None:
+            self._session_log_path = session_file_log.new_session_log_path()
+            session_file_log.append_session_line(
+                self._session_log_path, "info", "START"
+            )
+
+    def _show_project_console(self) -> None:
+        from ui.console_window import ProjectConsoleWindow
+
+        w = getattr(self, "_console_window", None)
+        if w is None:
+            w = ProjectConsoleWindow(console=self.console, parent=self)
+            w.setWindowTitle(self.ui_tr("project.console"))
+            raw = self._settings.value("ui/console_window_geometry")
+            if raw is not None:
+                ba = (
+                    raw
+                    if isinstance(raw, QtCore.QByteArray)
+                    else QtCore.QByteArray(bytes(raw))
+                )
+                if not ba.isEmpty():
+                    w.restoreGeometry(ba)
+            self._console_window = w
+        w.show()
+        w.raise_()
+        w.activateWindow()
+
     def _sync_file_debug_logger(self) -> None:
         """Project 'Debug logs' checkbox is the same switch as ``--debug``."""
         if not hasattr(self, "chk_colorful"):
@@ -653,10 +732,23 @@ class MainWindow(
                     )
             if not loaded:
                 self._load_legacy_settings_flat(s)
+            self._restore_session_log_pref(s)
         finally:
             self._restoring_settings = False
         self._restore_main_tab_from_settings()
         self._refresh_application_stylesheet()
+
+    def _restore_session_log_pref(self, s: QtCore.QSettings) -> None:
+        if not hasattr(self, "chk_session_log"):
+            return
+        self.chk_session_log.blockSignals(True)
+        if s.contains("ui/session_file_log"):
+            self.chk_session_log.setChecked(
+                s.value("ui/session_file_log", True, type=bool)
+            )
+        else:
+            self.chk_session_log.setChecked(True)
+        self.chk_session_log.blockSignals(False)
 
     def _restore_main_tab_from_settings(self) -> None:
         """Restore tab index after tabs and settings exist."""
@@ -677,6 +769,9 @@ class MainWindow(
         self._settings.setValue("ui/main_window_geometry", self.saveGeometry())
         if hasattr(self, "tabs"):
             self._settings.setValue("ui/main_tab_index", self.tabs.currentIndex())
+        w = getattr(self, "_console_window", None)
+        if w is not None:
+            self._settings.setValue("ui/console_window_geometry", w.saveGeometry())
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
@@ -716,6 +811,9 @@ class MainWindow(
                 self._save_full_profile_snapshot()
             if hasattr(self, "_settings"):
                 self._settings.sync()
+            w = getattr(self, "_console_window", None)
+            if w is not None:
+                w.hide()
         finally:
             super().closeEvent(event)
 
@@ -727,6 +825,9 @@ class MainWindow(
         self.log_message.emit(message, level)
 
     def _on_log_message(self, message: str, level: str):
+        if self._session_file_log_enabled():
+            self._ensure_session_log_file()
+            session_file_log.append_session_line(self._session_log_path, level, message)
         color = {
             "error": "#ff6b6b",
             "warning": "#ffa94d",

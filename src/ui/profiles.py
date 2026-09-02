@@ -76,7 +76,7 @@ class ProfilesMixin:
                 "language": lang if lang in SUPPORTED_UI_LOCALES else "en",
                 "colorful_logs": self.chk_colorful.isChecked()
                 if hasattr(self, "chk_colorful")
-                else False,
+                else True,
                 "colours": dict(self._ui_colours),
             },
             "bom": {
@@ -115,7 +115,10 @@ class ProfilesMixin:
         if lang not in SUPPORTED_UI_LOCALES:
             lang = "en"
         if hasattr(self, "chk_colorful"):
-            self.chk_colorful.setChecked(bool(ui.get("colorful_logs", False)))
+            if "colorful_logs" in ui:
+                self.chk_colorful.setChecked(bool(ui.get("colorful_logs")))
+            else:
+                self.chk_colorful.setChecked(True)
         csub = ui.get("colours")
         self._ui_colours = merge_ui_colours(csub if isinstance(csub, dict) else None)
         tc = data.get("table_colours")
@@ -301,7 +304,19 @@ class ProfilesMixin:
 
     def _load_legacy_settings_flat(self, s: QtCore.QSettings) -> None:
         if hasattr(self, "chk_colorful"):
-            self.chk_colorful.setChecked(s.value("ui/colorful_logs", False, type=bool))
+            if s.contains("ui/colorful_logs"):
+                self.chk_colorful.setChecked(
+                    s.value("ui/colorful_logs", True, type=bool)
+                )
+            else:
+                self.chk_colorful.setChecked(True)
+        if hasattr(self, "chk_session_log"):
+            if s.contains("ui/session_file_log"):
+                self.chk_session_log.setChecked(
+                    s.value("ui/session_file_log", True, type=bool)
+                )
+            else:
+                self.chk_session_log.setChecked(True)
         if hasattr(self, "merge_delete_dnp") and s.contains("merge/delete_dnp"):
             self.merge_delete_dnp.setChecked(
                 s.value("merge/delete_dnp", False, type=bool)

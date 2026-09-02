@@ -42,6 +42,15 @@ def test_ui_i18n_polish() -> None:
     assert i.tr("status.ready") == "Gotowe"
 
 
+def test_gerber_unit_labels_are_short() -> None:
+    en = load_catalog("en")
+    assert en["pcb.gerber_mils"] == "mil"
+    assert en["pcb.gerber_in"] == "inch"
+    ru = load_catalog("ru")
+    assert ru["pcb.gerber_mils"] == "mil"
+    assert ru["pcb.gerber_in"] == "inch"
+
+
 def test_unknown_locale_falls_back_en() -> None:
     i = UiI18n("xx")
     assert i.locale == "en"
