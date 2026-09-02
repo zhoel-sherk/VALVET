@@ -21,7 +21,7 @@ def test_configure_if_debug_flag_and_env(monkeypatch) -> None:
     monkeypatch.delenv("VALVET_DEBUG", raising=False)
     monkeypatch.setattr(logger, "_debug_mode", False)
     called: list = []
-    monkeypatch.setattr(logger, "config", lambda color: called.append(color))
+    monkeypatch.setattr(logger, "set_debug_mode", lambda *_a, **_k: called.append(True))
     assert logger.configure_if_debug(argv_debug=True) is True
     monkeypatch.setattr(logger, "_debug_mode", False)
     monkeypatch.setenv("VALVET_DEBUG", "1")
@@ -32,7 +32,7 @@ def test_configure_if_debug_flag_and_env(monkeypatch) -> None:
 def test_cli_debug_flag_calls_logger_config(monkeypatch, tmp_path: Path) -> None:
     called: list = []
     monkeypatch.setattr(logger, "_debug_mode", False)
-    monkeypatch.setattr(logger, "config", lambda color: called.append(color))
+    monkeypatch.setattr(logger, "set_debug_mode", lambda *_a, **_k: called.append(True))
     from cli.argparse_app import _parser, main
 
     ns = _parser().parse_args(["--debug", "map"])
