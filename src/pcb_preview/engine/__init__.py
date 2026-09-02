@@ -63,6 +63,7 @@ def load_gerber_layer(path: str) -> GerberSvgPayload:
         svg="",
         bbox_mm=gbn.bbox_mm,
         errors=errs,
+        notes=tuple(n for n in (pyg.notes + gbn.notes) if n),
         backend_name=gbn.backend_name or pyg.backend_name or "",
     )
 

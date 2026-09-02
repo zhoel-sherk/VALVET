@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import sys
 from pathlib import Path
 from typing import Optional, Set
 
@@ -130,10 +129,6 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._path_label.setWordWrap(False)
         hw_layout.addWidget(self._path_label)
 
-        browse = QtWidgets.QPushButton("Open .mdb…")
-        browse.clicked.connect(self._browse_mdb)
-        self._btn_open_mdb = browse
-        hw_layout.addWidget(browse)
         reload_btn = QtWidgets.QPushButton("Reload")
         reload_btn.setToolTip(
             "Re-import the .mdb into the profile SQLite cache (PART_Det + vision tables)"
@@ -145,13 +140,6 @@ class MachineLibraryTab(QtWidgets.QWidget):
         edit_btn.setToolTip("Edit PART_Det in a separate window (Hanwha UPD library)")
         edit_btn.clicked.connect(self._open_hanwha_editor)
         hw_layout.addWidget(edit_btn)
-        if sys.platform == "win32":
-            ace_btn = QtWidgets.QPushButton("Access ODBC (ACE)…")
-            ace_btn.setToolTip(
-                "Check for the Microsoft Access ODBC driver; open the ACE redistributable download page"
-            )
-            ace_btn.clicked.connect(self._show_access_odbc_driver_help)
-            hw_layout.addWidget(ace_btn)
 
         self._tables_label = QtWidgets.QLabel("")
         self._tables_label.setWordWrap(True)
@@ -201,20 +189,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._yam_tou_label = QtWidgets.QLabel("<no .tou>")
         self._yam_tou_label.setWordWrap(False)
         ym_layout.addWidget(self._yam_tou_label)
-        tou_btn = QtWidgets.QPushButton("Open .tou…")
-        tou_btn.clicked.connect(self._browse_yamaha_tou)
-        ym_layout.addWidget(tou_btn)
-        tou_dir_btn = QtWidgets.QPushButton("Open .tou folder…")
-        tou_dir_btn.setToolTip("Merge all *.tou in a directory (yedytor-style scan)")
-        tou_dir_btn.clicked.connect(self._browse_yamaha_tou_folder)
-        ym_layout.addWidget(tou_dir_btn)
 
         self._yam_lib_label = QtWidgets.QLabel("<no .lib>")
         self._yam_lib_label.setWordWrap(False)
         ym_layout.addWidget(self._yam_lib_label)
-        lib_btn = QtWidgets.QPushButton("Open .lib…")
-        lib_btn.clicked.connect(self._browse_yamaha_lib)
-        ym_layout.addWidget(lib_btn)
 
         yam_reload = QtWidgets.QPushButton("Reload preview")
         yam_reload.clicked.connect(self._reload_yamaha_preview)
@@ -265,6 +243,36 @@ class MachineLibraryTab(QtWidgets.QWidget):
         super().resizeEvent(event)
         self._refresh_path_elides()
 
+    def _notify_project_paths(self) -> None:
+        self._refresh_path_elides()
+        w: Optional[QtWidgets.QWidget] = self.parent()
+        while w is not None:
+            fn = getattr(w, "_sync_machine_lib_project_labels", None)
+            if callable(fn):
+                fn()
+                return
+            w = w.parent()
+
+    def _host_open_mdb_button(self) -> Optional[QtWidgets.QPushButton]:
+        w: Optional[QtWidgets.QWidget] = self.parent()
+        while w is not None:
+            btn = getattr(w, "btn_open_mdb", None)
+            if isinstance(btn, QtWidgets.QPushButton):
+                return btn
+            w = w.parent()
+        return None
+
+    def _select_vendor(self, mode: int) -> bool:
+        """Switch Hanwha/Yamaha stack. Returns True if the combo index changed."""
+        idx = self._vendor_combo.findData(mode)
+        if idx < 0:
+            return False
+        if self._vendor_combo.currentIndex() == idx:
+            self._stack.setCurrentIndex(0 if mode == 0 else 1)
+            return False
+        self._vendor_combo.setCurrentIndex(idx)
+        return True
+
     def _refresh_path_elides(self) -> None:
         _elide_label(self._path_label, self._mdb_path or "<no .mdb loaded>")
         _elide_label(self._yam_tou_label, self._yam_tou_path or "<no .tou>")
@@ -299,9 +307,28 @@ class MachineLibraryTab(QtWidgets.QWidget):
         out = re.sub(r"[^a-zA-Z0-9_-]", "", t)
         return out[:64] or "default"
 
+    def _host_log(self, message: str, level: str = "info") -> None:
+        w: Optional[QtWidgets.QWidget] = self.parent()
+        while w is not None:
+            fn = getattr(w, "_log", None)
+            if callable(fn):
+                fn(message, level)
+                return
+            w = w.parent()
+
     def loaded_mdb_path(self) -> str:
         """Absolute path of the Hanwha library opened on this tab, or empty."""
         return self._mdb_path or ""
+
+    def hanwha_cache_dir(self) -> str:
+        """SQLite cache directory built from the last opened Hanwha .mdb, or empty."""
+        return self._hanwha_cache_dir or ""
+
+    def loaded_yamaha_tou_path(self) -> str:
+        return self._yam_tou_path or ""
+
+    def loaded_yamaha_lib_path(self) -> str:
+        return self._yam_lib_path or ""
 
     def hanwha_partname_set(self) -> Set[str]:
         """PARTNAME values from the last loaded Hanwha PART_Det (not the on-screen table in Yamaha mode)."""
@@ -392,8 +419,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._table_model.set_column_header_metadata(disp, tips)
 
     def _set_mdb_busy(self, busy: bool) -> None:
-        for w in (self._btn_open_mdb, self._btn_reload_mdb):
-            w.setEnabled(not busy)
+        host_open = self._host_open_mdb_button()
+        for w in (self._btn_reload_mdb, host_open):
+            if w is not None:
+                w.setEnabled(not busy)
         if busy:
             self._mdb_progress.setRange(0, 0)
             self._mdb_progress.show()
@@ -422,7 +451,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
             self._reload_yamaha_preview()
             self._load_selected_footprint()
 
-    def _browse_mdb(self) -> None:
+    def browse_mdb(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
             start = str(
@@ -435,13 +464,30 @@ class MachineLibraryTab(QtWidgets.QWidget):
             "Access database (*.mdb *.MDB);;All (*.*)",
         )
         if path:
-            self._mdb_path = path
-            self._refresh_path_elides()
-            if self._settings is not None:
-                self._settings.setValue(
-                    "machine_lib/last_mdb_dir", os.path.dirname(path)
-                )
+            self.open_mdb(path)
+
+    def open_mdb(self, path: str) -> None:
+        if not path or not os.path.isfile(path):
+            return
+        self._mdb_path = path
+        if self._settings is not None:
+            self._settings.setValue("machine_lib/last_mdb_dir", os.path.dirname(path))
+        switched = self._select_vendor(0)
+        self._notify_project_paths()
+        if not switched:
             self._start_mdb_load()
+
+    def clear_mdb(self) -> None:
+        self._mdb_path = ""
+        self._hanwha_df = part_det_rows_to_dataframe([])
+        self._show_hanwha_preview(self._hanwha_df)
+        self._tables_label.setText("")
+        self._fp_preview.set_idle("Select a part")
+        self._notify_project_paths()
+        self._host_log("Cleared Hanwha .mdb", "info")
+
+    def _browse_mdb(self) -> None:
+        self.browse_mdb()
 
     def _start_mdb_load(self, *, force: bool = False) -> None:
         if not self._mdb_path:
@@ -498,6 +544,10 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._set_mdb_busy(False)
         if err:
             self._tables_label.setText(err.split("\n", 1)[0])
+            self._host_log(
+                f"Opened MDB {os.path.abspath(self._mdb_path)} failed: {err}",
+                "error",
+            )
             QtWidgets.QMessageBox.warning(self, "Machine library", err)
             return
         frame = df if isinstance(df, pd.DataFrame) else part_det_rows_to_dataframe([])
@@ -505,6 +555,16 @@ class MachineLibraryTab(QtWidgets.QWidget):
         self._show_hanwha_preview(frame)
         n = 0 if frame is None else len(frame)
         self._tables_label.setText(f"PART_Det: {n} rows (SQLite cache)")
+        self._host_log(
+            f"Opened MDB {os.path.abspath(self._mdb_path)} ({n} PART_Det rows)",
+            "info",
+        )
+        self._notify_project_paths()
+        win = self.window()
+        pcb = getattr(win, "_pcb_tab", None)
+        retry = getattr(pcb, "retry_hanwha_outlines_after_library_load", None)
+        if callable(retry):
+            retry()
 
     def _on_mdb_load_thread_finished(self) -> None:
         t = self._mdb_load_thread
@@ -521,7 +581,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
             return
         self._start_mdb_load(force=True)
 
-    def _browse_yamaha_tou(self) -> None:
+    def browse_yamaha_tou(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
             start = str(
@@ -534,16 +594,21 @@ class MachineLibraryTab(QtWidgets.QWidget):
             "Yamaha Tou (*.tou *.TOU);;All (*.*)",
         )
         if path:
-            self._yam_tou_path = path
-            self._yam_tou_is_dir = False
-            self._refresh_path_elides()
-            if self._settings is not None:
-                self._settings.setValue(
-                    "machine_lib/last_tou_dir", os.path.dirname(path)
-                )
+            self.open_yamaha_tou(path)
+
+    def open_yamaha_tou(self, path: str) -> None:
+        if not path or not os.path.isfile(path):
+            return
+        self._yam_tou_path = path
+        self._yam_tou_is_dir = False
+        if self._settings is not None:
+            self._settings.setValue("machine_lib/last_tou_dir", os.path.dirname(path))
+        switched = self._select_vendor(1)
+        self._notify_project_paths()
+        if not switched:
             self._reload_yamaha_preview()
 
-    def _browse_yamaha_tou_folder(self) -> None:
+    def browse_yamaha_tou_folder(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
             start = str(
@@ -553,14 +618,29 @@ class MachineLibraryTab(QtWidgets.QWidget):
             self, "Select folder of Yamaha .tou files", start
         )
         if path:
-            self._yam_tou_path = path
-            self._yam_tou_is_dir = True
-            self._refresh_path_elides()
-            if self._settings is not None:
-                self._settings.setValue("machine_lib/last_tou_dir", path)
+            self.open_yamaha_tou_folder(path)
+
+    def open_yamaha_tou_folder(self, path: str) -> None:
+        if not path or not os.path.isdir(path):
+            return
+        self._yam_tou_path = path
+        self._yam_tou_is_dir = True
+        if self._settings is not None:
+            self._settings.setValue("machine_lib/last_tou_dir", path)
+        switched = self._select_vendor(1)
+        self._notify_project_paths()
+        if not switched:
             self._reload_yamaha_preview()
 
-    def _browse_yamaha_lib(self) -> None:
+    def clear_yamaha_tou(self) -> None:
+        self._yam_tou_path = ""
+        self._yam_tou_is_dir = False
+        self._notify_project_paths()
+        if self._vendor_combo.currentData() == 1:
+            self._reload_yamaha_preview()
+        self._host_log("Cleared Yamaha .tou", "info")
+
+    def browse_yamaha_lib(self) -> None:
         start = os.path.expanduser("~")
         if self._settings is not None:
             start = str(
@@ -573,13 +653,25 @@ class MachineLibraryTab(QtWidgets.QWidget):
             "Yamaha Lib (*.lib *.LIB);;All (*.*)",
         )
         if path:
-            self._yam_lib_path = path
-            self._refresh_path_elides()
-            if self._settings is not None:
-                self._settings.setValue(
-                    "machine_lib/last_lib_dir", os.path.dirname(path)
-                )
+            self.open_yamaha_lib(path)
+
+    def open_yamaha_lib(self, path: str) -> None:
+        if not path or not os.path.isfile(path):
+            return
+        self._yam_lib_path = path
+        if self._settings is not None:
+            self._settings.setValue("machine_lib/last_lib_dir", os.path.dirname(path))
+        switched = self._select_vendor(1)
+        self._notify_project_paths()
+        if not switched:
             self._reload_yamaha_preview()
+
+    def clear_yamaha_lib(self) -> None:
+        self._yam_lib_path = ""
+        self._notify_project_paths()
+        if self._vendor_combo.currentData() == 1:
+            self._reload_yamaha_preview()
+        self._host_log("Cleared Yamaha .lib", "info")
 
     def _yamaha_tou_paths(self) -> list[Path]:
         if not self._yam_tou_path:
@@ -643,7 +735,7 @@ class MachineLibraryTab(QtWidgets.QWidget):
     def _open_hanwha_editor(self) -> None:
         def _sync_path_chosen(p: str) -> None:
             self._mdb_path = p
-            self._refresh_path_elides()
+            self._notify_project_paths()
             self._start_mdb_load()
 
         win = open_hanwha_mdb_editor(

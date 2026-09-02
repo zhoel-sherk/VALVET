@@ -74,6 +74,97 @@ class FilesMixin:
         if primary and os.path.isfile(primary):
             self._load_pnp(primary, force_original=True)
 
+    def _show_pnp2_help(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            self.ui_tr("project.pnp2_help_title"),
+            self.ui_tr("project.pnp2_help_body"),
+        )
+
+    def _machine_lib_tab(self):
+        return getattr(self, "_machine_library_tab", None)
+
+    def _browse_hanwha_mdb(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.browse_mdb()
+
+    def _drop_hanwha_mdb(self, path: str) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.open_mdb(path)
+
+    def _clear_hanwha_mdb(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.clear_mdb()
+
+    def _show_access_odbc_help(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab._show_access_odbc_driver_help()
+
+    def _browse_yamaha_tou(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.browse_yamaha_tou()
+
+    def _browse_yamaha_tou_folder(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.browse_yamaha_tou_folder()
+
+    def _drop_yamaha_tou(self, path: str) -> None:
+        tab = self._machine_lib_tab()
+        if tab is None:
+            return
+        if os.path.isdir(path):
+            tab.open_yamaha_tou_folder(path)
+        else:
+            tab.open_yamaha_tou(path)
+
+    def _clear_yamaha_tou(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.clear_yamaha_tou()
+
+    def _browse_yamaha_lib(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.browse_yamaha_lib()
+
+    def _drop_yamaha_lib(self, path: str) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.open_yamaha_lib(path)
+
+    def _clear_yamaha_lib(self) -> None:
+        tab = self._machine_lib_tab()
+        if tab is not None:
+            tab.clear_yamaha_lib()
+
+    def _sync_machine_lib_project_labels(self) -> None:
+        tab = self._machine_lib_tab()
+        empty = self.ui_tr("project.no_file")
+        if tab is None:
+            return
+        if hasattr(self, "hanwha_mdb_path_label"):
+            configure_path_label(
+                self.hanwha_mdb_path_label, tab.loaded_mdb_path(), empty_text=empty
+            )
+        if hasattr(self, "yamaha_tou_path_label"):
+            configure_path_label(
+                self.yamaha_tou_path_label,
+                tab.loaded_yamaha_tou_path(),
+                empty_text=empty,
+            )
+        if hasattr(self, "yamaha_lib_path_label"):
+            configure_path_label(
+                self.yamaha_lib_path_label,
+                tab.loaded_yamaha_lib_path(),
+                empty_text=empty,
+            )
+
     def _on_pnp_layer_override_toggled(self, on: bool) -> None:
         self.edit_pnp_layer_tokens.setEnabled(bool(on))
 
@@ -202,7 +293,8 @@ class FilesMixin:
                     self._recent_bom.pop()
 
             self._log(
-                f"Loaded BOM ({recovered_note}): {len(self._bom_df)} rows, {len(self._bom_df.columns)} cols",
+                f"Loaded BOM ({recovered_note}): {len(self._bom_df)} rows, "
+                f"{len(self._bom_df.columns)} cols from {os.path.abspath(path)}",
                 "info",
             )
             self._log(f"Columns: {list(self._bom_df.columns)}", "debug")
@@ -306,7 +398,8 @@ class FilesMixin:
                     self._recent_pnp.pop()
 
             self._log(
-                f"Loaded PnP ({recovered_note}): {len(self._pnp_df)} rows, {len(self._pnp_df.columns)} cols",
+                f"Loaded PnP ({recovered_note}): {len(self._pnp_df)} rows, "
+                f"{len(self._pnp_df.columns)} cols from {os.path.abspath(path)}",
                 "info",
             )
             self._log(f"Columns: {list(self._pnp_df.columns)}", "debug")

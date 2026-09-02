@@ -23,6 +23,7 @@ from pcb_preview.gerber_io import (
     peek_rs274x_linear_unit,
     scale_bbox_mm,
 )
+from pcb_preview.outline_resolve import footprint_name_keys
 from pcb_preview.types import (
     BBoxMM,
     FootprintOutlineMM,
@@ -31,7 +32,12 @@ from pcb_preview.types import (
 )
 from pcb_preview_load_thread import GerberLoadThread
 from pcb_preview_outline_thread import PackageOutlineThread
-from ui.chrome import size_toolbar_button, toolbar_button
+from ui.chrome import (
+    help_button,
+    segmented_control,
+    size_toolbar_button,
+    toolbar_button,
+)
 from ui.machine_lib.outline_paint import outline_to_path as _outline_to_path
 
 # Centroid marker radius in mm (scene units); stroke is cosmetic (pixels) so it stays visible.
@@ -125,7 +131,9 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
         self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         self.setData(0, placement.ref)
 
-        r = _CENTROID_RADIUS_MM
+        self._centroid_r = _CENTROID_RADIUS_MM
+        self._cross_h = _CROSS_HALF_MM
+        r = self._centroid_r
         self._dot = QtWidgets.QGraphicsEllipseItem(-r, -r, 2 * r, 2 * r)
         self._dot.setBrush(QtGui.QBrush(QtGui.QColor(255, 120, 20, 220)))
         dp = QtGui.QPen(QtGui.QColor(180, 60, 0))
@@ -146,7 +154,7 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
         self._path_item.setZValue(0)
         self.addToGroup(self._path_item)
 
-        h = _CROSS_HALF_MM
+        h = self._cross_h
         self._cross1 = QtWidgets.QGraphicsLineItem(-h, -h, h, h)
         self._cross2 = QtWidgets.QGraphicsLineItem(-h, h, h, -h)
         xp = QtGui.QPen(QtGui.QColor(255, 210, 120))
@@ -240,7 +248,7 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
             self._cross1.setPen(cxp)
             self._cross2.setPen(cxp)
             self._dot.setBrush(QtGui.QBrush(QtGui.QColor(255, 220, 60, 255)))
-            dr = _CENTROID_RADIUS_MM * 1.35
+            dr = self._centroid_r * 1.35
             self._dot.setRect(-dr, -dr, 2 * dr, 2 * dr)
             self._label.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 220)))
         elif ref_a or ref_b:
@@ -255,7 +263,7 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
             self._cross1.setPen(cxp)
             self._cross2.setPen(cxp)
             self._dot.setBrush(QtGui.QBrush(QtGui.QColor(255, 180, 40, 230)))
-            dr = _CENTROID_RADIUS_MM * 1.12
+            dr = self._centroid_r * 1.12
             self._dot.setRect(-dr, -dr, 2 * dr, 2 * dr)
             self._label.setBrush(QtGui.QBrush(QtGui.QColor(255, 250, 200)))
         else:
@@ -270,7 +278,7 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
             self._cross1.setPen(cxp)
             self._cross2.setPen(cxp)
             self._dot.setBrush(QtGui.QBrush(QtGui.QColor(255, 120, 20, 220)))
-            dr = _CENTROID_RADIUS_MM
+            dr = self._centroid_r
             self._dot.setRect(-dr, -dr, 2 * dr, 2 * dr)
             self._label.setBrush(QtGui.QBrush(QtGui.QColor(255, 235, 160)))
 
@@ -287,6 +295,27 @@ class PlacementGroupItem(QtWidgets.QGraphicsItemGroup):
 
     def set_footprint_visible(self, on: bool) -> None:
         self._path_item.setVisible(on)
+
+    def set_centroid_visible(self, on: bool) -> None:
+        self._dot.setVisible(on)
+
+    def set_cross_visible(self, on: bool) -> None:
+        self._cross1.setVisible(on)
+        self._cross2.setVisible(on)
+
+    def set_centroid_radius(self, radius_mm: float) -> None:
+        self._centroid_r = max(0.08, min(2.0, float(radius_mm)))
+        rr = self._centroid_r * _SEL_RING_SCALE
+        self._sel_ring.setRect(-rr, -rr, 2 * rr, 2 * rr)
+        self._label.setPos(self._centroid_r + 0.2, -self._centroid_r - 0.2)
+        dr = self._centroid_r * 1.35 if self.isSelected() else self._centroid_r
+        self._dot.setRect(-dr, -dr, 2 * dr, 2 * dr)
+
+    def set_cross_half(self, half_mm: float) -> None:
+        self._cross_h = max(0.15, min(5.0, float(half_mm)))
+        h = self._cross_h
+        self._cross1.setLine(-h, -h, h, h)
+        self._cross2.setLine(-h, h, h, -h)
 
     def set_outline(self, outline: FootprintOutlineMM) -> None:
         self._path_item.setPath(_outline_to_path(outline))
@@ -403,6 +432,11 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._label_scale = _LABEL_SCENE_SCALE
         self._show_labels = True
         self._show_footprints = False
+        self._show_circles = True
+        self._show_crosses = True
+        self._centroid_radius = _CENTROID_RADIUS_MM
+        self._cross_half = _CROSS_HALF_MM
+        self._mdb_fallback = False
         self._show_top = True
         self._show_bot = True
         self._placements_fp: tuple[Any, ...] | None = None
@@ -410,6 +444,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._gerber_thread: Any = None
         self._outline_thread: Any = None
         self._outline_restart = False
+        self._outline_epoch = 0
         self._outline_cache: dict[str, FootprintOutlineMM] = {}
 
         root = QtWidgets.QVBoxLayout(self)
@@ -476,16 +511,22 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
         grp_u = QtWidgets.QGroupBox("Gerber units")
         self._grp_gunit = grp_u
-        lu = QtWidgets.QVBoxLayout(grp_u)
-        self._rb_g_auto = QtWidgets.QRadioButton("Auto")
-        self._rb_g_mm = QtWidgets.QRadioButton("mm")
-        self._rb_g_mils = QtWidgets.QRadioButton("mils → mm")
-        self._rb_g_in = QtWidgets.QRadioButton("inch → mm")
+        lu = QtWidgets.QHBoxLayout(grp_u)
+        lu.setContentsMargins(4, 4, 4, 4)
+        lu.setSpacing(0)
+        g_seg, self._bg_gunit, g_btns = segmented_control(
+            ("Auto", "mm", "mil", "inch"), parent=grp_u
+        )
+        (
+            self._rb_g_auto,
+            self._rb_g_mm,
+            self._rb_g_mils,
+            self._rb_g_in,
+        ) = g_btns
         self._rb_g_auto.setChecked(True)
-        self._bg_gunit = QtWidgets.QButtonGroup(self)
-        for rb in (self._rb_g_auto, self._rb_g_mm, self._rb_g_mils, self._rb_g_in):
-            self._bg_gunit.addButton(rb)
-            lu.addWidget(rb)
+        lu.addWidget(g_seg, 1)
+        self._btn_gunit_help = help_button(self._show_gerber_units_help, parent=grp_u)
+        lu.addWidget(self._btn_gunit_help)
         self._bg_gunit.buttonToggled.connect(self._on_gerber_unit_toggled)
         self._rb_g_auto.setToolTip(
             "Backends already convert Gerber to millimetres; scene grid is mm (same as PnP)."
@@ -501,8 +542,8 @@ class PcbPreviewTab(QtWidgets.QWidget):
         grp_pnp_xy = QtWidgets.QGroupBox("PnP coordinates")
         self._grp_pnp_xy = grp_pnp_xy
         lpxy = QtWidgets.QHBoxLayout(grp_pnp_xy)
-        self._rb_pnp_xy_mm = QtWidgets.QRadioButton("mm")
-        self._rb_pnp_xy_mils = QtWidgets.QRadioButton("mils")
+        pxy_seg, _, pxy_btns = segmented_control(("mm", "mil"), parent=grp_pnp_xy)
+        self._rb_pnp_xy_mm, self._rb_pnp_xy_mils = pxy_btns
         self._rb_pnp_xy_mm.setChecked(True)
         self._rb_pnp_xy_mm.toggled.connect(
             lambda on: on and self.pnp_xy_unit_mm_selected.emit(True)
@@ -510,8 +551,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._rb_pnp_xy_mils.toggled.connect(
             lambda on: on and self.pnp_xy_unit_mm_selected.emit(False)
         )
-        lpxy.addWidget(self._rb_pnp_xy_mm)
-        lpxy.addWidget(self._rb_pnp_xy_mils)
+        lpxy.addWidget(pxy_seg, 1)
 
         grp_nudge = QtWidgets.QGroupBox("PnP nudge (mm)")
         self._grp_nudge = grp_nudge
@@ -561,7 +601,12 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._list.setMaximumHeight(140)
         self._list.itemSelectionChanged.connect(self._on_list_selection)
 
-        view_opts = QtWidgets.QHBoxLayout()
+        grp_overlay = QtWidgets.QGroupBox("Overlay")
+        self._grp_overlay = grp_overlay
+        ov = QtWidgets.QVBoxLayout(grp_overlay)
+        ov.setContentsMargins(4, 4, 4, 4)
+        ov.setSpacing(4)
+        row_a = QtWidgets.QHBoxLayout()
         self._lbl_label_scale = QtWidgets.QLabel("Ref label size")
         self._spin_label_scale = QtWidgets.QDoubleSpinBox()
         self._spin_label_scale.setRange(0.04, 1.0)
@@ -571,9 +616,52 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._chk_show_labels = QtWidgets.QCheckBox("Show labels")
         self._chk_show_labels.setChecked(True)
         self._chk_show_labels.toggled.connect(self._on_show_labels_toggled)
+        self._chk_show_circles = QtWidgets.QCheckBox("Show circles")
+        self._chk_show_circles.setChecked(True)
+        self._chk_show_circles.toggled.connect(self._on_show_circles_toggled)
+        self._lbl_centroid_r = QtWidgets.QLabel("Circle size")
+        self._spin_centroid_r = QtWidgets.QDoubleSpinBox()
+        self._spin_centroid_r.setRange(0.08, 2.0)
+        self._spin_centroid_r.setDecimals(2)
+        self._spin_centroid_r.setSingleStep(0.05)
+        self._spin_centroid_r.setValue(self._centroid_radius)
+        self._spin_centroid_r.setMaximumWidth(72)
+        self._spin_centroid_r.valueChanged.connect(self._on_centroid_radius_changed)
+        row_a.addWidget(self._lbl_label_scale)
+        row_a.addWidget(self._spin_label_scale)
+        row_a.addWidget(self._chk_show_labels)
+        row_a.addWidget(self._chk_show_circles)
+        row_a.addWidget(self._lbl_centroid_r)
+        row_a.addWidget(self._spin_centroid_r)
+        row_a.addStretch()
+        row_b = QtWidgets.QHBoxLayout()
+        self._chk_show_crosses = QtWidgets.QCheckBox("Show crosses")
+        self._chk_show_crosses.setChecked(True)
+        self._chk_show_crosses.toggled.connect(self._on_show_crosses_toggled)
+        self._lbl_cross_h = QtWidgets.QLabel("Cross size")
+        self._spin_cross_h = QtWidgets.QDoubleSpinBox()
+        self._spin_cross_h.setRange(0.15, 5.0)
+        self._spin_cross_h.setDecimals(2)
+        self._spin_cross_h.setSingleStep(0.05)
+        self._spin_cross_h.setValue(self._cross_half)
+        self._spin_cross_h.setMaximumWidth(72)
+        self._spin_cross_h.valueChanged.connect(self._on_cross_half_changed)
         self._chk_show_footprints = QtWidgets.QCheckBox("Package outline")
         self._chk_show_footprints.setChecked(False)
         self._chk_show_footprints.toggled.connect(self._on_show_footprints_toggled)
+        self._chk_mdb_fallback = QtWidgets.QCheckBox("Missing from DB")
+        self._chk_mdb_fallback.setChecked(False)
+        self._chk_mdb_fallback.toggled.connect(self._on_mdb_fallback_toggled)
+        row_b.addWidget(self._chk_show_crosses)
+        row_b.addWidget(self._lbl_cross_h)
+        row_b.addWidget(self._spin_cross_h)
+        row_b.addWidget(self._chk_show_footprints)
+        row_b.addWidget(self._chk_mdb_fallback)
+        row_b.addWidget(self._chk_mirror_x)
+        row_b.addWidget(self._chk_mirror_y)
+        row_b.addStretch()
+        ov.addLayout(row_a)
+        ov.addLayout(row_b)
         if self._settings is not None:
             saved_ol = self._settings.value(
                 "pcb_preview/show_package_outline", False, type=bool
@@ -582,32 +670,49 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._chk_show_footprints.blockSignals(True)
             self._chk_show_footprints.setChecked(self._show_footprints)
             self._chk_show_footprints.blockSignals(False)
-        view_opts.addWidget(self._lbl_label_scale)
-        view_opts.addWidget(self._spin_label_scale)
-        view_opts.addWidget(self._chk_show_labels)
-        view_opts.addWidget(self._chk_show_footprints)
-        view_opts.addWidget(self._chk_mirror_x)
-        view_opts.addWidget(self._chk_mirror_y)
-        view_opts.addStretch()
+            saved_mdb = self._settings.value(
+                "pcb_preview/mdb_fallback", False, type=bool
+            )
+            self._mdb_fallback = bool(saved_mdb)
+            self._chk_mdb_fallback.blockSignals(True)
+            self._chk_mdb_fallback.setChecked(self._mdb_fallback)
+            self._chk_mdb_fallback.blockSignals(False)
+            saved_c = self._settings.value("pcb_preview/show_circles", True, type=bool)
+            self._show_circles = bool(saved_c)
+            self._chk_show_circles.blockSignals(True)
+            self._chk_show_circles.setChecked(self._show_circles)
+            self._chk_show_circles.blockSignals(False)
+            saved_x = self._settings.value("pcb_preview/show_crosses", True, type=bool)
+            self._show_crosses = bool(saved_x)
+            self._chk_show_crosses.blockSignals(True)
+            self._chk_show_crosses.setChecked(self._show_crosses)
+            self._chk_show_crosses.blockSignals(False)
+
+        pnp_col = QtWidgets.QVBoxLayout()
+        pnp_col.setContentsMargins(0, 0, 0, 0)
+        pnp_col.setSpacing(6)
+        pnp_col.addWidget(grp_pnp_xy)
+        pnp_col.addWidget(grp_nudge)
+        pnp_wrap = QtWidgets.QWidget()
+        pnp_wrap.setLayout(pnp_col)
 
         settings_grid = QtWidgets.QGridLayout()
-        settings_grid.addLayout(view_opts, 0, 0, 1, 3)
-        settings_grid.addWidget(grp_u, 1, 0)
-        settings_grid.addWidget(grp_pnp_xy, 1, 1)
-        settings_grid.addWidget(grp_nudge, 1, 2)
-        settings_grid.addWidget(grp, 2, 0)
+        settings_grid.addWidget(grp_u, 0, 0)
+        settings_grid.addWidget(grp_overlay, 0, 1)
+        settings_grid.addWidget(pnp_wrap, 0, 2)
+        settings_grid.addWidget(grp, 1, 0)
         refs_col = QtWidgets.QVBoxLayout()
         refs_col.addWidget(self._lbl_refs)
         refs_col.addWidget(self._list, 1)
         refs_wrap = QtWidgets.QWidget()
         refs_wrap.setLayout(refs_col)
-        settings_grid.addWidget(refs_wrap, 2, 1, 1, 2)
+        settings_grid.addWidget(refs_wrap, 1, 1, 1, 2)
 
         self._log = QtWidgets.QPlainTextEdit()
         self._log.setReadOnly(True)
         self._log.setMaximumBlockCount(200)
         self._log.setMaximumHeight(80)
-        settings_grid.addWidget(self._log, 3, 0, 1, 3)
+        settings_grid.addWidget(self._log, 2, 0, 1, 3)
 
         self._pcb_settings_panel = QtWidgets.QFrame()
         self._pcb_settings_panel.setLayout(settings_grid)
@@ -648,6 +753,9 @@ class PcbPreviewTab(QtWidgets.QWidget):
             )
         )
 
+    def append_log(self, msg: str) -> None:
+        self._append_log(msg)
+
     def _append_log(self, msg: str) -> None:
         self._log.appendPlainText(msg)
 
@@ -677,6 +785,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._chk_show_top.setText(self._tr("pcb.layer_top"))
         self._chk_show_bot.setText(self._tr("pcb.layer_bot"))
         self._btn_pcb_settings_toggle.setText(self._tr("pcb.settings"))
+        self._grp_overlay.setTitle(self._tr("pcb.overlay"))
         self._chk_mirror_x.setText(self._tr("pcb.mirror_x"))
         self._chk_mirror_y.setText(self._tr("pcb.mirror_y"))
         self._grp_gunit.setTitle(self._tr("pcb.gerber_units"))
@@ -695,7 +804,12 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._lbl_refs.setText(self._tr("pcb.refs"))
         self._lbl_label_scale.setText(self._tr("pcb.label_scale"))
         self._chk_show_labels.setText(self._tr("pcb.show_labels"))
+        self._chk_show_circles.setText(self._tr("pcb.show_circles"))
+        self._lbl_centroid_r.setText(self._tr("pcb.centroid_radius"))
+        self._chk_show_crosses.setText(self._tr("pcb.show_crosses"))
+        self._lbl_cross_h.setText(self._tr("pcb.cross_size"))
         self._chk_show_footprints.setText(self._tr("pcb.show_footprints"))
+        self._chk_mdb_fallback.setText(self._tr("pcb.mdb_fallback"))
 
     def _on_pcb_settings_toggled(self, expanded: bool) -> None:
         self._pcb_settings_panel.setVisible(expanded)
@@ -717,6 +831,127 @@ class PcbPreviewTab(QtWidgets.QWidget):
         self._show_labels = bool(on)
         for it in self._items.values():
             it.set_labels_visible(self._show_labels)
+
+    def _on_show_circles_toggled(self, on: bool) -> None:
+        self._show_circles = bool(on)
+        if self._settings is not None:
+            self._settings.setValue("pcb_preview/show_circles", on)
+        for it in self._items.values():
+            it.set_centroid_visible(self._show_circles)
+
+    def _on_show_crosses_toggled(self, on: bool) -> None:
+        self._show_crosses = bool(on)
+        if self._settings is not None:
+            self._settings.setValue("pcb_preview/show_crosses", on)
+        for it in self._items.values():
+            it.set_cross_visible(self._show_crosses)
+
+    def _on_centroid_radius_changed(self, value: float) -> None:
+        self._centroid_radius = float(value)
+        for it in self._items.values():
+            it.set_centroid_radius(self._centroid_radius)
+        self._sync_all_placement_styles()
+        self._update_scene_rect_from_content()
+
+    def _on_cross_half_changed(self, value: float) -> None:
+        self._cross_half = float(value)
+        for it in self._items.values():
+            it.set_cross_half(self._cross_half)
+        self._update_scene_rect_from_content()
+
+    def _on_mdb_fallback_toggled(self, on: bool) -> None:
+        self._mdb_fallback = bool(on)
+        if self._settings is not None:
+            self._settings.setValue("pcb_preview/mdb_fallback", on)
+        cache, _gmap = self._hanwha_mdb_ctx()
+        if self._mdb_fallback:
+            import machine_library.hanwha_sqlite_cache as hanwha_cache
+
+            if not cache or not hanwha_cache.sqlite_path(cache).is_file():
+                self._append_log(
+                    "Missing from DB: open a Hanwha .mdb on Machine lib first."
+                )
+            else:
+                self._append_log(f"Missing from DB: sqlite cache {cache}")
+            self._drop_outline_cache_sources(("none", "vspd_heuristic", "heuristic"))
+        else:
+            self._drop_outline_cache_sources(("hanwha_upd",))
+        if self._show_footprints:
+            self._start_outline_thread()
+
+    def retry_hanwha_outlines_after_library_load(self) -> None:
+        """Re-resolve package outlines after Machine lib finishes an MDB import."""
+        if not self._mdb_fallback or not self._show_footprints:
+            return
+        self._drop_outline_cache_sources(("none", "vspd_heuristic", "heuristic"))
+        self._start_outline_thread()
+
+    def _drop_outline_cache_source(self, source: str) -> None:
+        self._drop_outline_cache_sources((source,))
+
+    def _drop_outline_cache_sources(self, sources: tuple[str, ...]) -> None:
+        want = set(sources)
+        dead = [k for k, v in self._outline_cache.items() if v.source in want]
+        for k in dead:
+            del self._outline_cache[k]
+
+    def _hanwha_mdb_ctx(self) -> tuple[str, dict[str, str]]:
+        w: Any = self.window()
+        ml = getattr(w, "_machine_library_tab", None)
+        cache = ""
+        if ml is not None:
+            getter = getattr(ml, "hanwha_cache_dir", None)
+            if callable(getter):
+                cache = str(getter() or "")
+            else:
+                cache = str(getattr(ml, "_hanwha_cache_dir", "") or "")
+        import machine_library.hanwha_sqlite_cache as hanwha_cache
+        from app_paths import hanwha_lib_cache_dir
+
+        if not cache or not hanwha_cache.sqlite_path(cache).is_file():
+            pid = "default"
+            fn = getattr(ml, "_valvet_profile_id", None) if ml is not None else None
+            if callable(fn):
+                pid = str(fn() or "default")
+            disk = str(hanwha_lib_cache_dir(pid))
+            if hanwha_cache.sqlite_path(disk).is_file():
+                cache = disk
+        gmap = self._name_to_profile(ml) if ml is not None else {}
+        return cache, gmap
+
+    @staticmethod
+    def _name_to_profile(ml: Any) -> dict[str, str]:
+        """lower(PARTNAME/PROFILENAME/UPDPARTGROUPNAME) → canonical PROFILENAME."""
+        df = getattr(ml, "_hanwha_df", None)
+        out: dict[str, str] = {}
+        if df is None or getattr(df, "empty", True):
+            return out
+
+        recs = df.to_dict("records")
+        for rec in recs:
+            if not isinstance(rec, dict):
+                continue
+            prof = str(rec.get("PROFILENAME") or "").strip()
+            part = str(rec.get("PARTNAME") or "").strip()
+            group = str(rec.get("UPDPARTGROUPNAME") or "").strip()
+            canonical = prof or part
+            if not canonical:
+                continue
+            for alias in (part, prof, group, canonical):
+                key = alias.lower()
+                if key and key not in out:
+                    out[key] = canonical
+        return out
+
+    def _group_to_profile(self, ml: Any) -> dict[str, str]:
+        return self._name_to_profile(ml)
+
+    def _show_gerber_units_help(self) -> None:
+        QtWidgets.QMessageBox.information(
+            self,
+            self._tr("pcb.gerber_units_help_title"),
+            self._tr("pcb.gerber_units_help_body"),
+        )
 
     def _on_show_footprints_toggled(self, on: bool) -> None:
         self._show_footprints = bool(on)
@@ -762,7 +997,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
         )
 
     def sync_pnp_xy_units_ui(self, *, mm: bool) -> None:
-        """Keep mm/mils radios aligned with the main window (does not emit signals)."""
+        """Keep mm/mil segments aligned with the main window (does not emit signals)."""
         self._rb_pnp_xy_mm.blockSignals(True)
         self._rb_pnp_xy_mils.blockSignals(True)
         self._rb_pnp_xy_mm.setChecked(mm)
@@ -783,6 +1018,11 @@ class PcbPreviewTab(QtWidgets.QWidget):
             "label_scale": self._label_scale,
             "show_labels": self._show_labels,
             "show_footprints": self._show_footprints,
+            "show_circles": self._show_circles,
+            "show_crosses": self._show_crosses,
+            "centroid_radius": self._centroid_radius,
+            "cross_half": self._cross_half,
+            "mdb_fallback": self._mdb_fallback,
             "show_top": self._show_top,
             "show_bot": self._show_bot,
         }
@@ -840,6 +1080,37 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._chk_show_footprints.blockSignals(True)
             self._chk_show_footprints.setChecked(self._show_footprints)
             self._chk_show_footprints.blockSignals(False)
+        if "show_circles" in prefs:
+            self._show_circles = bool(prefs["show_circles"])
+            self._chk_show_circles.blockSignals(True)
+            self._chk_show_circles.setChecked(self._show_circles)
+            self._chk_show_circles.blockSignals(False)
+        if "show_crosses" in prefs:
+            self._show_crosses = bool(prefs["show_crosses"])
+            self._chk_show_crosses.blockSignals(True)
+            self._chk_show_crosses.setChecked(self._show_crosses)
+            self._chk_show_crosses.blockSignals(False)
+        if "centroid_radius" in prefs:
+            try:
+                self._centroid_radius = float(prefs["centroid_radius"])
+            except (TypeError, ValueError):
+                pass
+            self._spin_centroid_r.blockSignals(True)
+            self._spin_centroid_r.setValue(self._centroid_radius)
+            self._spin_centroid_r.blockSignals(False)
+        if "cross_half" in prefs:
+            try:
+                self._cross_half = float(prefs["cross_half"])
+            except (TypeError, ValueError):
+                pass
+            self._spin_cross_h.blockSignals(True)
+            self._spin_cross_h.setValue(self._cross_half)
+            self._spin_cross_h.blockSignals(False)
+        if "mdb_fallback" in prefs:
+            self._mdb_fallback = bool(prefs["mdb_fallback"])
+            self._chk_mdb_fallback.blockSignals(True)
+            self._chk_mdb_fallback.setChecked(self._mdb_fallback)
+            self._chk_mdb_fallback.blockSignals(False)
         if "show_top" in prefs:
             self._show_top = bool(prefs["show_top"])
             self._chk_show_top.blockSignals(True)
@@ -851,9 +1122,7 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._chk_show_bot.setChecked(self._show_bot)
             self._chk_show_bot.blockSignals(False)
         for it in self._items.values():
-            it.set_label_scale(self._label_scale)
-            it.set_labels_visible(self._show_labels)
-            it.set_footprint_visible(self._show_footprints)
+            self._apply_overlay_to_item(it)
         self._apply_side_visibility()
         if self._show_footprints:
             self._start_outline_thread()
@@ -1205,13 +1474,10 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._scene.removeItem(it)
         self._items.clear()
         self._list.clear()
-        empty = FootprintOutlineMM(source="none")
         for pl in self._placements:
-            outline = self._outline_cache.get(pl.footprint_name, empty)
+            outline = self._outline_for_name(pl.footprint_name)
             item = PlacementGroupItem(pl, outline)
-            item.set_label_scale(self._label_scale)
-            item.set_labels_visible(self._show_labels)
-            item.set_footprint_visible(self._show_footprints)
+            self._apply_overlay_to_item(item)
             item.setVisible(self._side_allowed(pl.side))
             self._placements_root.addToGroup(item)
             self._items[pl.ref] = item
@@ -1228,47 +1494,116 @@ class PcbPreviewTab(QtWidgets.QWidget):
     def _on_list_selection(self) -> None:
         self._sync_all_placement_styles()
 
+    def _apply_overlay_to_item(self, it: PlacementGroupItem) -> None:
+        it.set_label_scale(self._label_scale)
+        it.set_labels_visible(self._show_labels)
+        it.set_footprint_visible(self._show_footprints)
+        it.set_centroid_visible(self._show_circles)
+        it.set_cross_visible(self._show_crosses)
+        it.set_centroid_radius(self._centroid_radius)
+        it.set_cross_half(self._cross_half)
+
+    def _outline_cached(self, name: str) -> bool:
+        skip = ()
+        if self._mdb_fallback:
+            skip = ("none", "vspd_heuristic", "heuristic")
+        for k in footprint_name_keys(name):
+            hit = self._outline_cache.get(k)
+            if hit is None:
+                continue
+            if hit.source in skip:
+                continue
+            return True
+        return False
+
+    def _outline_for_name(self, name: str) -> FootprintOutlineMM:
+        empty = FootprintOutlineMM(source="none")
+        fallback = empty
+        for k in footprint_name_keys(name):
+            hit = self._outline_cache.get(k)
+            if hit is None:
+                continue
+            if hit.source != "none":
+                return hit
+            fallback = hit
+        return fallback
+
     def _start_outline_thread(self) -> None:
         if not self._show_footprints or not self._placements:
             return
         names = [pl.footprint_name for pl in self._placements if pl.footprint_name]
-        pending = [n for n in names if n not in self._outline_cache]
+        pending = [n for n in names if not self._outline_cached(n)]
         if not pending:
             self._apply_outline_cache()
             return
         t = self._outline_thread
-        if t is not None and t.isRunning():
+        running = False
+        if t is not None:
+            try:
+                running = t.isRunning()
+            except RuntimeError:
+                self._outline_thread = None
+                t = None
+        if running:
+            self._outline_epoch += 1
+            t.requestInterruption()
             self._outline_restart = True
             return
-        thread = PackageOutlineThread(pending, self)
+        self._outline_epoch += 1
+        cache, gmap = ("", {})
+        if self._mdb_fallback:
+            cache, gmap = self._hanwha_mdb_ctx()
+        thread = PackageOutlineThread(
+            pending,
+            self._outline_epoch,
+            self,
+            mdb_cache_dir=cache,
+            group_to_profile=gmap,
+        )
         thread.result_ready.connect(self._on_outlines_ready)
         thread.finished.connect(self._on_outline_thread_finished)
-        thread.finished.connect(thread.deleteLater)
         self._outline_thread = thread
         thread.start()
 
     def _on_outline_thread_finished(self) -> None:
+        t = self._outline_thread
         self._outline_thread = None
+        if t is not None:
+            try:
+                t.wait(500)
+            except RuntimeError:
+                pass
+            t.deleteLater()
         if self._outline_restart:
             self._outline_restart = False
             self._start_outline_thread()
 
     def _on_outlines_ready(self, packed: object) -> None:
-        if not isinstance(packed, dict):
+        if not isinstance(packed, tuple) or len(packed) < 2:
             return
-        for k, v in packed.items():
+        epoch, data = packed[0], packed[1]
+        stats = packed[2] if len(packed) >= 3 and isinstance(packed[2], dict) else {}
+        cache_dir = str(packed[3] or "") if len(packed) >= 4 else ""
+        if epoch != self._outline_epoch or not isinstance(data, dict):
+            return
+        for k, v in data.items():
             if isinstance(k, str) and isinstance(v, FootprintOutlineMM):
                 self._outline_cache[k] = v
+        if self._mdb_fallback:
+            hits = int(stats.get("hits", 0) or 0)
+            misses = int(stats.get("misses", 0) or 0)
+            loc = cache_dir or "(no sqlite)"
+            self._append_log(
+                f"Missing from DB: {hits} hanwha_upd hit(s), {misses} miss(es); {loc}"
+            )
         self._apply_outline_cache()
 
     def _apply_outline_cache(self) -> None:
         if not self._show_footprints:
             return
-        empty = FootprintOutlineMM(source="none")
         for it in self._items.values():
             name = it._placement.footprint_name
-            outline = self._outline_cache.get(name, empty)
-            it.set_outline(outline)
+            it.set_outline(self._outline_for_name(name))
             it.set_footprint_visible(True)
         self._update_scene_rect_from_content()
 
@@ -1359,9 +1694,15 @@ class PcbPreviewTab(QtWidgets.QWidget):
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         self._outline_restart = False
+        self._outline_epoch += 1
         t = self._outline_thread
+        self._outline_thread = None
         if t is not None:
-            t.requestInterruption()
-            t.wait(500)
+            try:
+                t.requestInterruption()
+                t.wait(500)
+            except RuntimeError:
+                pass
+            t.deleteLater()
         self._store.close()
         super().closeEvent(event)

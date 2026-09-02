@@ -52,6 +52,9 @@ def test_cam350_silk_implicit_d01_does_not_fail() -> None:
     assert payload.svg
     assert payload.backend_name == "gerbonara"
     assert payload.bbox_mm.width > 0 or payload.bbox_mm.height > 0
+    assert not payload.errors
+    if payload.notes:
+        assert any("implicit" in str(n).lower() for n in payload.notes)
 
 
 def test_label_scale_reverts() -> None:
@@ -65,6 +68,13 @@ def test_label_scale_reverts() -> None:
         app = QtWidgets.QApplication([])
     pl = PlacementRecord(ref="R1", x_mm=0.0, y_mm=0.0, rotation_deg=0.0)
     item = PlacementGroupItem(pl, FootprintOutlineMM())
+    item.set_centroid_visible(False)
+    item.set_cross_visible(False)
+    assert not item._dot.isVisible()
+    assert not item._cross1.isVisible()
+    item.set_centroid_visible(True)
+    item.set_cross_half(1.25)
+    assert item._cross_h == pytest.approx(1.25)
     item.set_label_scale(0.55)
     item.set_label_scale(0.12)
     t = item._label.transform()
