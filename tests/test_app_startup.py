@@ -42,6 +42,10 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
     win = MainWindow(settings=settings)
     try:
         assert win.windowTitle()
+        assert win.tabs.objectName() == "valvetMainTabs"
+        assert win.tabs.documentMode() is True
+        assert win.tabs.tabBar().expanding() is False
+        assert not win.tabs.tabIcon(win._tab_index("project")).isNull()
         assert win.tabs.count() == len(win._tab_keys_in_order)
         assert win.tabs.count() == 9
         assert "package" in win._tab_keys_in_order

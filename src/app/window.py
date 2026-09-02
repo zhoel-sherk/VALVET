@@ -26,6 +26,7 @@ from themes.colour_prefs import (
 )
 from themes.fonts_loader import apply_app_font, build_mono_font
 from themes.stylesheet import apply_composed_stylesheet
+from themes.tab_icons import tab_icon
 from ui.bom_tab import BomTabMixin
 from ui.clean_tab import CleanTabMixin
 from ui.files import FilesMixin
@@ -171,7 +172,14 @@ class MainWindow(
         main_layout = QtWidgets.QVBoxLayout(central)
 
         self.tabs = QtWidgets.QTabWidget()
-        self.tabs.tabBar().setExpanding(True)
+        self.tabs.setObjectName("valvetMainTabs")
+        self.tabs.setDocumentMode(True)
+        bar = self.tabs.tabBar()
+        bar.setDocumentMode(True)
+        bar.setExpanding(False)
+        bar.setUsesScrollButtons(True)
+        bar.setElideMode(QtCore.Qt.TextElideMode.ElideRight)
+        bar.setIconSize(QtCore.QSize(16, 16))
         main_layout.addWidget(self.tabs)
         self._tab_keys_in_order = []
 
@@ -210,6 +218,7 @@ class MainWindow(
                 g = self.ui_tr(f"tab.group.{group}")
                 title = f"{g} · {title}"
             self.tabs.setTabText(i, title.upper())
+            self.tabs.setTabIcon(i, tab_icon(key))
 
     def _refresh_shell_status(self) -> None:
         bom = (
@@ -450,7 +459,7 @@ class MainWindow(
 
     def _register_main_tab(self, key: str, widget: QtWidgets.QWidget) -> None:
         """Append a main-window tab and record its logical key (i18n titles, ``_tab_index``)."""
-        self.tabs.addTab(widget, self.ui_tr(f"tab.{key}"))
+        self.tabs.addTab(widget, tab_icon(key), self.ui_tr(f"tab.{key}"))
         self._tab_keys_in_order.append(key)
 
     def _create_project_tab(self):

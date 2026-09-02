@@ -66,6 +66,19 @@ def merge_table_colours(overrides: dict[str, Any] | None) -> dict[str, str]:
     return out
 
 
+def _lighten_hex(h: str, amount: float = 0.18) -> str:
+    """Blend ``h`` toward white; used for tab hover (not a picker key)."""
+    s = sanitize_hex(h, DEFAULT_UI_COLOURS["control_bg"])
+    r = int(s[1:3], 16)
+    g = int(s[3:5], 16)
+    b = int(s[5:7], 16)
+
+    def _ch(c: int) -> int:
+        return min(255, int(c + (255 - c) * amount))
+
+    return f"#{_ch(r):02X}{_ch(g):02X}{_ch(b):02X}"
+
+
 def profile_colour_qss(ui: dict[str, str], table: dict[str, str]) -> str:
     """QSS appended after qdarkstyle; fixes alternate row contrast for item views."""
     u = ui
@@ -75,6 +88,8 @@ def profile_colour_qss(ui: dict[str, str], table: dict[str, str]) -> str:
     hb, hf = t["header_bg"], t["header_fg"]
     sb, sf = t["selection_bg"], t["selection_fg"]
     gr = t["grid"]
+    hover = _lighten_hex(u["control_bg"])
+    tab_border = u["control_bg"]
     return f"""
     QMainWindow, QDialog {{
         background-color: {u["window_bg"]};
@@ -90,6 +105,35 @@ def profile_colour_qss(ui: dict[str, str], table: dict[str, str]) -> str:
         padding: 10px 16px;
         min-height: 22px;
         font-weight: 700;
+    }}
+    QTabWidget#valvetMainTabs::pane {{
+        border: 1px solid {tab_border};
+        background-color: {u["panel_bg"]};
+        top: -1px;
+    }}
+    QTabWidget#valvetMainTabs QTabBar {{
+        background-color: {u["window_bg"]};
+    }}
+    QTabWidget#valvetMainTabs QTabBar::tab {{
+        background-color: {u["control_bg"]};
+        color: {u["panel_fg"]};
+        padding: 8px 12px;
+        min-height: 22px;
+        font-weight: 700;
+        border: 1px solid {tab_border};
+        border-bottom: none;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin-right: 2px;
+    }}
+    QTabWidget#valvetMainTabs QTabBar::tab:selected {{
+        background-color: {u["panel_bg"]};
+        color: {u["panel_fg"]};
+        border-color: {tab_border};
+        border-bottom: 1px solid {u["panel_bg"]};
+    }}
+    QTabWidget#valvetMainTabs QTabBar::tab:hover:!selected {{
+        background-color: {hover};
     }}
     QGroupBox {{
         color: {u["panel_fg"]};
