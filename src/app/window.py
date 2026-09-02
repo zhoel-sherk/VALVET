@@ -16,7 +16,6 @@ from app.constants import SETTINGS_APP, SETTINGS_ORG
 from app.prefs import _prefs_profile_bool
 from app.workers import CrossCheckThread
 from app_paths import autosave_root
-from debug_settings_dialog import DebugSettingsDialog
 from machine_library_tab import MachineLibraryTab
 from smt_processor import ProcessorConfig, SMTDataProcessor
 from themes.colour_prefs import (
@@ -37,6 +36,7 @@ from ui.profiles import ProfilesMixin
 from ui.project_tab import configure_path_label, setup_project_tab
 from ui.report_tab import ReportTabMixin
 from ui.session import SessionMixin
+from ui.settings_tab import SettingsTabMixin
 from ui.table_actions import TableActionsMixin
 from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n
 from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
@@ -65,6 +65,7 @@ class MainWindow(
     ReportTabMixin,
     ProfilesMixin,
     SessionMixin,
+    SettingsTabMixin,
     QtWidgets.QMainWindow,
 ):
     """Main application window."""
@@ -189,6 +190,7 @@ class MainWindow(
         if exp_step:
             self._create_step_3d_tab()
         self._create_machine_library_tab()
+        self._create_settings_tab()
 
         self.tabs.currentChanged.connect(self._on_main_tab_changed)
 
@@ -246,6 +248,8 @@ class MainWindow(
         self.setWindowTitle(self.ui_tr("app.window_title"))
         self._sync_tab_titles_i18n()
         self._refresh_project_tab_static_texts()
+        if hasattr(self, "_refresh_settings_tab_static_texts"):
+            self._refresh_settings_tab_static_texts()
         if hasattr(self, "_refresh_clean_tab_static_texts"):
             self._refresh_clean_tab_static_texts()
         if hasattr(self, "_pcb_tab") and hasattr(self._pcb_tab, "refresh_static_texts"):
@@ -283,10 +287,14 @@ class MainWindow(
         self.project_bom_group.setTitle(self.ui_tr("project.bom_file"))
         self.project_pnp_group.setTitle(self.ui_tr("project.pnp_file"))
         self.project_settings_group.setTitle(self.ui_tr("project.settings"))
+        if hasattr(self, "project_profile_group"):
+            self.project_profile_group.setTitle(self.ui_tr("project.profile_group"))
+            self.project_session_group.setTitle(self.ui_tr("project.session_group"))
         self.btn_browse_bom.setText(self.ui_tr("project.browse_bom"))
         self.btn_browse_pnp.setText(self.ui_tr("project.browse_pnp"))
-        self.profile_label.setText(self.ui_tr("project.profile"))
         self.btn_profile_clone.setText(self.ui_tr("project.profile_clone"))
+        if hasattr(self, "btn_profile_new"):
+            self.btn_profile_new.setText(self.ui_tr("project.profile_new"))
         self.btn_profile_delete.setText(self.ui_tr("project.profile_delete"))
         self.chk_colorful.setText(self.ui_tr("project.debug_logs"))
         self.chk_colorful.setToolTip(self.ui_tr("project.debug_logs_hint"))
@@ -412,8 +420,7 @@ class MainWindow(
         if hasattr(self, "btn_pnp_undo"):
             self.btn_pnp_undo.setText(self.ui_tr("pnp.undo"))
             self.btn_pnp_redo.setText(self.ui_tr("pnp.redo"))
-        if hasattr(self, "btn_project_debug"):
-            self.btn_project_debug.setText(self.ui_tr("project.advanced"))
+        if hasattr(self, "btn_project_save_pack"):
             self.btn_project_save_pack.setText(self.ui_tr("project.save_session"))
             self.btn_project_load_pack.setText(self.ui_tr("project.load_session"))
 
@@ -495,6 +502,12 @@ class MainWindow(
             and self._tab_keys_in_order[idx] == "pcb_preview"
         ):
             self._refresh_pcb_preview_from_ui(force=False)
+        if (
+            0 <= idx < len(self._tab_keys_in_order)
+            and self._tab_keys_in_order[idx] == "settings"
+            and hasattr(self, "_settings_pages")
+        ):
+            self._settings_pages.on_shown()
 
     def _pcb_preview_merge_bridge_kwargs(self) -> Optional[dict]:
         self._sync_merge_df_from_model()
@@ -609,20 +622,6 @@ class MainWindow(
         )
         if path:
             self._debug_load_boomerpack(path)
-
-    def _open_debug_settings(self) -> None:
-        from shiboken6 import isValid
-
-        dlg = getattr(self, "_debug_settings_dialog", None)
-        if dlg is not None and isValid(dlg):
-            dlg.show()
-            dlg.raise_()
-            dlg.activateWindow()
-            return
-        dlg = DebugSettingsDialog(self, self)
-        self._debug_settings_dialog = dlg
-        dlg.destroyed.connect(lambda *_: setattr(self, "_debug_settings_dialog", None))
-        dlg.show()
 
     def _install_edit_shortcuts(self) -> None:
         u = QtGui.QShortcut(QtGui.QKeySequence.StandardKey.Undo, self)

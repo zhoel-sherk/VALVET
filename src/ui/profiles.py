@@ -243,35 +243,61 @@ class ProfilesMixin:
             self._restoring_settings = False
         self._refresh_application_stylesheet()
 
-    def _on_profile_clone_clicked(self) -> None:
+    def _persist_profile_names(self) -> None:
+        names = [
+            self.profile_combo.itemText(i) for i in range(self.profile_combo.count())
+        ]
+        self._settings.setValue(PROFILE_NAMES_KEY, json.dumps(names))
+
+    def _prompt_new_profile_id(self, title_key: str) -> str | None:
         name, ok = QtWidgets.QInputDialog.getText(
             self,
-            self.ui_tr("project.profile_clone"),
+            self.ui_tr(title_key),
             self.ui_tr("msg.profile_clone_prompt"),
         )
         if not ok:
-            return
+            return None
         pid = self._sanitize_profile_id(name)
         if pid == "default":
             QtWidgets.QMessageBox.warning(
                 self,
-                self.ui_tr("project.profile_clone"),
+                self.ui_tr(title_key),
                 self.ui_tr("msg.profile_reserved_default"),
             )
-            return
+            return None
         if self.profile_combo.findText(pid) >= 0:
             QtWidgets.QMessageBox.warning(
                 self,
-                self.ui_tr("project.profile_clone"),
+                self.ui_tr(title_key),
                 self.ui_tr("msg.profile_exists", name=pid),
             )
+            return None
+        return pid
+
+    def _on_profile_clone_clicked(self) -> None:
+        pid = self._prompt_new_profile_id("project.profile_clone")
+        if not pid:
             return
         src = self._current_profile_id()
         blob = self._settings.value(f"profiles/{src}/state_json", "")
         self._settings.setValue(f"profiles/{pid}/state_json", blob)
         self.profile_combo.addItem(pid)
+        self._persist_profile_names()
         self.profile_combo.setCurrentText(pid)
         self._log(self.ui_tr("msg.profile_cloned", src=src, dst=pid), "info")
+
+    def _on_profile_new_clicked(self) -> None:
+        pid = self._prompt_new_profile_id("project.profile_new")
+        if not pid:
+            return
+        payload = self._gather_profile_payload()
+        self._settings.setValue(
+            f"profiles/{pid}/state_json", json.dumps(payload, ensure_ascii=False)
+        )
+        self.profile_combo.addItem(pid)
+        self._persist_profile_names()
+        self.profile_combo.setCurrentText(pid)
+        self._log(self.ui_tr("msg.profile_created", name=pid), "info")
 
     def _on_profile_delete_clicked(self) -> None:
         pid = self._current_profile_id()
@@ -296,10 +322,7 @@ class ProfilesMixin:
         idx = self.profile_combo.currentIndex()
         self.profile_combo.removeItem(idx)
         self.profile_combo.setCurrentText("default")
-        names = [
-            self.profile_combo.itemText(i) for i in range(self.profile_combo.count())
-        ]
-        self._settings.setValue(PROFILE_NAMES_KEY, json.dumps(names))
+        self._persist_profile_names()
         self._log(self.ui_tr("msg.profile_deleted", name=pid), "info")
 
     def _load_legacy_settings_flat(self, s: QtCore.QSettings) -> None:

@@ -378,15 +378,35 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     settings_layout = QtWidgets.QVBoxLayout(win.project_settings_group)
     settings_layout.setSpacing(CHROME_SPACING)
 
-    win.btn_project_debug = action_button(win.ui_tr("project.advanced"))
-    win.btn_project_debug.clicked.connect(win._open_debug_settings)
-    settings_layout.addWidget(win.btn_project_debug)
+    win.project_profile_group = QtWidgets.QGroupBox(win.ui_tr("project.profile_group"))
+    prof_l = QtWidgets.QVBoxLayout(win.project_profile_group)
+    win.profile_combo = QtWidgets.QComboBox()
+    win.profile_combo.addItems(["default"])
+    prof_l.addWidget(win.profile_combo)
+    prof_btns = QtWidgets.QHBoxLayout()
+    win.btn_profile_clone = action_button(win.ui_tr("project.profile_clone"))
+    win.btn_profile_new = action_button(win.ui_tr("project.profile_new"))
+    win.btn_profile_delete = action_button(win.ui_tr("project.profile_delete"))
+    prof_btns.addWidget(win.btn_profile_clone)
+    prof_btns.addWidget(win.btn_profile_new)
+    prof_btns.addWidget(win.btn_profile_delete)
+    prof_l.addLayout(prof_btns)
+    win.profile_combo.currentTextChanged.connect(win._on_profile_combo_changed)
+    win.btn_profile_clone.clicked.connect(win._on_profile_clone_clicked)
+    win.btn_profile_new.clicked.connect(win._on_profile_new_clicked)
+    win.btn_profile_delete.clicked.connect(win._on_profile_delete_clicked)
+    settings_layout.addWidget(win.project_profile_group)
+
+    win.project_session_group = QtWidgets.QGroupBox(win.ui_tr("project.session_group"))
+    sess_l = QtWidgets.QVBoxLayout(win.project_session_group)
     win.btn_project_save_pack = action_button(win.ui_tr("project.save_session"))
     win.btn_project_save_pack.clicked.connect(win._menu_save_boomerpack)
-    settings_layout.addWidget(win.btn_project_save_pack)
+    sess_l.addWidget(win.btn_project_save_pack)
     win.btn_project_load_pack = action_button(win.ui_tr("project.load_session"))
     win.btn_project_load_pack.clicked.connect(win._menu_load_boomerpack)
-    settings_layout.addWidget(win.btn_project_load_pack)
+    sess_l.addWidget(win.btn_project_load_pack)
+    settings_layout.addWidget(win.project_session_group)
+
     equal = [
         win.btn_browse_bom,
         win.btn_browse_pnp,
@@ -395,49 +415,22 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
         win.btn_open_tou,
         win.btn_open_tou_folder,
         win.btn_open_lib,
-        win.btn_project_debug,
-        win.btn_project_save_pack,
-        win.btn_project_load_pack,
     ]
     if win.btn_access_odbc is not None:
         equal.append(win.btn_access_odbc)
     apply_equal_widths(equal)
+    apply_equal_widths(
+        (
+            win.btn_profile_clone,
+            win.btn_profile_new,
+            win.btn_profile_delete,
+            win.btn_project_save_pack,
+            win.btn_project_load_pack,
+        )
+    )
     settings_layout.addStretch(1)
     top.addWidget(win.project_settings_group, 0, 1)
     layout.addLayout(top)
-
-    win._prefs_host = QtWidgets.QWidget(win)
-    prefs_host_l = QtWidgets.QVBoxLayout(win._prefs_host)
-    prefs_host_l.setContentsMargins(0, 0, 0, 0)
-    row_prof = QtWidgets.QHBoxLayout()
-    win.profile_label = QtWidgets.QLabel(win.ui_tr("project.profile"))
-    row_prof.addWidget(win.profile_label)
-    win.profile_combo = QtWidgets.QComboBox()
-    win.profile_combo.addItems(["default"])
-    row_prof.addWidget(win.profile_combo)
-    win.btn_profile_clone = QtWidgets.QPushButton(win.ui_tr("project.profile_clone"))
-    row_prof.addWidget(win.btn_profile_clone)
-    win.btn_profile_delete = QtWidgets.QPushButton(win.ui_tr("project.profile_delete"))
-    row_prof.addWidget(win.btn_profile_delete)
-    row_prof.addStretch(1)
-    prefs_host_l.addLayout(row_prof)
-    win.profile_combo.currentTextChanged.connect(win._on_profile_combo_changed)
-    win.btn_profile_clone.clicked.connect(win._on_profile_clone_clicked)
-    win.btn_profile_delete.clicked.connect(win._on_profile_delete_clicked)
-
-    row_ui = QtWidgets.QHBoxLayout()
-    win.lang_label = QtWidgets.QLabel(win.ui_tr("project.language"))
-    row_ui.addWidget(win.lang_label)
-    win.lang_combo = QtWidgets.QComboBox()
-    for label, code in UI_LANGUAGE_OPTIONS:
-        win.lang_combo.addItem(label, code)
-    li = win.lang_combo.findData(win._i18n.locale)
-    win.lang_combo.setCurrentIndex(li if li >= 0 else 0)
-    win.lang_combo.currentIndexChanged.connect(lambda *_: win._on_ui_language_changed())
-    row_ui.addWidget(win.lang_combo)
-    row_ui.addStretch(1)
-    prefs_host_l.addLayout(row_ui)
-    win._prefs_host.hide()
 
     log_row = QtWidgets.QHBoxLayout()
     win.chk_colorful = switch_checkbox(win.ui_tr("project.debug_logs"))
@@ -454,6 +447,15 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.btn_project_console.clicked.connect(win._show_project_console)
     log_row.addWidget(win.btn_project_console)
     log_row.addStretch(1)
+    win.lang_label = QtWidgets.QLabel(win.ui_tr("project.language"))
+    log_row.addWidget(win.lang_label)
+    win.lang_combo = QtWidgets.QComboBox()
+    for label, code in UI_LANGUAGE_OPTIONS:
+        win.lang_combo.addItem(label, code)
+    li = win.lang_combo.findData(win._i18n.locale)
+    win.lang_combo.setCurrentIndex(li if li >= 0 else 0)
+    win.lang_combo.currentIndexChanged.connect(lambda *_: win._on_ui_language_changed())
+    log_row.addWidget(win.lang_combo)
     layout.addLayout(log_row)
 
     win.console = QtWidgets.QTextEdit()

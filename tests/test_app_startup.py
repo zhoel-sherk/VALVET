@@ -1,4 +1,4 @@
-"""Headless PySide6 startup smoke: main window tabs and debug dialogs."""
+"""Headless PySide6 startup smoke: main window tabs and Settings rail."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
     try:
         assert win.windowTitle()
         assert win.tabs.count() == len(win._tab_keys_in_order)
-        assert win.tabs.count() == 8
+        assert win.tabs.count() == 9
         assert "package" in win._tab_keys_in_order
         assert hasattr(win, "_package_tab")
         assert hasattr(win, "btn_find_package")
@@ -69,8 +69,8 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
 @pytest.mark.parametrize(
     "experimental_on,expected_tabs",
     [
-        (False, 8),
-        (True, 9),
+        (False, 9),
+        (True, 10),
     ],
 )
 def test_main_window_each_tab_switchable(
@@ -96,51 +96,55 @@ def test_main_window_each_tab_switchable(
         win.close()
 
 
-def test_debug_settings_dialog_tabs(import_parsers, qapp, tmp_path) -> None:
+def test_settings_tab_rail_and_pages(import_parsers, qapp, tmp_path) -> None:
     from app.window import MainWindow
-    from debug_settings_dialog import DebugSettingsDialog
+    from ui.chrome import LEFT_RAIL_W
+    from ui.settings_tab import SETTINGS_NAV_KEYS
 
     settings = _ini_settings(tmp_path)
     _set_experimental(settings, enabled=False)
     main = MainWindow(settings=settings)
-    dlg = DebugSettingsDialog(main)
     try:
-        tabs = dlg.findChild(QtWidgets.QTabWidget)
-        assert tabs is not None
-        assert tabs.count() == 7
-        for i in range(tabs.count()):
-            tabs.setCurrentIndex(i)
+        assert main._tab_keys_in_order[-1] == "settings"
+        assert (
+            main.tabs.tabText(main._tab_index("settings"))
+            == main.ui_tr("tab.settings").upper()
+        )
+        assert not hasattr(main, "btn_project_debug")
+        assert main._settings_stack.count() == 6
+        assert len(main._settings_nav_buttons) == 6
+        for btn, key in zip(main._settings_nav_buttons, SETTINGS_NAV_KEYS, strict=True):
+            assert btn.text() == main.ui_tr(key)
+        rail = main._settings_nav_buttons[0].parentWidget()
+        assert rail is not None
+        assert rail.width() == LEFT_RAIL_W
+        for i, btn in enumerate(main._settings_nav_buttons):
+            btn.click()
             qapp.processEvents()
+            assert main._settings_stack.currentIndex() == i
+        idx = main._tab_index("settings")
+        main.tabs.setCurrentIndex(idx)
+        qapp.processEvents()
     finally:
-        dlg.close()
         main.close()
 
 
-def test_debug_settings_reopen_keeps_profile_widgets(
-    import_parsers, qapp, tmp_path
-) -> None:
+def test_project_profile_session_and_lang_row(import_parsers, qapp, tmp_path) -> None:
     from app.window import MainWindow
 
     settings = _ini_settings(tmp_path)
     _set_experimental(settings, enabled=False)
     win = MainWindow(settings=settings)
     try:
-        win._open_debug_settings()
-        qapp.processEvents()
-        dlg = win._debug_settings_dialog
-        assert dlg is not None
-        dlg.close()
-        qapp.processEvents()
         assert win.profile_combo.currentText() == "default"
-        win._open_debug_settings()
-        qapp.processEvents()
-        win._debug_settings_dialog.close()
-        qapp.processEvents()
-        win.close()
-        qapp.processEvents()
+        assert win.project_profile_group.title() == win.ui_tr("project.profile_group")
+        assert win.project_session_group.title() == win.ui_tr("project.session_group")
+        assert win.btn_profile_new.text() == win.ui_tr("project.profile_new")
+        assert win.btn_project_save_pack.text() == win.ui_tr("project.save_session")
+        assert win.lang_label.text() == win.ui_tr("project.language")
+        assert win.chk_colorful.parentWidget() is win.lang_combo.parentWidget()
     finally:
-        if win.isVisible():
-            win.close()
+        win.close()
 
 
 def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:

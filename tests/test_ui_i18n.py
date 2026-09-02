@@ -14,8 +14,8 @@ from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n, load_catalog
 def test_load_catalog_sample_locales() -> None:
     en = load_catalog("en")
     ru = load_catalog("ru")
-    assert en["tab.project"] == "Project"
-    assert ru["tab.project"] == "Проект"
+    assert en["tab.settings"] == "Settings"
+    assert ru["tab.settings"] == "Настройки"
     assert load_catalog("pl")["tab.project"] == "Projekt"
     assert load_catalog("zh")["tab.project"] == "项目"
     assert load_catalog("de")["tab.project"] == "Projekt"

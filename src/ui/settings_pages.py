@@ -1,4 +1,4 @@
-"""Debug / advanced settings dialog (autosave snapshots, cache, .valvetpack)."""
+"""Settings tab pages (snapshots, cache, .valvetpack, fonts, colours, experimental)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from themes.color_picker import pick_hex_color
 from themes.colour_prefs import DEFAULT_TABLE_COLOURS, DEFAULT_UI_COLOURS
@@ -41,7 +41,7 @@ from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 from working_copy import SnapshotIndex, delete_snapshot_pair, list_snapshot_indices
 
 if TYPE_CHECKING:
-    from app_pyside6 import MainWindow
+    from app.window import MainWindow
 
 
 def _prefs_profile_bool(val: object, default: bool = False) -> bool:
@@ -59,18 +59,12 @@ def _prefs_profile_bool(val: object, default: bool = False) -> bool:
     return default
 
 
-class DebugSettingsDialog(QtWidgets.QDialog):
-    def __init__(self, main: "MainWindow", parent: QtWidgets.QWidget | None = None):
-        super().__init__(parent)
-        self._main = main
-        self.setWindowTitle(main.ui_tr("debug.window_title"))
-        flags = QtCore.Qt.WindowType.Window
-        self.setWindowFlags(self.windowFlags() | flags)
-        self.resize(780, 640)
+class SettingsPages(QtCore.QObject):
+    """Six settings panes plus handlers (owned by the Settings tab)."""
 
-        root = QtWidgets.QVBoxLayout(self)
-        tabs = QtWidgets.QTabWidget()
-        root.addWidget(tabs)
+    def __init__(self, main: "MainWindow"):
+        super().__init__(main)
+        self._main = main
 
         # --- Snapshots tab ---
         snap_w = QtWidgets.QWidget()
@@ -108,7 +102,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         row.addStretch(1)
         snap_l.addLayout(row)
         self._snap_list.currentItemChanged.connect(self._on_snap_selection)
-        tabs.addTab(snap_w, main.ui_tr("debug.tab_snapshots"))
+        self.page_snapshots = snap_w
 
         # --- Cache tab ---
         cache_w = QtWidgets.QWidget()
@@ -121,11 +115,14 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         self._btn_clear_autosave.clicked.connect(self._clear_autosave)
         cache_l.addWidget(self._btn_clear_autosave)
         cache_l.addStretch(1)
-        tabs.addTab(cache_w, main.ui_tr("debug.tab_cache"))
+        self.page_cache = cache_w
 
-        # --- Bundle tab ---
+        # --- Session (.valvetpack) ---
         bundle_w = QtWidgets.QWidget()
         bundle_l = QtWidgets.QVBoxLayout(bundle_w)
+        self._session_note = QtWidgets.QLabel(main.ui_tr("settings.session_note"))
+        self._session_note.setWordWrap(True)
+        bundle_l.addWidget(self._session_note)
         row_b = QtWidgets.QHBoxLayout()
         self._btn_save_pack = QtWidgets.QPushButton(main.ui_tr("debug.save_boomerpack"))
         self._btn_load_pack = QtWidgets.QPushButton(main.ui_tr("debug.load_boomerpack"))
@@ -136,7 +133,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         row_b.addStretch(1)
         bundle_l.addLayout(row_b)
         bundle_l.addStretch(1)
-        tabs.addTab(bundle_w, main.ui_tr("debug.tab_bundle"))
+        self.page_session = bundle_w
 
         # --- Fonts tab ---
         fonts_w = QtWidgets.QWidget()
@@ -250,7 +247,9 @@ class DebugSettingsDialog(QtWidgets.QDialog):
             lambda *_: self._refresh_font_preview()
         )
         fonts_l.addStretch(1)
-        tabs.addTab(fonts_w, main.ui_tr("debug.tab_fonts"))
+        self.page_fonts = fonts_w
+        self._fonts_group_ui = grp_ui
+        self._fonts_group_table = grp_tbl
 
         # --- Colours tab (saved in active profile JSON) ---
         colours_w = QtWidgets.QWidget()
@@ -352,7 +351,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         row_cb.addWidget(self._btn_colour_apply)
         colours_inner.addLayout(row_cb)
         colours_inner.addStretch(1)
-        tabs.addTab(colours_w, main.ui_tr("debug.tab_colours"))
+        self.page_colours = colours_w
 
         # --- Experimental: optional Step 3D tab (restart required) ---
         exp_w = QtWidgets.QWidget()
@@ -370,22 +369,17 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         )
         exp_l.addWidget(self._cb_exp_step)
         exp_l.addStretch(1)
-        tabs.addTab(exp_w, main.ui_tr("debug.tab_experimental"))
+        self.page_experimental = exp_w
+        self._exp_note = exp_note
 
-        prefs_w = QtWidgets.QWidget()
-        prefs_l = QtWidgets.QVBoxLayout(prefs_w)
-        self._prefs_page = prefs_w
-        self._prefs_layout = prefs_l
-        self._attach_prefs_host()
-        prefs_l.addStretch(1)
-        tabs.insertTab(0, prefs_w, main.ui_tr("debug.tab_prefs"))
-
-        close_row = QtWidgets.QHBoxLayout()
-        close_row.addStretch(1)
-        btn_close = QtWidgets.QPushButton(main.ui_tr("debug.close"))
-        btn_close.clicked.connect(self.accept)
-        close_row.addWidget(btn_close)
-        root.addLayout(close_row)
+        self.pages = (
+            snap_w,
+            cache_w,
+            bundle_w,
+            fonts_w,
+            colours_w,
+            exp_w,
+        )
 
         self._reload_list()
         self._update_cache_label()
@@ -393,45 +387,38 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         self._refresh_font_preview()
         self._load_colours_tab_state()
 
-    def _alive_prefs_host(self) -> QtWidgets.QWidget | None:
-        host = getattr(self._main, "_prefs_host", None)
-        if host is None:
-            return None
-        from shiboken6 import isValid
-
-        if not isValid(host):
-            return None
-        return host
-
-    def _attach_prefs_host(self) -> None:
-        host = self._alive_prefs_host()
-        if host is None or not hasattr(self, "_prefs_layout"):
-            return
-        self._prefs_layout.insertWidget(0, host)
-        host.show()
-
-    def _release_prefs_host(self) -> None:
-        host = self._alive_prefs_host()
-        if host is None:
-            return
-        host.setParent(self._main)
-        host.hide()
-
-    def done(self, result: int) -> None:
-        self._release_prefs_host()
-        super().done(result)
-
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        self._release_prefs_host()
-        super().closeEvent(event)
-
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
-        super().showEvent(event)
-        self._attach_prefs_host()
+    def on_shown(self) -> None:
         self._load_fonts_tab_state()
         self._refresh_font_preview()
         self._load_colours_tab_state()
         self._reload_experimental_tab_state()
+        self._reload_list()
+        self._update_cache_label()
+
+    def refresh_static_texts(self) -> None:
+        tr = self._main.ui_tr
+        self._btn_refresh.setText(tr("debug.refresh_snapshots"))
+        self._btn_delete.setText(tr("debug.delete_selected"))
+        self._btn_copy_dir.setText(tr("debug.copy_to_folder"))
+        self._btn_export_zip.setText(tr("debug.export_zip"))
+        self._btn_recover_all.setText(tr("debug.recover_all_dirty"))
+        self._btn_clear_autosave.setText(tr("debug.clear_autosave_dir"))
+        self._session_note.setText(tr("settings.session_note"))
+        self._btn_save_pack.setText(tr("debug.save_boomerpack"))
+        self._btn_load_pack.setText(tr("debug.load_boomerpack"))
+        self._fonts_note.setText(tr("debug.fonts_note"))
+        self._fonts_group_ui.setTitle(tr("debug.fonts_group_ui"))
+        self._fonts_group_table.setTitle(tr("debug.fonts_group_table"))
+        self._fonts_preview_ui_cap.setText(tr("debug.fonts_preview_ui"))
+        self._fonts_preview_table_cap.setText(tr("debug.fonts_preview_table"))
+        self._btn_font_apply.setText(tr("debug.fonts_apply"))
+        self._colours_note.setText(tr("debug.colours_note"))
+        self._btn_colour_reset_ui.setText(tr("debug.colours_reset_ui"))
+        self._btn_colour_reset_table.setText(tr("debug.colours_reset_table"))
+        self._btn_colour_apply.setText(tr("debug.colours_apply"))
+        self._exp_note.setText(tr("debug.experimental_note"))
+        self._cb_exp_step.setText(tr("tab.step_3d"))
+        self._update_cache_label()
 
     @staticmethod
     def _set_combo_user_data(cb: QtWidgets.QComboBox, data: object) -> None:
@@ -498,7 +485,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         edits = self._colour_edits_ui if prefix == "ui" else self._colour_edits_table
         edit = edits[key]
         raw = edit.text().strip()
-        name = pick_hex_color(self, raw, self._main.ui_tr("debug.colours_pick"))
+        name = pick_hex_color(self._main, raw, self._main.ui_tr("debug.colours_pick"))
         if name:
             edit.setText(name)
 
@@ -575,14 +562,14 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         sel = self._current_indices()
         if not sel:
             QtWidgets.QMessageBox.information(
-                self,
+                self._main,
                 self._main.ui_tr("debug.window_title"),
                 self._main.ui_tr("debug.none_selected"),
             )
             return
         if (
             QtWidgets.QMessageBox.question(
-                self,
+                self._main,
                 self._main.ui_tr("debug.confirm_delete_title"),
                 self._main.ui_tr("debug.confirm_delete_body", n=len(sel)),
             )
@@ -599,13 +586,13 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         sel = self._current_indices()
         if not sel:
             QtWidgets.QMessageBox.information(
-                self,
+                self._main,
                 self._main.ui_tr("debug.window_title"),
                 self._main.ui_tr("debug.none_selected"),
             )
             return
         d = QtWidgets.QFileDialog.getExistingDirectory(
-            self, self._main.ui_tr("debug.pick_folder")
+            self._main, self._main.ui_tr("debug.pick_folder")
         )
         if not d:
             return
@@ -619,13 +606,13 @@ class DebugSettingsDialog(QtWidgets.QDialog):
         sel = self._current_indices()
         if not sel:
             QtWidgets.QMessageBox.information(
-                self,
+                self._main,
                 self._main.ui_tr("debug.window_title"),
                 self._main.ui_tr("debug.none_selected"),
             )
             return
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
+            self._main,
             self._main.ui_tr("debug.export_zip_save_title"),
             str(Path.home() / "valvet_snapshots_export.zip"),
             "ZIP (*.zip);;All (*)",
@@ -647,7 +634,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
     def _clear_autosave(self) -> None:
         if (
             QtWidgets.QMessageBox.question(
-                self,
+                self._main,
                 self._main.ui_tr("debug.clear_autosave_title"),
                 self._main.ui_tr(
                     "debug.clear_autosave_body", path=str(self._autosave_dir())
@@ -681,7 +668,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
 
     def _save_boomerpack(self) -> None:
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
+            self._main,
             self._main.ui_tr("debug.save_boomerpack"),
             str(Path.home() / "session.valvetpack"),
             SAVE_FILTER,
@@ -694,7 +681,7 @@ class DebugSettingsDialog(QtWidgets.QDialog):
 
     def _load_boomerpack(self) -> None:
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self,
+            self._main,
             self._main.ui_tr("debug.load_boomerpack"),
             str(Path.home()),
             OPEN_FILTER,
