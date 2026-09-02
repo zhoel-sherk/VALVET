@@ -871,50 +871,80 @@ class PcbPreviewTab(QtWidgets.QWidget):
                 self._append_log(
                     "Missing from DB: open a Hanwha .mdb on Machine lib first."
                 )
-            drop = "none"
+            else:
+                self._append_log(f"Missing from DB: sqlite cache {cache}")
+            self._drop_outline_cache_sources(("none", "vspd_heuristic", "heuristic"))
         else:
-            drop = "hanwha_upd"
-        self._drop_outline_cache_source(drop)
+            self._drop_outline_cache_sources(("hanwha_upd",))
         if self._show_footprints:
             self._start_outline_thread()
 
+    def retry_hanwha_outlines_after_library_load(self) -> None:
+        """Re-resolve package outlines after Machine lib finishes an MDB import."""
+        if not self._mdb_fallback or not self._show_footprints:
+            return
+        self._drop_outline_cache_sources(("none", "vspd_heuristic", "heuristic"))
+        self._start_outline_thread()
+
     def _drop_outline_cache_source(self, source: str) -> None:
-        dead = [k for k, v in self._outline_cache.items() if v.source == source]
+        self._drop_outline_cache_sources((source,))
+
+    def _drop_outline_cache_sources(self, sources: tuple[str, ...]) -> None:
+        want = set(sources)
+        dead = [k for k, v in self._outline_cache.items() if v.source in want]
         for k in dead:
             del self._outline_cache[k]
 
     def _hanwha_mdb_ctx(self) -> tuple[str, dict[str, str]]:
         w: Any = self.window()
         ml = getattr(w, "_machine_library_tab", None)
-        if ml is None:
-            return "", {}
         cache = ""
-        getter = getattr(ml, "hanwha_cache_dir", None)
-        if callable(getter):
-            cache = str(getter() or "")
-        else:
-            cache = str(getattr(ml, "_hanwha_cache_dir", "") or "")
-        return cache, self._group_to_profile(ml)
+        if ml is not None:
+            getter = getattr(ml, "hanwha_cache_dir", None)
+            if callable(getter):
+                cache = str(getter() or "")
+            else:
+                cache = str(getattr(ml, "_hanwha_cache_dir", "") or "")
+        import machine_library.hanwha_sqlite_cache as hanwha_cache
+        from app_paths import hanwha_lib_cache_dir
+
+        if not cache or not hanwha_cache.sqlite_path(cache).is_file():
+            pid = "default"
+            fn = getattr(ml, "_valvet_profile_id", None) if ml is not None else None
+            if callable(fn):
+                pid = str(fn() or "default")
+            disk = str(hanwha_lib_cache_dir(pid))
+            if hanwha_cache.sqlite_path(disk).is_file():
+                cache = disk
+        gmap = self._name_to_profile(ml) if ml is not None else {}
+        return cache, gmap
 
     @staticmethod
-    def _group_to_profile(ml: Any) -> dict[str, str]:
+    def _name_to_profile(ml: Any) -> dict[str, str]:
+        """lower(PARTNAME/PROFILENAME/UPDPARTGROUPNAME) → canonical PROFILENAME."""
         df = getattr(ml, "_hanwha_df", None)
         out: dict[str, str] = {}
         if df is None or getattr(df, "empty", True):
             return out
-        if "UPDPARTGROUPNAME" not in df.columns:
-            return out
-        cols = ["UPDPARTGROUPNAME"]
-        if "PROFILENAME" in df.columns:
-            cols.append("PROFILENAME")
-        sub = df.loc[:, cols].drop_duplicates(subset=["UPDPARTGROUPNAME"], keep="first")
-        for rec in sub.itertuples(index=False):
-            group = str(rec[0] or "").strip()
-            if not group:
+
+        recs = df.to_dict("records")
+        for rec in recs:
+            if not isinstance(rec, dict):
                 continue
-            prof = str(rec[1] or "").strip() if len(rec) > 1 else ""
-            out[group] = prof
+            prof = str(rec.get("PROFILENAME") or "").strip()
+            part = str(rec.get("PARTNAME") or "").strip()
+            group = str(rec.get("UPDPARTGROUPNAME") or "").strip()
+            canonical = prof or part
+            if not canonical:
+                continue
+            for alias in (part, prof, group, canonical):
+                key = alias.lower()
+                if key and key not in out:
+                    out[key] = canonical
         return out
+
+    def _group_to_profile(self, ml: Any) -> dict[str, str]:
+        return self._name_to_profile(ml)
 
     def _show_gerber_units_help(self) -> None:
         QtWidgets.QMessageBox.information(
@@ -1474,11 +1504,14 @@ class PcbPreviewTab(QtWidgets.QWidget):
         it.set_cross_half(self._cross_half)
 
     def _outline_cached(self, name: str) -> bool:
+        skip = ()
+        if self._mdb_fallback:
+            skip = ("none", "vspd_heuristic", "heuristic")
         for k in footprint_name_keys(name):
             hit = self._outline_cache.get(k)
             if hit is None:
                 continue
-            if self._mdb_fallback and hit.source == "none":
+            if hit.source in skip:
                 continue
             return True
         return False
@@ -1546,14 +1579,23 @@ class PcbPreviewTab(QtWidgets.QWidget):
             self._start_outline_thread()
 
     def _on_outlines_ready(self, packed: object) -> None:
-        if not isinstance(packed, tuple) or len(packed) != 2:
+        if not isinstance(packed, tuple) or len(packed) < 2:
             return
-        epoch, data = packed
+        epoch, data = packed[0], packed[1]
+        stats = packed[2] if len(packed) >= 3 and isinstance(packed[2], dict) else {}
+        cache_dir = str(packed[3] or "") if len(packed) >= 4 else ""
         if epoch != self._outline_epoch or not isinstance(data, dict):
             return
         for k, v in data.items():
             if isinstance(k, str) and isinstance(v, FootprintOutlineMM):
                 self._outline_cache[k] = v
+        if self._mdb_fallback:
+            hits = int(stats.get("hits", 0) or 0)
+            misses = int(stats.get("misses", 0) or 0)
+            loc = cache_dir or "(no sqlite)"
+            self._append_log(
+                f"Missing from DB: {hits} hanwha_upd hit(s), {misses} miss(es); {loc}"
+            )
         self._apply_outline_cache()
 
     def _apply_outline_cache(self) -> None:

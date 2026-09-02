@@ -62,22 +62,56 @@ def outline_for_footprint_name(name: str) -> FootprintOutlineMM:
     return out
 
 
+def _lower_profile_map(group_to_profile: Mapping[str, str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for raw_k, raw_v in group_to_profile.items():
+        key = str(raw_k or "").strip()
+        prof = str(raw_v or "").strip()
+        if not key:
+            continue
+        if not prof:
+            prof = key
+        out[key.lower()] = prof
+    return out
+
+
+def _profiles_for_name(name: str, group_to_profile: Mapping[str, str]) -> list[str]:
+    """Candidate Hanwha PROFILENAME values: aliases, map, then VSPD-id groups."""
+    profiles: list[str] = []
+    lowered = _lower_profile_map(group_to_profile)
+
+    def _add(profile: str) -> None:
+        text = (profile or "").strip()
+        if text and text not in profiles:
+            profiles.append(text)
+
+    for cand in footprint_name_keys(name):
+        _add(cand)
+        _add(lowered.get(cand.lower(), ""))
+    vid = ""
+    for cand in footprint_name_keys(name):
+        vid = _vspd_id_for_key(cand)
+        if vid:
+            break
+    if vid:
+        for group, prof in group_to_profile.items():
+            g = str(group or "").strip()
+            p = str(prof or "").strip() or g
+            if _vspd_id_for_key(g) == vid or _vspd_id_for_key(p) == vid:
+                _add(p)
+    return profiles
+
+
 def _hanwha_outline_for_name(
     name: str,
     cache_dir: str,
     group_to_profile: Mapping[str, str],
-) -> FootprintOutlineMM | None:
-    """Lookup Hanwha UPD geometry: footprint keys as PROFILE, then group map."""
+) -> tuple[FootprintOutlineMM | None, list[str]]:
+    """Lookup Hanwha UPD geometry. Returns (outline_or_none, profiles_tried)."""
     import machine_library.hanwha_sqlite_cache as hanwha_cache
 
-    profiles: list[str] = []
-    for cand in footprint_name_keys(name):
-        if cand and cand not in profiles:
-            profiles.append(cand)
-        mapped = str(group_to_profile.get(cand, "") or "").strip()
-        if mapped and mapped not in profiles:
-            profiles.append(mapped)
-    for profile in profiles:
+    tried = _profiles_for_name(name, group_to_profile)
+    for profile in tried:
         try:
             built = hanwha_cache.build_outline_from_sqlite(cache_dir, profile)
         except (OSError, ValueError, TypeError) as e:
@@ -94,8 +128,8 @@ def _hanwha_outline_for_name(
             or not (ol.lines or ol.pads or ol.circles)
         ):
             continue
-        return ol
-    return None
+        return ol, tried
+    return None, tried
 
 
 def resolve_named_outlines(
@@ -104,11 +138,15 @@ def resolve_named_outlines(
     should_stop: Callable[[], bool] | None = None,
     mdb_cache_dir: str | None = None,
     group_to_profile: Mapping[str, str] | None = None,
-) -> dict[str, FootprintOutlineMM]:
-    """Unique names only; same VSPD id shares one outline object."""
+) -> tuple[dict[str, FootprintOutlineMM], dict[str, int]]:
+    """Unique names only; same VSPD id shares one outline object.
+
+    Second value: hanwha fallback stats (hits, misses) when ``mdb_cache_dir`` is set.
+    """
     by_vspd: dict[str, FootprintOutlineMM] = {}
     result: dict[str, FootprintOutlineMM] = {}
     seen: set[str] = set()
+    stats = {"hits": 0, "misses": 0}
     for raw in names:
         if should_stop is not None and should_stop():
             break
@@ -135,13 +173,13 @@ def resolve_named_outlines(
             result[cand] = packed
     cache = (mdb_cache_dir or "").strip()
     if cache:
-        _apply_hanwha_mdb_fallback(
+        stats = _apply_hanwha_mdb_fallback(
             result,
             cache_dir=cache,
             group_to_profile=group_to_profile or {},
             should_stop=should_stop,
         )
-    return result
+    return result, stats
 
 
 def _apply_hanwha_mdb_fallback(
@@ -150,31 +188,46 @@ def _apply_hanwha_mdb_fallback(
     cache_dir: str,
     group_to_profile: Mapping[str, str],
     should_stop: Callable[[], bool] | None = None,
-) -> None:
+) -> dict[str, int]:
     import machine_library.hanwha_sqlite_cache as hanwha_cache
 
-    pending = [k for k, o in result.items() if o.source == "none"]
+    stats = {"hits": 0, "misses": 0}
+    pending = [k for k, o in result.items() if o.source != "hanwha_upd"]
     if not pending:
-        return
+        return stats
     if not hanwha_cache.sqlite_path(cache_dir).is_file():
         logger.warning(
-            "PCB package outline: VSPD unmatched; hanwha sqlite cache missing (%s)",
+            "PCB package outline: VSPD miss fallback requested; "
+            "hanwha sqlite cache missing (%s)",
             cache_dir,
         )
-        return
+        stats["misses"] = len(pending)
+        return stats
     for key in pending:
         if should_stop is not None and should_stop():
             break
-        if result.get(key) is None or result[key].source != "none":
+        cur = result.get(key)
+        if cur is None or cur.source == "hanwha_upd":
             continue
-        hit = _hanwha_outline_for_name(key, cache_dir, group_to_profile)
+        prev = cur.source
+        hit, tried = _hanwha_outline_for_name(key, cache_dir, group_to_profile)
         if hit is None:
+            stats["misses"] += 1
+            logger.info(
+                "PCB package outline: hanwha_upd miss for %s (VSPD %s; tried %s)",
+                key,
+                prev,
+                ",".join(tried[:12]) or "-",
+            )
             continue
         logger.info(
-            "PCB package outline: VSPD unmatched; using hanwha_upd sqlite for %s",
+            "PCB package outline: VSPD %s; using hanwha_upd sqlite for %s",
+            prev,
             key,
         )
+        stats["hits"] += 1
         for cand in footprint_name_keys(key):
-            cur = result.get(cand)
-            if cur is None or cur.source == "none":
+            old = result.get(cand)
+            if old is None or old.source != "hanwha_upd":
                 result[cand] = hit
+    return stats

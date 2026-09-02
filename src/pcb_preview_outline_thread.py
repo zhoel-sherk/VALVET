@@ -32,11 +32,11 @@ class PackageOutlineThread(QtCore.QThread):
     def run(self) -> None:
         if self.isInterruptionRequested():
             return
-        packed = resolve_named_outlines(
+        packed, stats = resolve_named_outlines(
             self._names,
             should_stop=self.isInterruptionRequested,
             mdb_cache_dir=self._mdb_cache_dir or None,
             group_to_profile=self._group_to_profile,
         )
         if not self.isInterruptionRequested():
-            self.result_ready.emit((self._epoch, packed))
+            self.result_ready.emit((self._epoch, packed, stats, self._mdb_cache_dir))

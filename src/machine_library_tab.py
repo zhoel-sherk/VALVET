@@ -560,6 +560,11 @@ class MachineLibraryTab(QtWidgets.QWidget):
             "info",
         )
         self._notify_project_paths()
+        win = self.window()
+        pcb = getattr(win, "_pcb_tab", None)
+        retry = getattr(pcb, "retry_hanwha_outlines_after_library_load", None)
+        if callable(retry):
+            retry()
 
     def _on_mdb_load_thread_finished(self) -> None:
         t = self._mdb_load_thread

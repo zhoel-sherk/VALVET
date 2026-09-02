@@ -9,6 +9,13 @@ import pytest
 
 from pcb_preview.engine.identify import layer_default_rgb
 from pcb_preview.outline_resolve import footprint_name_keys, resolve_named_outlines
+
+
+def _resolved(names: list[str], **kwargs):
+    packed, stats = resolve_named_outlines(names, **kwargs)
+    return packed, stats
+
+
 from pcb_preview.types import BBoxMM, FootprintOutlineMM, PlacementRecord
 
 
@@ -18,7 +25,7 @@ def test_layer_default_rgb_yellowish() -> None:
 
 
 def test_resolve_named_outlines_unique_vspd() -> None:
-    out = resolve_named_outlines(["CHIP-0402", "Chip-R1005(0402)", "mystery-xyz"])
+    out, _stats = _resolved(["CHIP-0402", "Chip-R1005(0402)", "mystery-xyz"])
     a = out["CHIP-0402"]
     b = out["Chip-R1005(0402)"]
     assert a.source != "none"
@@ -36,11 +43,11 @@ def test_footprint_name_keys_path_and_kicad() -> None:
 
 
 def test_resolve_named_outlines_path_and_lib_alias() -> None:
-    out = resolve_named_outlines(["foo/bar/CHIP-0402"])
+    out, _stats = _resolved(["foo/bar/CHIP-0402"])
     body = out["foo/bar/CHIP-0402"]
     assert body.source != "none"
     assert out["CHIP-0402"] is body
-    lib = resolve_named_outlines(["Lib:CHIP-0402"])
+    lib, _st = _resolved(["Lib:CHIP-0402"])
     assert lib["Lib:CHIP-0402"].source != "none"
     assert lib["CHIP-0402"] is lib["Lib:CHIP-0402"]
     assert lib["CHIP-0402"].source == body.source
@@ -383,15 +390,99 @@ def test_resolve_mdb_fallback_logs_info(mocker: pytest.MockFixture) -> None:
         return_value=_Built(),
     )
     info_spy = mocker.spy(logger, "info")
-    out = resolve_named_outlines(
+    out, stats = _resolved(
         ["mystery-xyz"],
         mdb_cache_dir="C:/fake-hanwha-cache",
     )
     assert out["mystery-xyz"].source == "hanwha_upd"
+    assert stats["hits"] >= 1
     assert info_spy.called
     msg = str(info_spy.call_args.args[0]).lower()
     assert "vspd" in msg
     assert "hanwha" in msg
+
+
+def test_resolve_mdb_fallback_prefers_hanwha_over_vspd(
+    mocker: pytest.MockFixture,
+) -> None:
+    import logger
+    from pcb_preview.types import BBoxMM, StrokeLineMM
+
+    fake = FootprintOutlineMM(
+        lines=(StrokeLineMM(0.0, 0.0, 1.0, 0.0),),
+        bbox=BBoxMM(0.0, 0.0, 1.0, 0.0),
+        source="hanwha_upd",
+    )
+
+    class _Built:
+        error = ""
+        outline = fake
+
+    class _SqlitePath:
+        def is_file(self) -> bool:
+            return True
+
+    mocker.patch(
+        "machine_library.hanwha_sqlite_cache.sqlite_path",
+        return_value=_SqlitePath(),
+    )
+    mocker.patch(
+        "machine_library.hanwha_sqlite_cache.build_outline_from_sqlite",
+        return_value=_Built(),
+    )
+    info_spy = mocker.spy(logger, "info")
+    out, stats = _resolved(["CHIP-0402"], mdb_cache_dir="C:/fake-hanwha-cache")
+    assert out["CHIP-0402"].source == "hanwha_upd"
+    assert stats["hits"] >= 1
+    joined = " ".join(str(c.args[0]).lower() for c in info_spy.call_args_list)
+    assert "vspd" in joined
+    assert "hanwha" in joined
+
+
+def test_resolve_mdb_fallback_partname_map(mocker: pytest.MockFixture) -> None:
+    from pcb_preview.types import BBoxMM, StrokeLineMM
+
+    fake = FootprintOutlineMM(
+        lines=(StrokeLineMM(0.0, 0.0, 1.0, 0.0),),
+        bbox=BBoxMM(0.0, 0.0, 1.0, 0.0),
+        source="hanwha_upd",
+    )
+
+    class _Built:
+        error = ""
+        outline = fake
+
+    class _Empty:
+        error = "nope"
+        outline = FootprintOutlineMM(source="none")
+
+    class _SqlitePath:
+        def is_file(self) -> bool:
+            return True
+
+    mocker.patch(
+        "machine_library.hanwha_sqlite_cache.sqlite_path",
+        return_value=_SqlitePath(),
+    )
+
+    def _build(_cache: str, profile: str, **_kwargs: object) -> object:
+        if profile == "PROF_X":
+            return _Built()
+        return _Empty()
+
+    build = mocker.patch(
+        "machine_library.hanwha_sqlite_cache.build_outline_from_sqlite",
+        side_effect=_build,
+    )
+    out, stats = _resolved(
+        ["ZZZ-CUSTOM-PART"],
+        mdb_cache_dir="C:/fake-hanwha-cache",
+        group_to_profile={"zzz-custom-part": "PROF_X"},
+    )
+    assert out["ZZZ-CUSTOM-PART"].source == "hanwha_upd"
+    assert stats["hits"] >= 1
+    profiles = [c.args[1] for c in build.call_args_list]
+    assert "PROF_X" in profiles
 
 
 def test_resolve_mdb_fallback_missing_cache_logs_warning(
@@ -408,7 +499,7 @@ def test_resolve_mdb_fallback_missing_cache_logs_warning(
         return_value=_SqlitePath(),
     )
     warn_spy = mocker.spy(logger, "warning")
-    out = resolve_named_outlines(
+    out, _stats = _resolved(
         ["mystery-xyz"],
         mdb_cache_dir="C:/missing-cache",
     )
@@ -417,3 +508,38 @@ def test_resolve_mdb_fallback_missing_cache_logs_warning(
     msg = str(warn_spy.call_args.args[0]).lower()
     assert "vspd" in msg
     assert "sqlite" in msg or "hanwha" in msg
+    out2, _st = _resolved(["CHIP-0402"], mdb_cache_dir="C:/missing-cache")
+    assert out2["CHIP-0402"].source == "vspd_heuristic"
+
+
+def test_mdb_fallback_invalidates_vspd_cache(tmp_path: Path) -> None:
+    _qapp()
+    tab = _tab(tmp_path)
+    try:
+        df = pd.DataFrame(
+            {
+                "REF": ["U1"],
+                "X": [1.0],
+                "Y": [2.0],
+                "Footprint": ["CHIP-0402"],
+            }
+        )
+        tab.set_placements_from_dataframe(
+            df,
+            force=True,
+            designator_col="REF",
+            x_col="X",
+            y_col="Y",
+            rot_col=None,
+            footprint_col="Footprint",
+            coord_unit_mm=True,
+        )
+        tab._outline_cache["CHIP-0402"] = FootprintOutlineMM(source="vspd_heuristic")
+        tab._chk_show_footprints.setChecked(True)
+        assert tab._outline_cached("CHIP-0402") is True
+        tab._chk_mdb_fallback.setChecked(True)
+        assert tab._mdb_fallback is True
+        assert "CHIP-0402" not in tab._outline_cache
+        assert tab._outline_cached("CHIP-0402") is False
+    finally:
+        tab.close()
