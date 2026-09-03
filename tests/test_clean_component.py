@@ -494,6 +494,40 @@ def test_thermistor_extract_classify_clean_and_no_vendor_pn():
     assert parse_pn("NTCG103JF103FT1", "CAP", cfg) is None
 
 
+def test_thermistor_extra_series_pass_through():
+    from parsers.thermistors import extract_thermistor_mpn
+
+    cfg = clean_component.CleanConfig(use_pn_codecs=True, regex_master_enabled=False)
+    cases = [
+        "NCP02WF104F05RL",
+        "NCU18XH103F6SRB",
+        "NCG18XH103F0SRB",
+        "CMFD103J3900HANT",
+        "CMFA3435103JNT",
+        "TSM1A103F34D1RZ",
+        "NTCS0603E3103FLT",
+        "NTCS0603E3103JMT",
+        "B57321V2103J060",
+        "NB12K00103JBB",
+        "ABNTC-0603-103J-3950F-T",
+        "BTN04G103F3HFT00",
+        "ERTJZEG103JA",
+        "ERT-J0EP473FM",
+        "SDNT1005X473F4050FTF",
+    ]
+    for mpn in cases:
+        assert extract_thermistor_mpn(f"Thermistor-SMD 0402 47K ({mpn})") == mpn
+        row = clean_component.clean_one(f"NTC 10K ({mpn})", cfg)
+        assert row[0] == mpn
+        assert row[1] == "OTHER"
+        assert row[3] == "thermistor"
+
+    assert extract_thermistor_mpn("NCP1117") is None
+    assert extract_thermistor_mpn("NCP1529") is None
+    assert extract_thermistor_mpn("PRF18BB471QB1RB") is None
+    assert extract_thermistor_mpn("NT731JTTD103J") is None
+
+
 def test_inferit_cap_tolerance_pf_snaps_to_percent_bucket():
     from parsers.inferit_pars import parse_inferit_capacitor_fields
 
