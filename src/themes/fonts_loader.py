@@ -21,6 +21,10 @@ FONT_TABLE_FAMILY_KEY = "ui/table_font_family"
 FONT_TABLE_POINT_KEY = "ui/table_font_point_size"
 FONT_TABLE_STYLE_KEY = "ui/table_font_style"
 
+FONT_TAB_FAMILY_KEY = "ui/tab_font_family"
+FONT_TAB_POINT_KEY = "ui/tab_font_point_size"
+FONT_TAB_STYLE_KEY = "ui/tab_font_style"
+
 UI_FAMILY_INTER = "inter"
 UI_FAMILY_SYSTEM = "system"
 
@@ -142,6 +146,35 @@ def read_table_style(settings: QtCore.QSettings | None) -> str:
     if v and str(v) in _FONT_STYLES:
         return str(v)
     return STYLE_REGULAR
+
+
+def read_tab_family(settings: QtCore.QSettings | None) -> str:
+    if settings is None:
+        return UI_FAMILY_INTER
+    v = settings.value(FONT_TAB_FAMILY_KEY)
+    if v in (UI_FAMILY_INTER, UI_FAMILY_SYSTEM):
+        return str(v)
+    return UI_FAMILY_INTER
+
+
+def read_tab_style(settings: QtCore.QSettings | None) -> str:
+    if settings is None:
+        return STYLE_REGULAR
+    v = settings.value(FONT_TAB_STYLE_KEY)
+    if v and str(v) in _FONT_STYLES:
+        return str(v)
+    return STYLE_REGULAR
+
+
+def font_tab_point_size_for_editor(settings: QtCore.QSettings) -> int:
+    """Persisted tab-bar pt in 7–24; falls back to UI pt if unset."""
+    v = settings.value(FONT_TAB_POINT_KEY)
+    if v is None or str(v).strip() == "":
+        return font_point_size_for_editor(settings)
+    try:
+        return _clamp_ui_pt(int(v))
+    except (TypeError, ValueError):
+        return font_point_size_for_editor(settings)
 
 
 def _apply_style_to_font(f: QtGui.QFont, style: str) -> None:
@@ -269,6 +302,50 @@ def build_mono_font(settings: QtCore.QSettings | None) -> QtGui.QFont:
     return f
 
 
+def build_tab_font(
+    settings: QtCore.QSettings | None,
+    *,
+    override_point: int | None = None,
+    override_family: str | None = None,
+    override_style: str | None = None,
+) -> QtGui.QFont:
+    """Sans for the main window tab bar only."""
+    default_pt = default_font_point_size()
+    if settings is not None:
+        pt = font_tab_point_size_for_editor(settings)
+        fam_key = read_tab_family(settings)
+        style = read_tab_style(settings)
+    else:
+        pt = _clamp_ui_pt(default_pt)
+        fam_key = UI_FAMILY_INTER
+        style = STYLE_REGULAR
+    if override_point is not None:
+        pt = _clamp_ui_pt(int(override_point))
+    if override_family is not None:
+        if override_family in (UI_FAMILY_INTER, UI_FAMILY_SYSTEM):
+            fam_key = override_family
+    if override_style is not None:
+        if override_style in _FONT_STYLES:
+            style = override_style
+    family = (
+        resolve_inter_sans_family()
+        if fam_key == UI_FAMILY_INTER
+        else resolve_system_sans_family()
+    )
+    f = QtGui.QFont(family, pt)
+    _apply_style_to_font(f, style)
+    return f
+
+
+def apply_tab_bar_font(
+    tab_bar: QtWidgets.QTabBar | None,
+    settings: QtCore.QSettings | None,
+) -> None:
+    if tab_bar is None:
+        return
+    tab_bar.setFont(build_tab_font(settings))
+
+
 def _is_table_like_widget(w: QtWidgets.QWidget) -> bool:
     return isinstance(
         w,
@@ -286,6 +363,13 @@ def _is_project_console(w: QtWidgets.QWidget) -> bool:
     return w.objectName() == "project_console"
 
 
+def _is_main_tab_bar(w: QtWidgets.QWidget) -> bool:
+    if not isinstance(w, QtWidgets.QTabBar):
+        return False
+    parent = w.parentWidget()
+    return parent is not None and parent.objectName() == "valvetMainTabs"
+
+
 def apply_app_font(settings: QtCore.QSettings | None) -> None:
     """Set QApplication default UI font; table-like widgets get table font; console skipped here."""
     app = QtWidgets.QApplication.instance()
@@ -296,6 +380,8 @@ def apply_app_font(settings: QtCore.QSettings | None) -> None:
     app.setFont(ui_font)
     for w in app.allWidgets():
         if _is_project_console(w):
+            continue
+        if _is_main_tab_bar(w):
             continue
         if _is_table_like_widget(w):
             w.setFont(table_font)

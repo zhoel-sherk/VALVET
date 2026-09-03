@@ -1,4 +1,4 @@
-"""DATA · Package tab: VSPD catalog, aliases, Machine Lib–style outline canvas."""
+"""Package tab: VSPD catalog, aliases, Machine Lib–style outline canvas."""
 
 from __future__ import annotations
 
@@ -285,7 +285,7 @@ class PackageTab(QtWidgets.QWidget):
         self.btn_import_machine.setEnabled(n_g + n_y + n_parts > 0)
         if n_g + n_y + n_parts == 0:
             self._status.setText(
-                "Load a library on VIEW · Machine lib to import unique packages."
+                "Load a library on Machine lib to import unique packages."
             )
         else:
             self._status.setText(
@@ -308,7 +308,7 @@ class PackageTab(QtWidgets.QWidget):
             QtWidgets.QMessageBox.information(
                 self,
                 "Package",
-                "No part groups loaded. Open a Hanwha library or Yamaha files on VIEW · Machine lib.",
+                "No part groups loaded. Open a Hanwha library or Yamaha files on Machine lib.",
             )
             return
         cache = str(getattr(ml, "_hanwha_cache_dir", "") or "")

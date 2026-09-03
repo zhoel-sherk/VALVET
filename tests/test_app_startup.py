@@ -45,6 +45,16 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
         assert win.tabs.objectName() == "valvetMainTabs"
         assert win.tabs.documentMode() is True
         assert win.tabs.tabBar().expanding() is False
+        from themes.equal_tab_bar import EqualWidthTabBar
+
+        assert isinstance(win.tabs.tabBar(), EqualWidthTabBar)
+        widths = [
+            win.tabs.tabBar().tabSizeHint(i).width() for i in range(win.tabs.count())
+        ]
+        merge_i = win._tab_index("merge")
+        project_i = win._tab_index("project")
+        assert widths[merge_i] > widths[project_i]
+        assert min(widths) >= 48
         assert not win.tabs.tabIcon(win._tab_index("project")).isNull()
         assert win.tabs.count() == len(win._tab_keys_in_order)
         assert win.tabs.count() == 9
@@ -110,13 +120,14 @@ def test_settings_tab_rail_and_pages(import_parsers, qapp, tmp_path) -> None:
     main = MainWindow(settings=settings)
     try:
         assert main._tab_keys_in_order[-1] == "settings"
+        assert "settings.nav_tabs" in SETTINGS_NAV_KEYS
         assert (
             main.tabs.tabText(main._tab_index("settings"))
             == main.ui_tr("tab.settings").upper()
         )
         assert not hasattr(main, "btn_project_debug")
-        assert main._settings_stack.count() == 6
-        assert len(main._settings_nav_buttons) == 6
+        assert main._settings_stack.count() == 7
+        assert len(main._settings_nav_buttons) == 7
         for btn, key in zip(main._settings_nav_buttons, SETTINGS_NAV_KEYS, strict=True):
             assert btn.text() == main.ui_tr(key)
         rail = main._settings_nav_buttons[0].parentWidget()
@@ -159,12 +170,16 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
     win = MainWindow(settings=settings)
     try:
         assert "VALVET" in win.windowTitle()
-        assert win.tabs.tabText(win._tab_index("project")).startswith(
-            win.ui_tr("tab.group.data").upper()
+        assert (
+            win.tabs.tabText(win._tab_index("project"))
+            == win.ui_tr("tab.project").upper()
         )
-        assert win.tabs.tabText(win._tab_index("clean_bom")).startswith(
-            win.ui_tr("tab.group.transform").upper()
+        assert (
+            win.tabs.tabText(win._tab_index("clean_bom"))
+            == win.ui_tr("tab.clean_bom").upper()
         )
+        for i in range(win.tabs.count()):
+            assert " · " not in win.tabs.tabText(i)
         assert hasattr(win, "lbl_clean_context")
         assert hasattr(win, "clean_preview_table")
         assert hasattr(win, "btn_clean_options_toggle")

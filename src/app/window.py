@@ -19,12 +19,20 @@ from app_paths import autosave_root
 from machine_library_tab import MachineLibraryTab
 from smt_processor import ProcessorConfig, SMTDataProcessor
 from themes.colour_prefs import (
+    DEFAULT_TAB_COLOURS,
     DEFAULT_TABLE_COLOURS,
     DEFAULT_UI_COLOURS,
+    merge_tab_colours,
     merge_table_colours,
     merge_ui_colours,
 )
-from themes.fonts_loader import apply_app_font, build_mono_font
+from themes.equal_tab_bar import EqualWidthTabBar, recompute_equal_tab_widths
+from themes.fonts_loader import apply_app_font, apply_tab_bar_font, build_mono_font
+from themes.main_tab_prefs import (
+    apply_all_main_tab_prefs,
+    read_min_tab_height,
+    read_show_tab_icons,
+)
 from themes.stylesheet import apply_composed_stylesheet
 from themes.tab_icons import tab_icon
 from ui.bom_tab import BomTabMixin
@@ -41,18 +49,6 @@ from ui.settings_tab import SettingsTabMixin
 from ui.table_actions import TableActionsMixin
 from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n
 from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
-
-_TAB_GROUP_KEY = {
-    "project": "data",
-    "bom": "data",
-    "pnp": "data",
-    "package": "data",
-    "clean_bom": "transform",
-    "merge": "transform",
-    "pcb_preview": "view",
-    "step_3d": "view",
-    "machine_lib": "view",
-}
 
 
 class MainWindow(
@@ -145,6 +141,7 @@ class MainWindow(
 
         self._ui_colours: dict[str, str] = dict(DEFAULT_UI_COLOURS)
         self._table_colours: dict[str, str] = dict(DEFAULT_TABLE_COLOURS)
+        self._tab_colours: dict[str, str] = dict(DEFAULT_TAB_COLOURS)
 
         _raw_lang = self._settings.value("ui/language", "en")
         _lang = str(_raw_lang) if _raw_lang is not None else "en"
@@ -174,11 +171,12 @@ class MainWindow(
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setObjectName("valvetMainTabs")
         self.tabs.setDocumentMode(True)
+        self.tabs.setTabBar(EqualWidthTabBar())
         bar = self.tabs.tabBar()
         bar.setDocumentMode(True)
         bar.setExpanding(False)
         bar.setUsesScrollButtons(True)
-        bar.setElideMode(QtCore.Qt.TextElideMode.ElideRight)
+        bar.setElideMode(QtCore.Qt.TextElideMode.ElideNone)
         bar.setIconSize(QtCore.QSize(16, 16))
         main_layout.addWidget(self.tabs)
         self._tab_keys_in_order = []
@@ -204,6 +202,7 @@ class MainWindow(
 
         self._sync_tab_titles_i18n()
         self.apply_ui_font_from_settings()
+        apply_all_main_tab_prefs(self)
 
         self._create_menus()
         self._install_edit_shortcuts()
@@ -211,14 +210,12 @@ class MainWindow(
         self._refresh_shell_status()
 
     def _sync_tab_titles_i18n(self) -> None:
+        show_icons = read_show_tab_icons(getattr(self, "_settings", None))
+        empty = QtGui.QIcon()
         for i, key in enumerate(self._tab_keys_in_order):
-            group = _TAB_GROUP_KEY.get(key, "")
-            title = self.ui_tr(f"tab.{key}")
-            if group:
-                g = self.ui_tr(f"tab.group.{group}")
-                title = f"{g} · {title}"
-            self.tabs.setTabText(i, title.upper())
-            self.tabs.setTabIcon(i, tab_icon(key))
+            self.tabs.setTabText(i, self.ui_tr(f"tab.{key}").upper())
+            self.tabs.setTabIcon(i, tab_icon(key) if show_icons else empty)
+        recompute_equal_tab_widths(self.tabs)
 
     def _refresh_shell_status(self) -> None:
         bom = (
@@ -272,12 +269,17 @@ class MainWindow(
         apply_app_font(self._settings)
         if hasattr(self, "console"):
             self.console.setFont(build_mono_font(self._settings))
+        if hasattr(self, "tabs"):
+            apply_tab_bar_font(self.tabs.tabBar(), self._settings)
+            recompute_equal_tab_widths(self.tabs)
 
     def _refresh_application_stylesheet(self) -> None:
         """Recompose qdarkstyle + tokens + profile UI/table colours; then re-apply fonts."""
         apply_composed_stylesheet(
             self._ui_colours,
             self._table_colours,
+            getattr(self, "_tab_colours", None),
+            tab_min_height=read_min_tab_height(getattr(self, "_settings", None)),
             apply_fonts=self.apply_ui_font_from_settings,
         )
 
@@ -285,6 +287,13 @@ class MainWindow(
         """Merge colour dicts from Debug dialog, refresh QSS, persist active profile."""
         self._ui_colours = merge_ui_colours(ui)
         self._table_colours = merge_table_colours(table)
+        self._refresh_application_stylesheet()
+        self._save_full_profile_snapshot()
+        self._log(self.ui_tr("debug.colours_saved_profile"), "info")
+
+    def apply_tab_colours(self, tab: dict[str, Any]) -> None:
+        """Merge main-tab colour dict, refresh QSS, persist active profile."""
+        self._tab_colours = merge_tab_colours(tab)
         self._refresh_application_stylesheet()
         self._save_full_profile_snapshot()
         self._log(self.ui_tr("debug.colours_saved_profile"), "info")
@@ -743,6 +752,7 @@ class MainWindow(
             self._restore_session_log_pref(s)
         finally:
             self._restoring_settings = False
+        apply_all_main_tab_prefs(self)
         self._restore_main_tab_from_settings()
         self._refresh_application_stylesheet()
 

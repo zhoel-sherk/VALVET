@@ -45,6 +45,16 @@ DEFAULT_TABLE_COLOURS: dict[str, str] = {
     "grid": "#3A4A5A",
 }
 
+# Keys stored in profile JSON under tab_colours (main window strip only).
+DEFAULT_TAB_COLOURS: dict[str, str] = {
+    "bar_bg": "#19232D",
+    "normal_bg": "#2A3948",
+    "normal_fg": "#DDE4EE",
+    "selected_bg": "#1E2A35",
+    "selected_fg": "#DDE4EE",
+    "border": "#2A3948",
+}
+
 
 def merge_ui_colours(overrides: dict[str, Any] | None) -> dict[str, str]:
     out = dict(DEFAULT_UI_COLOURS)
@@ -66,6 +76,16 @@ def merge_table_colours(overrides: dict[str, Any] | None) -> dict[str, str]:
     return out
 
 
+def merge_tab_colours(overrides: dict[str, Any] | None) -> dict[str, str]:
+    out = dict(DEFAULT_TAB_COLOURS)
+    if not isinstance(overrides, dict):
+        return out
+    for k in DEFAULT_TAB_COLOURS:
+        if k in overrides:
+            out[k] = sanitize_hex(overrides[k], out[k])
+    return out
+
+
 def _lighten_hex(h: str, amount: float = 0.18) -> str:
     """Blend ``h`` toward white; used for tab hover (not a picker key)."""
     s = sanitize_hex(h, DEFAULT_UI_COLOURS["control_bg"])
@@ -79,17 +99,28 @@ def _lighten_hex(h: str, amount: float = 0.18) -> str:
     return f"#{_ch(r):02X}{_ch(g):02X}{_ch(b):02X}"
 
 
-def profile_colour_qss(ui: dict[str, str], table: dict[str, str]) -> str:
+def profile_colour_qss(
+    ui: dict[str, str],
+    table: dict[str, str],
+    tab: dict[str, str] | None = None,
+    *,
+    tab_min_height: int = 22,
+) -> str:
     """QSS appended after qdarkstyle; fixes alternate row contrast for item views."""
     u = ui
     t = table
+    tb = merge_tab_colours(tab)
     bg, alt = t["bg"], t["alt_bg"]
     tx = t["text"]
     hb, hf = t["header_bg"], t["header_fg"]
     sb, sf = t["selection_bg"], t["selection_fg"]
     gr = t["grid"]
-    hover = _lighten_hex(u["control_bg"])
-    tab_border = u["control_bg"]
+    hover = _lighten_hex(tb["normal_bg"])
+    # documentMode shows the window through the pane, not panel_bg.
+    body = u["window_bg"]
+    tab_hi = _lighten_hex(body, 0.22)
+    tab_border = tb["border"]
+    tab_h = max(18, min(48, int(tab_min_height)))
     return f"""
     QMainWindow, QDialog {{
         background-color: {u["window_bg"]};
@@ -106,33 +137,47 @@ def profile_colour_qss(ui: dict[str, str], table: dict[str, str]) -> str:
         min-height: 22px;
         font-weight: 700;
     }}
+    QTabWidget#valvetMainTabs {{
+        background-color: {body};
+    }}
     QTabWidget#valvetMainTabs::pane {{
         border: 1px solid {tab_border};
-        background-color: {u["panel_bg"]};
+        border-top: none;
+        background-color: {body};
         top: -1px;
     }}
     QTabWidget#valvetMainTabs QTabBar {{
-        background-color: {u["window_bg"]};
+        background-color: {tb["bar_bg"]};
+        qproperty-drawBase: 0;
     }}
-    QTabWidget#valvetMainTabs QTabBar::tab {{
-        background-color: {u["control_bg"]};
-        color: {u["panel_fg"]};
-        padding: 8px 12px;
-        min-height: 22px;
+    QTabWidget#valvetMainTabs QTabBar::tab:top {{
+        background-color: {tb["normal_bg"]};
+        color: {tb["normal_fg"]};
+        padding: 4px 8px;
+        min-height: {tab_h}px;
         font-weight: 700;
         border: 1px solid {tab_border};
-        border-bottom: none;
+        border-bottom: 1px solid {tab_border};
         border-top-left-radius: 6px;
         border-top-right-radius: 6px;
         margin-right: 2px;
     }}
-    QTabWidget#valvetMainTabs QTabBar::tab:selected {{
-        background-color: {u["panel_bg"]};
-        color: {u["panel_fg"]};
-        border-color: {tab_border};
-        border-bottom: 1px solid {u["panel_bg"]};
+    QTabWidget#valvetMainTabs QTabBar::tab:top:!selected {{
+        margin-top: 2px;
     }}
-    QTabWidget#valvetMainTabs QTabBar::tab:hover:!selected {{
+    QTabWidget#valvetMainTabs QTabBar::tab:top:selected {{
+        background-color: {body};
+        color: {tb["selected_fg"]};
+        border: 1px solid {tab_border};
+        border-top: 1px solid {tab_hi};
+        border-bottom: 1px solid {body};
+        margin-top: 0px;
+        margin-bottom: -1px;
+        padding: 4px 8px;
+        min-height: {tab_h}px;
+        font-weight: 700;
+    }}
+    QTabWidget#valvetMainTabs QTabBar::tab:top:hover:!selected {{
         background-color: {hover};
     }}
     QGroupBox {{

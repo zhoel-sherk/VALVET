@@ -14,7 +14,11 @@ from app.constants import (
     PROFILE_NAMES_KEY,
     PROFILE_STATE_VERSION,
 )
-from themes.colour_prefs import merge_table_colours, merge_ui_colours
+from themes.colour_prefs import (
+    merge_tab_colours,
+    merge_table_colours,
+    merge_ui_colours,
+)
 from ui.project_tab import configure_path_label
 from ui_i18n import SUPPORTED_UI_LOCALES
 
@@ -107,6 +111,7 @@ class ProfilesMixin:
             "pcb_preview": pcb,
             "session_links": self._session_links_to_payload(),
             "table_colours": dict(self._table_colours),
+            "tab_colours": dict(getattr(self, "_tab_colours", {})),
         }
 
     def _apply_profile_payload(self, data: dict[str, Any]) -> None:
@@ -123,6 +128,8 @@ class ProfilesMixin:
         self._ui_colours = merge_ui_colours(csub if isinstance(csub, dict) else None)
         tc = data.get("table_colours")
         self._table_colours = merge_table_colours(tc if isinstance(tc, dict) else None)
+        tbc = data.get("tab_colours")
+        self._tab_colours = merge_tab_colours(tbc if isinstance(tbc, dict) else None)
         bom = data.get("bom") or {}
         bsep = str(bom.get("separator", "auto"))
         if self.bom_separator.findText(bsep) >= 0:

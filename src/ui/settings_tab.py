@@ -19,6 +19,7 @@ SETTINGS_NAV_KEYS = (
     "settings.nav_session",
     "settings.nav_fonts",
     "settings.nav_colours",
+    "settings.nav_tabs",
     "settings.nav_experimental",
 )
 

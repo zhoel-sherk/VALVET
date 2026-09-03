@@ -1,4 +1,4 @@
-"""Headless DATA · Package tab: table + FootprintPreviewWidget."""
+"""Headless Package tab: table + FootprintPreviewWidget."""
 
 from __future__ import annotations
 

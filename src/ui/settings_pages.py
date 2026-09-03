@@ -1,4 +1,4 @@
-"""Settings tab pages (snapshots, cache, .valvetpack, fonts, colours, experimental)."""
+"""Settings tab pages (snapshots, cache, .valvetpack, fonts, colours, tabs, experimental)."""
 
 from __future__ import annotations
 
@@ -10,10 +10,18 @@ from typing import TYPE_CHECKING, Any
 from PySide6 import QtCore, QtWidgets
 
 from themes.color_picker import pick_hex_color
-from themes.colour_prefs import DEFAULT_TABLE_COLOURS, DEFAULT_UI_COLOURS
+from themes.colour_prefs import (
+    DEFAULT_TAB_COLOURS,
+    DEFAULT_TABLE_COLOURS,
+    DEFAULT_UI_COLOURS,
+)
+from themes.equal_tab_bar import TAB_MIN_HEIGHT_HI, TAB_MIN_HEIGHT_LO
 from themes.fonts_loader import (
     FONT_BOLD_SETTINGS_KEY,
     FONT_POINT_SETTINGS_KEY,
+    FONT_TAB_FAMILY_KEY,
+    FONT_TAB_POINT_KEY,
+    FONT_TAB_STYLE_KEY,
     FONT_TABLE_FAMILY_KEY,
     FONT_TABLE_POINT_KEY,
     FONT_TABLE_STYLE_KEY,
@@ -28,14 +36,27 @@ from themes.fonts_loader import (
     TABLE_FAMILY_SYSTEM,
     UI_FAMILY_INTER,
     UI_FAMILY_SYSTEM,
+    build_tab_font,
     build_table_font,
     build_ui_font,
     font_point_size_for_editor,
+    font_tab_point_size_for_editor,
     font_table_point_size_for_editor,
+    read_tab_family,
+    read_tab_style,
     read_table_family,
     read_table_style,
     read_ui_family,
     read_ui_style,
+)
+from themes.main_tab_prefs import (
+    TAB_MIN_HEIGHT_KEY,
+    TAB_SHOW_ICONS_KEY,
+    apply_all_main_tab_prefs,
+    default_order_for_available,
+    read_min_tab_height,
+    read_show_tab_icons,
+    write_main_tab_order,
 )
 from ui.chrome import switch_checkbox
 from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
@@ -377,6 +398,124 @@ class SettingsPages(QtCore.QObject):
         colours_inner.addStretch(1)
         self.page_colours = colours_w
 
+        # --- Tabs (order, icons, height, font, colours) ---
+        tabs_w = QtWidgets.QWidget()
+        tabs_outer = QtWidgets.QVBoxLayout(tabs_w)
+        self._tabs_note = QtWidgets.QLabel(main.ui_tr("settings.tabs_note"))
+        self._tabs_note.setWordWrap(True)
+        tabs_outer.addWidget(self._tabs_note)
+        scroll_t = QtWidgets.QScrollArea()
+        scroll_t.setWidgetResizable(True)
+        scroll_t.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        inner_t = QtWidgets.QWidget()
+        scroll_t.setWidget(inner_t)
+        tabs_inner = QtWidgets.QVBoxLayout(inner_t)
+        tabs_outer.addWidget(scroll_t, 1)
+
+        self._tabs_order_cap = QtWidgets.QLabel(main.ui_tr("settings.tabs_order"))
+        tabs_inner.addWidget(self._tabs_order_cap)
+        self._tabs_order_list = QtWidgets.QListWidget()
+        self._tabs_order_list.setDragDropMode(
+            QtWidgets.QAbstractItemView.DragDropMode.InternalMove
+        )
+        self._tabs_order_list.setDefaultDropAction(QtCore.Qt.DropAction.MoveAction)
+        self._tabs_order_list.setMinimumHeight(180)
+        tabs_inner.addWidget(self._tabs_order_list)
+        self._btn_tabs_reset_order = QtWidgets.QPushButton(
+            main.ui_tr("settings.tabs_reset_order")
+        )
+        self._btn_tabs_reset_order.clicked.connect(self._on_tabs_reset_order)
+        tabs_inner.addWidget(self._btn_tabs_reset_order)
+
+        self._chk_tab_icons = switch_checkbox(main.ui_tr("settings.tabs_show_icons"))
+        self._chk_tab_icons.setChecked(read_show_tab_icons(main._settings))
+        tabs_inner.addWidget(self._chk_tab_icons)
+
+        height_row = QtWidgets.QHBoxLayout()
+        self._tabs_height_lbl = QtWidgets.QLabel(main.ui_tr("settings.tabs_height"))
+        self._spin_tab_height = QtWidgets.QSpinBox()
+        self._spin_tab_height.setRange(TAB_MIN_HEIGHT_LO, TAB_MIN_HEIGHT_HI)
+        self._spin_tab_height.setValue(read_min_tab_height(main._settings))
+        height_row.addWidget(self._tabs_height_lbl)
+        height_row.addWidget(self._spin_tab_height)
+        height_row.addStretch(1)
+        tabs_inner.addLayout(height_row)
+
+        self._tabs_font_group = QtWidgets.QGroupBox(
+            main.ui_tr("settings.tabs_font_group")
+        )
+        grid_tf = QtWidgets.QGridLayout(self._tabs_font_group)
+        self._font_tab_family = QtWidgets.QComboBox()
+        self._font_tab_family.addItem(
+            main.ui_tr("debug.fonts_opt_inter"), UI_FAMILY_INTER
+        )
+        self._font_tab_family.addItem(
+            main.ui_tr("debug.fonts_opt_system"), UI_FAMILY_SYSTEM
+        )
+        grid_tf.addWidget(
+            QtWidgets.QLabel(main.ui_tr("debug.fonts_family_label")), 0, 0
+        )
+        grid_tf.addWidget(self._font_tab_family, 0, 1)
+        self._font_tab_pt = QtWidgets.QSpinBox()
+        self._font_tab_pt.setRange(7, 24)
+        grid_tf.addWidget(QtWidgets.QLabel(main.ui_tr("debug.fonts_point_label")), 1, 0)
+        grid_tf.addWidget(self._font_tab_pt, 1, 1)
+        self._font_tab_style = QtWidgets.QComboBox()
+        for key, st in (
+            ("debug.fonts_style_regular", STYLE_REGULAR),
+            ("debug.fonts_style_bold", STYLE_BOLD),
+            ("debug.fonts_style_italic", STYLE_ITALIC),
+            ("debug.fonts_style_bolditalic", STYLE_BOLDITALIC),
+        ):
+            self._font_tab_style.addItem(main.ui_tr(key), st)
+        grid_tf.addWidget(QtWidgets.QLabel(main.ui_tr("debug.fonts_style_label")), 2, 0)
+        grid_tf.addWidget(self._font_tab_style, 2, 1)
+        tabs_inner.addWidget(self._tabs_font_group)
+        self._font_preview_tab = QtWidgets.QLabel("PROJECT   CLEAN BOM   SETTINGS")
+        tabs_inner.addWidget(self._font_preview_tab)
+
+        self._tabs_colours_group = QtWidgets.QGroupBox(
+            main.ui_tr("settings.tabs_colours_group")
+        )
+        grid_tc = QtWidgets.QGridLayout(self._tabs_colours_group)
+        self._colour_edits_tab: dict[str, QtWidgets.QLineEdit] = {}
+        for i, key in enumerate(DEFAULT_TAB_COLOURS):
+            lbl = QtWidgets.QLabel(main.ui_tr(f"debug.colours.tab.{key}"))
+            edit = QtWidgets.QLineEdit()
+            edit.setMaxLength(7)
+            edit.setMaximumWidth(100)
+            self._colour_edits_tab[key] = edit
+            pick = QtWidgets.QPushButton(main.ui_tr("debug.colours_pick"))
+            pick.setMaximumWidth(90)
+            pick.clicked.connect(partial(self._on_pick_tab_colour_clicked, key))
+            grid_tc.addWidget(lbl, i, 0)
+            row_h = QtWidgets.QHBoxLayout()
+            row_h.addWidget(edit)
+            row_h.addWidget(pick)
+            row_h.addStretch(1)
+            wrap = QtWidgets.QWidget()
+            wrap.setLayout(row_h)
+            grid_tc.addWidget(wrap, i, 1)
+        tabs_inner.addWidget(self._tabs_colours_group)
+        self._btn_tabs_reset_colours = QtWidgets.QPushButton(
+            main.ui_tr("debug.colours_reset_ui")
+        )
+        self._btn_tabs_reset_colours.clicked.connect(self._on_tabs_reset_colours)
+        tabs_inner.addWidget(self._btn_tabs_reset_colours)
+
+        self._btn_tabs_apply = QtWidgets.QPushButton(main.ui_tr("settings.tabs_apply"))
+        self._btn_tabs_apply.clicked.connect(self._on_tabs_apply_clicked)
+        tabs_inner.addWidget(self._btn_tabs_apply)
+        tabs_inner.addStretch(1)
+        self.page_tabs = tabs_w
+        for w in (self._font_tab_family, self._font_tab_style):
+            w.currentIndexChanged.connect(lambda *_: self._refresh_tab_font_preview())
+        self._font_tab_pt.valueChanged.connect(
+            lambda *_: self._refresh_tab_font_preview()
+        )
+
         # --- Experimental: optional Step 3D tab (restart required) ---
         exp_w = QtWidgets.QWidget()
         exp_l = QtWidgets.QVBoxLayout(exp_w)
@@ -402,6 +541,7 @@ class SettingsPages(QtCore.QObject):
             bundle_w,
             fonts_w,
             colours_w,
+            tabs_w,
             exp_w,
         )
 
@@ -410,11 +550,13 @@ class SettingsPages(QtCore.QObject):
         self._load_fonts_tab_state()
         self._refresh_font_preview()
         self._load_colours_tab_state()
+        self._load_tabs_page_state()
 
     def on_shown(self) -> None:
         self._load_fonts_tab_state()
         self._refresh_font_preview()
         self._load_colours_tab_state()
+        self._load_tabs_page_state()
         self._reload_experimental_tab_state()
         self._reload_list()
         self._update_cache_label()
@@ -444,6 +586,20 @@ class SettingsPages(QtCore.QObject):
         self._btn_colour_reset_ui.setText(tr("debug.colours_reset_ui"))
         self._btn_colour_reset_table.setText(tr("debug.colours_reset_table"))
         self._btn_colour_apply.setText(tr("debug.colours_apply"))
+        self._tabs_note.setText(tr("settings.tabs_note"))
+        self._tabs_order_cap.setText(tr("settings.tabs_order"))
+        self._btn_tabs_reset_order.setText(tr("settings.tabs_reset_order"))
+        self._chk_tab_icons.setText(tr("settings.tabs_show_icons"))
+        self._tabs_height_lbl.setText(tr("settings.tabs_height"))
+        self._tabs_font_group.setTitle(tr("settings.tabs_font_group"))
+        self._tabs_colours_group.setTitle(tr("settings.tabs_colours_group"))
+        self._btn_tabs_reset_colours.setText(tr("debug.colours_reset_ui"))
+        self._btn_tabs_apply.setText(tr("settings.tabs_apply"))
+        for i in range(self._tabs_order_list.count()):
+            item = self._tabs_order_list.item(i)
+            key = str(item.data(QtCore.Qt.ItemDataRole.UserRole) or "")
+            if key:
+                item.setText(tr(f"tab.{key}"))
         self._exp_note.setText(tr("debug.experimental_note"))
         self._cb_exp_step.setText(tr("tab.step_3d"))
         self._update_cache_label()
@@ -529,6 +685,89 @@ class SettingsPages(QtCore.QObject):
         ui_raw = {k: ed.text().strip() for k, ed in self._colour_edits_ui.items()}
         tbl_raw = {k: ed.text().strip() for k, ed in self._colour_edits_table.items()}
         self._main.apply_debug_colours(ui_raw, tbl_raw)
+
+    def _tabs_order_keys_from_list(self) -> list[str]:
+        keys: list[str] = []
+        for i in range(self._tabs_order_list.count()):
+            item = self._tabs_order_list.item(i)
+            k = str(item.data(QtCore.Qt.ItemDataRole.UserRole) or "")
+            if k:
+                keys.append(k)
+        return keys
+
+    def _fill_tabs_order_list(self, keys: list[str]) -> None:
+        tr = self._main.ui_tr
+        self._tabs_order_list.clear()
+        for key in keys:
+            item = QtWidgets.QListWidgetItem(tr(f"tab.{key}"))
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, key)
+            item.setFlags(
+                item.flags()
+                | QtCore.Qt.ItemFlag.ItemIsDragEnabled
+                | QtCore.Qt.ItemFlag.ItemIsDropEnabled
+            )
+            self._tabs_order_list.addItem(item)
+
+    def _load_tabs_page_state(self) -> None:
+        main = self._main
+        keys = list(getattr(main, "_tab_keys_in_order", []) or [])
+        self._fill_tabs_order_list(keys)
+        s = main._settings
+        self._chk_tab_icons.blockSignals(True)
+        self._chk_tab_icons.setChecked(read_show_tab_icons(s))
+        self._chk_tab_icons.blockSignals(False)
+        self._spin_tab_height.blockSignals(True)
+        self._spin_tab_height.setValue(read_min_tab_height(s))
+        self._spin_tab_height.blockSignals(False)
+        self._set_combo_user_data(self._font_tab_family, read_tab_family(s))
+        self._font_tab_pt.setValue(font_tab_point_size_for_editor(s))
+        self._set_combo_user_data(self._font_tab_style, read_tab_style(s))
+        colours = getattr(main, "_tab_colours", DEFAULT_TAB_COLOURS)
+        for k, ed in self._colour_edits_tab.items():
+            ed.setText(colours.get(k, DEFAULT_TAB_COLOURS[k]))
+        self._refresh_tab_font_preview()
+
+    def _refresh_tab_font_preview(self) -> None:
+        fam = self._font_tab_family.currentData(QtCore.Qt.ItemDataRole.UserRole)
+        st = self._font_tab_style.currentData(QtCore.Qt.ItemDataRole.UserRole)
+        f = build_tab_font(
+            self._main._settings,
+            override_point=int(self._font_tab_pt.value()),
+            override_family=str(fam) if fam is not None else None,
+            override_style=str(st) if st is not None else None,
+        )
+        self._font_preview_tab.setFont(f)
+
+    def _on_tabs_reset_order(self) -> None:
+        keys = list(getattr(self._main, "_tab_keys_in_order", []) or [])
+        self._fill_tabs_order_list(default_order_for_available(keys))
+
+    def _on_tabs_reset_colours(self) -> None:
+        for k, ed in self._colour_edits_tab.items():
+            ed.setText(DEFAULT_TAB_COLOURS[k])
+
+    def _on_pick_tab_colour_clicked(self, key: str) -> None:
+        edit = self._colour_edits_tab[key]
+        raw = edit.text().strip()
+        name = pick_hex_color(self._main, raw, self._main.ui_tr("debug.colours_pick"))
+        if name:
+            edit.setText(name)
+
+    def _on_tabs_apply_clicked(self) -> None:
+        main = self._main
+        s = main._settings
+        keys = self._tabs_order_keys_from_list()
+        write_main_tab_order(s, keys)
+        s.setValue(TAB_SHOW_ICONS_KEY, bool(self._chk_tab_icons.isChecked()))
+        s.setValue(TAB_MIN_HEIGHT_KEY, int(self._spin_tab_height.value()))
+        fam = self._font_tab_family.currentData(QtCore.Qt.ItemDataRole.UserRole)
+        st = self._font_tab_style.currentData(QtCore.Qt.ItemDataRole.UserRole)
+        s.setValue(FONT_TAB_FAMILY_KEY, str(fam))
+        s.setValue(FONT_TAB_POINT_KEY, int(self._font_tab_pt.value()))
+        s.setValue(FONT_TAB_STYLE_KEY, str(st))
+        tab_raw = {k: ed.text().strip() for k, ed in self._colour_edits_tab.items()}
+        main.apply_tab_colours(tab_raw)
+        apply_all_main_tab_prefs(main)
 
     def _on_experimental_toggled(self, key: str, on: bool) -> None:
         self._main._settings.setValue(f"experimental/enable_{key}", bool(on))
