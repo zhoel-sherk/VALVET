@@ -688,6 +688,58 @@ def test_ferrite_bead_hcb_analog_family_is_covered():
         assert extract_ferrite_bead_mpn(s) == mpn
 
 
+def test_ferrite_bead_pz_mglb_and_wave2_series():
+    from parsers.ferrite_beads import extract_ferrite_bead_mpn
+
+    cfg = clean_component.CleanConfig(use_pn_codecs=True, regex_master_enabled=False)
+    cases = [
+        (
+            "FERRITE-BEAD 0402 120 OHM@100MHz ±25% 700mA LEAD-FREE - 309(PZ1005E121-R70TF)",
+            "PZ1005E121-R70TF",
+        ),
+        (
+            "FERRITE-BEAD 0402 120 OHM@100MHz ±25% 700mA LEAD-FREE - 805(MGLB1005M121T0R7-LF)",
+            "MGLB1005M121T0R7-LF",
+        ),
+        (
+            "FERRITE-BEAD 0603 30 OHM±25% @100MHz 3.0A LEAD-FREE - 307(PZ1608U300-3R0TF)",
+            "PZ1608U300-3R0TF",
+        ),
+        (
+            "FERRITE-BEAD 0603 30 OHM@100MHz ±25% 3.0A RoHS - 805(MGLB1608M300T3R0-LF)",
+            "MGLB1608M300T3R0-LF",
+        ),
+    ]
+    for raw, mpn in cases:
+        assert extract_ferrite_bead_mpn(raw) == mpn
+        row = clean_component.clean_one(raw, cfg)
+        assert row[0] == mpn
+        assert row[1] == "FERRITE_BEAD"
+        assert row[2] == "FB"
+        assert row[3] == "ferrite_bead"
+
+    assert extract_ferrite_bead_mpn("FERRITE BEAD (PZ1005E121_R70TF)") == "PZ1005E121_R70TF"
+    assert extract_ferrite_bead_mpn("FERRITE BEAD HCB1608KF_221T30") == "HCB1608KF_221T30"
+    assert clean_component.classify_component_type("PZ1608U300-3R0TF") == "FERRITE_BEAD"
+    assert extract_ferrite_bead_mpn("LZ-PZ_32PIN") is None
+    assert extract_ferrite_bead_mpn("CONNECTOR LZ-PZ_32PIN") is None
+
+    extras = [
+        "GZ1005U601TF",
+        "CBG100505U121T",
+        "CIM05J121NC",
+        "MMZ1608B121C",
+        "MPZ2012S300AT000",
+        "MGGB1005M121HT-LF",
+        "BK1608HS121-T",
+    ]
+    for mpn in extras:
+        assert extract_ferrite_bead_mpn(f"FERRITE BEAD junk {mpn} noise") == mpn
+        row = clean_component.clean_one(f"FERRITE BEAD {mpn}", cfg)
+        assert row[0] == mpn
+        assert row[3] == "ferrite_bead"
+
+
 def test_power_ic_spacer_only_hanwha_is_partial_when_flag_on():
     mdb = "JW7115S_2SOTA_TRPBF"
     bom = (
