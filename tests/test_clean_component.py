@@ -752,8 +752,13 @@ def test_ferrite_bead_pz_mglb_and_wave2_series():
         assert row[2] == "FB"
         assert row[3] == "ferrite_bead"
 
-    assert extract_ferrite_bead_mpn("FERRITE BEAD (PZ1005E121_R70TF)") == "PZ1005E121_R70TF"
-    assert extract_ferrite_bead_mpn("FERRITE BEAD HCB1608KF_221T30") == "HCB1608KF_221T30"
+    assert (
+        extract_ferrite_bead_mpn("FERRITE BEAD (PZ1005E121_R70TF)")
+        == "PZ1005E121_R70TF"
+    )
+    assert (
+        extract_ferrite_bead_mpn("FERRITE BEAD HCB1608KF_221T30") == "HCB1608KF_221T30"
+    )
     assert clean_component.classify_component_type("PZ1608U300-3R0TF") == "FERRITE_BEAD"
     assert extract_ferrite_bead_mpn("LZ-PZ_32PIN") is None
     assert extract_ferrite_bead_mpn("CONNECTOR LZ-PZ_32PIN") is None
