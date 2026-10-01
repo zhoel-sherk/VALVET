@@ -278,6 +278,87 @@ def _ods_engine_candidates() -> tuple[str, ...]:
     return ("calamine", "odf")
 
 
+@dataclass
+class SheetInfo:
+    """One worksheet in a spreadsheet: name plus visibility.
+
+    ``visible`` is False for Excel hidden / very hidden sheets. Formats whose
+    reader cannot report visibility are reported as visible so callers never
+    silently lose a sheet.
+    """
+
+    name: str
+    visible: bool = True
+
+    @property
+    def label(self) -> str:
+        """Display label; hidden sheets are marked so the user can tell them apart."""
+        return self.name if self.visible else f"{self.name} (hidden)"
+
+
+def list_sheets(path: str) -> list[SheetInfo]:
+    """List worksheets in order with visibility, best effort.
+
+    Returns an empty list for non-spreadsheet files (CSV/TXT) or when no engine
+    can enumerate sheets. Never raises for a readable file.
+    """
+    try:
+        path_obj = _require_readable_file(path)
+    except SMTFileNotFoundError:
+        return []
+    suffix = path_obj.suffix.lower()
+    if suffix in (".xlsx", ".xls"):
+        engines = _excel_engine_candidates(suffix)
+    elif suffix == ".ods":
+        engines = _ods_engine_candidates()
+    else:
+        return []
+
+    for eng in engines:
+        try:
+            return _list_sheets_with_engine(str(path_obj), suffix, eng)
+        except Exception as e:  # engine missing / file unreadable - try next
+            logger.debug("Sheet listing failed (%s, %s): %s", eng, path_obj, e)
+            continue
+    return []
+
+
+def _list_sheets_with_engine(path: str, suffix: str, engine: str) -> list[SheetInfo]:
+    if engine == "calamine":
+        import python_calamine as pc
+
+        wb = pc.CalamineWorkbook.from_path(path)
+        # SheetVisibleEnum is a plain enum without a `.name` attribute, so compare
+        # the member itself; getattr(...,'name',...) would mark every sheet visible.
+        visible_enum = pc.SheetVisibleEnum.Visible
+        return [
+            SheetInfo(name, meta.visible == visible_enum)
+            for name, meta in zip(wb.sheet_names, wb.sheets_metadata, strict=False)
+        ]
+    if engine == "xlrd":
+        import xlrd
+
+        wb = xlrd.open_workbook(path)
+        return [SheetInfo(s.name, s.visibility == 0) for s in wb.sheets()]
+    if engine == "odf":
+        wb = pd.ExcelFile(path, engine="odf")
+        return [SheetInfo(str(n), True) for n in wb.sheet_names]
+    raise ValueError(f"Unknown engine: {engine}")
+
+
+def default_sheet_name(sheets: list[SheetInfo]) -> str | None:
+    """First visible sheet, else the first sheet, else None.
+
+    Excel hides auxiliary sheets (ECN logs, production notes) often enough that
+    reading ``sheet_names[0]`` loads a sheet the user cannot even see. Prefer the
+    first visible sheet; fall back to the first sheet when all are hidden.
+    """
+    for sheet in sheets:
+        if sheet.visible:
+            return sheet.name
+    return sheets[0].name if sheets else None
+
+
 def _header_looks_datetime(val: object) -> bool:
     if isinstance(val, datetime.datetime):
         return True
@@ -293,7 +374,15 @@ def _read_excel_with_engine(
     engine: str,
 ) -> pd.DataFrame:
     xls = pd.ExcelFile(path, engine=engine)
-    sheet = sheet_name if sheet_name else xls.sheet_names[0]
+    if sheet_name:
+        if sheet_name not in xls.sheet_names:
+            raise SMTSheetNotFoundError(
+                f"Worksheet '{sheet_name}' not found in {path}. "
+                f"Available sheets: {list(xls.sheet_names)}"
+            )
+        sheet = sheet_name
+    else:
+        sheet = default_sheet_name(list_sheets(path)) or xls.sheet_names[0]
     if not column_headers_from_file:
         df = pd.read_excel(xls, sheet_name=sheet, header=None)
         return _drop_fully_empty_columns(df)
@@ -318,6 +407,10 @@ def _read_excel(
             return _read_excel_with_engine(
                 path, sheet_name, column_headers_from_file, eng
             )
+        except SMTSheetNotFoundError:
+            # Wrong/missing sheet is a caller error, not an engine failure:
+            # retrying with another engine would only mask it as a CSV fallback.
+            raise
         except Exception as e:
             last_err = e
             continue
@@ -748,6 +841,8 @@ def _read_ods(
                     path, sheet_name=sheet_name, engine=eng, header=hdr
                 )
             return pd.read_excel(path, engine=eng, header=hdr)
+        except SMTSheetNotFoundError:
+            raise
         except Exception as e:
             last_err = e
             continue

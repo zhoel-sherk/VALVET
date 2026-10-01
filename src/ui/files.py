@@ -202,8 +202,9 @@ class FilesMixin:
         self,
         path: str,
         sep: str,
+        sheet_name: str | None = None,
     ) -> pd.DataFrame:
-        return _service_read_pnp(path, sep, 0, -1)
+        return _service_read_pnp(path, sep, 0, -1, sheet_name=sheet_name)
 
     def _pnp_mapped_layer_column_index(self) -> int | None:
         if self._pnp_df is None or not getattr(self, "pnp_col_combos", None):
@@ -265,15 +266,18 @@ class FilesMixin:
                 self._bom_dirty = True
                 recovered_note = "recovered working copy"
             else:
+                self._populate_sheet_combo("bom", path)
                 self._bom_df = read_file(
                     path,
                     first_row=0,
                     last_row=-1,
                     separator=sep,
+                    sheet_name=self._selected_sheet("bom"),
                     column_headers_from_file=False,
                 )
                 self._bom_dirty = False
                 recovered_note = "original file"
+            self._set_sheet_hint("bom", self._selected_sheet("bom"), len(self._bom_df))
             self._bom_source_path = path
             configure_path_label(
                 self.bom_path_label,
@@ -292,9 +296,11 @@ class FilesMixin:
                 if len(self._recent_bom) > 10:
                     self._recent_bom.pop()
 
+            sheet = self._selected_sheet("bom")
             self._log(
                 f"Loaded BOM ({recovered_note}): {len(self._bom_df)} rows, "
-                f"{len(self._bom_df.columns)} cols from {os.path.abspath(path)}",
+                f"{len(self._bom_df.columns)} cols from {os.path.abspath(path)}"
+                + (f" [sheet: {sheet}]" if sheet else " [sheet: auto]"),
                 "info",
             )
             self._log(f"Columns: {list(self._bom_df.columns)}", "debug")
@@ -347,10 +353,12 @@ class FilesMixin:
                 recovered_note = "recovered working copy"
                 self._pnp_primary_row_count = len(self._pnp_df)
             else:
-                df1 = self._read_pnp_dataframe_from_disk(path, sep)
+                self._populate_sheet_combo("pnp", path)
+                sheet = self._selected_sheet("pnp")
+                df1 = self._read_pnp_dataframe_from_disk(path, sep, sheet)
                 self._pnp_primary_row_count = len(df1)
                 if dual:
-                    df2 = self._read_pnp_dataframe_from_disk(p_secondary, sep)
+                    df2 = self._read_pnp_dataframe_from_disk(p_secondary, sep, sheet)
                     self._pnp_df = pd.concat([df1, df2], axis=0, ignore_index=True)
                     recovered_note = "merged (2 files)"
                 else:
@@ -362,6 +370,11 @@ class FilesMixin:
                 ):
                     self._pnp_df["Layer"] = ""
                 self._pnp_dirty = False
+            self._set_sheet_hint(
+                "pnp",
+                self._selected_sheet("pnp"),
+                self._pnp_primary_row_count,
+            )
             self._pnp_source_path = path
             configure_path_label(
                 self.pnp_path_label,

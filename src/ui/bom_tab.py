@@ -39,6 +39,7 @@ class BomTabMixin:
 
         self.gb_bom_file = QtWidgets.QGroupBox(self.ui_tr("bom.group_file"))
         file_l = QtWidgets.QVBoxLayout(self.gb_bom_file)
+        file_l.addLayout(self._create_sheet_picker("bom", tr_key="bom.sheet"))
         sep_row = QtWidgets.QHBoxLayout()
         self.lbl_bom_separator = QtWidgets.QLabel(self.ui_tr("bom.separator"))
         sep_row.addWidget(self.lbl_bom_separator)
@@ -51,6 +52,7 @@ class BomTabMixin:
         self.btn_bom_pn_join_help.setToolTip(self.ui_tr("mapping.pn_join_help_title"))
         sep_row.addWidget(self.btn_bom_pn_join_help)
         file_l.addLayout(sep_row)
+        file_l.addWidget(self.bom_sheet_rows)
         self.btn_reload_bom = action_button(self.ui_tr("bom.reload"))
         self.btn_reload_bom.clicked.connect(self._reload_bom)
         file_l.addWidget(self.btn_reload_bom)
@@ -165,6 +167,8 @@ class BomTabMixin:
         if hh is not None:
             hh.clear_mapping_combos()
         self.bom_col_combos = []
+        self._bom_saved_sheet = None
+        self._clear_sheet_picker("bom")
         configure_path_label(
             self.bom_path_label, "", empty_text=self.ui_tr("project.no_file")
         )

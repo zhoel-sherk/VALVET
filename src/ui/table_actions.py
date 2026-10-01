@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtWidgets
 
 from services.find_replace import find_and_replace
 from settings_paths import path_settings_hash
+from ui.sheet_picker import SHEET_AUTO
 
 
 class TableActionsMixin:
@@ -267,6 +268,7 @@ class TableActionsMixin:
         h = path_settings_hash(path)
         self._settings.beginGroup(f"bom/ui/{h}")
         self._settings.setValue("separator", self.bom_separator.currentText())
+        self._settings.setValue("sheet", self._selected_sheet("bom") or SHEET_AUTO)
         if hasattr(self, "bom_col_combos") and self.bom_col_combos:
             self._settings.setValue(
                 "mappings",
@@ -283,6 +285,7 @@ class TableActionsMixin:
         h = path_settings_hash(path)
         self._settings.beginGroup(f"pnp/ui/{h}")
         self._settings.setValue("separator", self.pnp_separator.currentText())
+        self._settings.setValue("sheet", self._selected_sheet("pnp") or SHEET_AUTO)
         if hasattr(self, "pnp_col_combos") and self.pnp_col_combos:
             self._settings.setValue(
                 "mappings",
@@ -296,6 +299,9 @@ class TableActionsMixin:
         h = path_settings_hash(path)
         self._settings.beginGroup(f"bom/ui/{h}")
         try:
+            # Stored for _populate_sheet_combo(); read before the separator early
+            # return so a file saved before this key existed still resolves.
+            self._bom_saved_sheet = self._read_saved_sheet(self._settings)
             if not self._settings.contains("separator"):
                 return
             self._bom_ui_restoring = True
@@ -310,6 +316,13 @@ class TableActionsMixin:
             self._bom_ui_restoring = False
             self._settings.endGroup()
 
+    def _read_saved_sheet(self, settings: QtCore.QSettings) -> str | None:
+        """Saved worksheet name for the active group; None means auto."""
+        val = settings.value("sheet", SHEET_AUTO)
+        if not isinstance(val, str) or val == SHEET_AUTO:
+            return None
+        return val or None
+
     def _restore_pnp_tab_load_params(self, path: str) -> None:
         if not path:
             return
@@ -319,6 +332,7 @@ class TableActionsMixin:
         h = path_settings_hash(path)
         self._settings.beginGroup(f"pnp/ui/{h}")
         try:
+            self._pnp_saved_sheet = self._read_saved_sheet(self._settings)
             if not self._settings.contains("separator"):
                 return
             self._pnp_ui_restoring = True

@@ -16,6 +16,7 @@ def read_pnp_dataframe(
     separator: str,
     first_row: int,
     last_row: int,
+    sheet_name: str | None = None,
 ) -> pd.DataFrame:
     if separator == "spaces":
         return read_pnp_whitespace(path, first_row=first_row, last_row=last_row)
@@ -24,5 +25,6 @@ def read_pnp_dataframe(
         first_row=first_row,
         last_row=last_row,
         separator=separator,
+        sheet_name=sheet_name,
         column_headers_from_file=False,
     )

@@ -388,5 +388,11 @@
   "pcb.layer_color": "颜色",
   "pcb.layer_opacity": "不透明度",
   "pcb.layer_color_tooltip": "为所选 Gerber 层着色",
-  "pcb.gerber_loading": "正在加载 Gerber…"
+  "pcb.gerber_loading": "正在加载 Gerber…",
+  "bom.sheet": "工作表：",
+  "bom.sheet_tip": "从 Excel/ODS BOM 文件读取哪个工作表。'(auto)' 使用第一个可见工作表；隐藏工作表标记为 '(hidden)'。",
+  "bom.sheet_rows": "{sheet} — {rows} 行",
+  "pnp.sheet": "工作表：",
+  "pnp.sheet_tip": "从 Excel/ODS 贴片文件读取哪个工作表。'(auto)' 使用第一个可见工作表；隐藏工作表标记为 '(hidden)'。",
+  "pnp.sheet_rows": "{sheet} — {rows} 行"
 }

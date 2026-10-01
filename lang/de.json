@@ -388,5 +388,11 @@
   "pcb.layer_color": "Farbe",
   "pcb.layer_opacity": "Deckkraft",
   "pcb.layer_color_tooltip": "Gewählte Gerber-Lage einfärben",
-  "pcb.gerber_loading": "Gerber wird geladen…"
+  "pcb.gerber_loading": "Gerber wird geladen…",
+  "bom.sheet": "Blatt:",
+  "bom.sheet_tip": "Welches Arbeitsblatt aus einer Excel/ODS-BOM gelesen wird. '(auto)' wählt das erste sichtbare Blatt; ausgeblendete sind mit '(hidden)' markiert.",
+  "bom.sheet_rows": "{sheet} — {rows} Zeilen",
+  "pnp.sheet": "Blatt:",
+  "pnp.sheet_tip": "Welches Arbeitsblatt aus einer Excel/ODS-Bestückungsdatei gelesen wird. '(auto)' wählt das erste sichtbare Blatt; ausgeblendete sind mit '(hidden)' markiert.",
+  "pnp.sheet_rows": "{sheet} — {rows} Zeilen"
 }

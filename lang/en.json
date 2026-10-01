@@ -388,5 +388,11 @@
   "pcb.layer_color": "Color",
   "pcb.layer_opacity": "Opacity",
   "pcb.layer_color_tooltip": "Tint the selected Gerber layer",
-  "pcb.gerber_loading": "Loading Gerber…"
+  "pcb.gerber_loading": "Loading Gerber…",
+  "bom.sheet": "Sheet:",
+  "bom.sheet_tip": "Which worksheet to read from an Excel/ODS BOM. '(auto)' picks the first visible sheet; hidden sheets are marked '(hidden)'.",
+  "bom.sheet_rows": "{sheet} — {rows} rows",
+  "pnp.sheet": "Sheet:",
+  "pnp.sheet_tip": "Which worksheet to read from an Excel/ODS placement file. '(auto)' picks the first visible sheet; hidden sheets are marked '(hidden)'.",
+  "pnp.sheet_rows": "{sheet} — {rows} rows"
 }

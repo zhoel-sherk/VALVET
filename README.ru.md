@@ -103,7 +103,7 @@ PYTHONPATH=src python src/main.py
 | Группа | Вкладка | Зачем |
 | --- | --- | --- |
 | DATA | Project | Профиль, язык (`lang/`), сессия |
-| DATA | BOM / PnP | `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, маппинг, правка, автосейв |
+| DATA | BOM / PnP | `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, выбор листа, маппинг, правка, автосейв |
 | TRANSFORM | Clean BOM | декод R/C/L + regex; вендорные PN (Yageo, Murata, …) |
 | TRANSFORM | Merge / Export | слить BOM в PnP; Top/Bot / `.mmd` |
 | OUTPUT | Report | сверка BOM и PnP |
@@ -119,7 +119,7 @@ CLI без Qt: `pip install -r requirements-cli.txt`, затем `PYTHONPATH=src
 
 ## Ещё
 
-Дорожная карта: [doc/TODO.md](doc/TODO.md). Сборка Windows: [doc/info/PACKAGING_WINDOWS.md](doc/info/PACKAGING_WINDOWS.md). Лицензия: [MIT](LICENSE).
+Дорожная карта: [doc/TODO.md](doc/TODO.md). Сборка Windows: [doc/info/PACKAGING_WINDOWS.md](doc/info/PACKAGING_WINDOWS.md). Что изменилось: [CHANGELOG.md](CHANGELOG.md). Лицензия: [MIT](LICENSE).
 
 <p align="center">
   <img src="img/icon-512.png" alt="VALVET logo" width="120"/>
