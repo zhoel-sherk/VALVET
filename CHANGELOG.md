@@ -38,6 +38,14 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   have triggered an autosave of an unchanged table. `dataChanged` is now
   inspected for `DisplayRole`/`EditRole` before dirtying the working copy; real
   cell edits are unaffected.
+- **Per-cell background tints now render at all.** The app stylesheet set
+  `background-color` on `QTableView::item`, which takes priority over a model's
+  `BackgroundRole` and silently suppressed every row colour. This also means the
+  existing Clean preview score shading has never been visible. The item rules now
+  set only `color`; row colours come from the view's own
+  `background-color`/`alternate-background-color`, which the delegate still
+  applies per row. Zebra striping is unchanged — verified pixel-identical
+  against the previous stylesheet on the TechOne 27 BOM.
 - **Taiyo Yuden part numbers now decode their rated voltage from the first
   letter**, per the manufacturer catalogue (`doc/info/DOC012627480.pdf`).
   `TMK107BBJ106MA-T` did not parse at all, and `JDK`/`LMK` series were
