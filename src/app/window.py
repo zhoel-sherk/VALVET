@@ -123,6 +123,9 @@ class MainWindow(
         self._bom_tab_settings_timer.timeout.connect(
             self._save_bom_tab_settings_to_disk
         )
+        self._bom_highlight_timer = QtCore.QTimer(self)
+        self._bom_highlight_timer.setSingleShot(True)
+        self._bom_highlight_timer.timeout.connect(self._apply_bom_highlight)
         self._pnp_tab_settings_timer = QtCore.QTimer(self)
         self._pnp_tab_settings_timer.setSingleShot(True)
         self._pnp_tab_settings_timer.timeout.connect(

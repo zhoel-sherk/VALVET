@@ -103,7 +103,7 @@ PYTHONPATH=src python src/main.py
 | Группа | Вкладка | Зачем |
 | --- | --- | --- |
 | DATA | Project | Профиль, язык (`lang/`), сессия |
-| DATA | BOM / PnP | `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, выбор листа, маппинг, правка, автосейв |
+| DATA | BOM / PnP | `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, выбор листа, маппинг, подсветка строк, правка, автосейв |
 | TRANSFORM | Clean BOM | декод R/C/L + regex; вендорные PN (Yageo, Murata, …) |
 | TRANSFORM | Merge / Export | слить BOM в PnP; Top/Bot / `.mmd` |
 | OUTPUT | Report | сверка BOM и PnP |

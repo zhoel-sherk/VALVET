@@ -394,5 +394,9 @@
   "bom.sheet_rows": "{sheet} — {rows} 行",
   "pnp.sheet": "工作表：",
   "pnp.sheet_tip": "从 Excel/ODS 贴片文件读取哪个工作表。'(auto)' 使用第一个可见工作表；隐藏工作表标记为 '(hidden)'。",
-  "pnp.sheet_rows": "{sheet} — {rows} 行"
+  "pnp.sheet_rows": "{sheet} — {rows} 行",
+  "bom.group_highlight": "高亮",
+  "bom.highlight": "高亮行",
+  "bom.highlight_tip": "高亮包含下列任一单词的所有行（例如 DIP THT），在所有列中搜索，不区分大小写。仅视觉效果 - 不会过滤或删除任何内容。",
+  "bom.highlight_tokens": "例如 DIP THT"
 }

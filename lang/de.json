@@ -394,5 +394,9 @@
   "bom.sheet_rows": "{sheet} — {rows} Zeilen",
   "pnp.sheet": "Blatt:",
   "pnp.sheet_tip": "Welches Arbeitsblatt aus einer Excel/ODS-Bestückungsdatei gelesen wird. '(auto)' wählt das erste sichtbare Blatt; ausgeblendete sind mit '(hidden)' markiert.",
-  "pnp.sheet_rows": "{sheet} — {rows} Zeilen"
+  "pnp.sheet_rows": "{sheet} — {rows} Zeilen",
+  "bom.group_highlight": "Hervorhebung",
+  "bom.highlight": "Zeilen hervorheben",
+  "bom.highlight_tip": "Hebt alle Zeilen hervor, die eines der Wörter unten enthalten (z. B. DIP THT), Suche über alle Spalten, ohne Groß-/Kleinschreibung. Nur optisch - es wird nichts gefiltert oder entfernt.",
+  "bom.highlight_tokens": "z. B. DIP THT"
 }

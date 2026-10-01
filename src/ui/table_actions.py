@@ -111,6 +111,21 @@ class TableActionsMixin:
             self._mark_working_dirty("pnp")
             self._refresh_pcb_preview_from_ui()
 
+    def _on_table_data_changed(self, kind: str, *args) -> None:
+        """Mark the working copy dirty only for real value edits.
+
+        Repaint-only emissions (BackgroundRole, used by the row highlight) must
+        not mark the BOM/PnP as edited, or merely toggling the highlight would
+        trigger an autosave of an unchanged table.
+        """
+        roles = args[2] if len(args) >= 3 else None
+        if roles is not None and not (
+            QtCore.Qt.ItemDataRole.DisplayRole in roles
+            or QtCore.Qt.ItemDataRole.EditRole in roles
+        ):
+            return
+        self._mark_working_dirty(kind)
+
     def _delete_table_columns(self, kind: str) -> None:
         table = self.bom_table if kind == "bom" else self.pnp_table
         model = self.bom_model if kind == "bom" else self.pnp_model
@@ -249,6 +264,55 @@ class TableActionsMixin:
         dlg.resize(420, 180)
         dlg.exec()
 
+    # ---------------------------------------------------------------- highlight
+
+    def _schedule_bom_highlight_refresh(self) -> None:
+        """Debounce token edits; persist the per-file setting with the rest."""
+        if self._bom_ui_restoring or self._restoring_settings:
+            return
+        if not hasattr(self, "_bom_highlight_timer"):
+            return
+        self._bom_highlight_timer.start(250)
+        self._schedule_save_bom_tab_settings()
+
+    def _apply_bom_highlight(self, *, log: bool = True) -> int:
+        """Push the checkbox state + tokens into the model. Returns match count."""
+        if not hasattr(self, "bom_model"):
+            return 0
+        enabled = bool(self.chk_bom_highlight.isChecked())
+        tokens = self.edit_bom_highlight.text() if enabled else ""
+        count = self.bom_model.set_highlight_tokens(tokens)
+        if log and enabled and tokens.strip():
+            self._log(
+                f"BOM highlight: {count} of {self.bom_model.rowCount()} row(s) "
+                f"match '{tokens.strip()}'",
+                "info",
+            )
+        return count
+
+    def _on_bom_highlight_toggled(self, on: bool) -> None:
+        self.edit_bom_highlight.setEnabled(bool(on))
+        self._apply_bom_highlight()
+        self._schedule_save_bom_tab_settings()
+
+    def _reset_bom_highlight(self) -> None:
+        """Clear highlight state (workspace cleared or a new file loaded)."""
+        if not hasattr(self, "bom_model"):
+            return
+        self._bom_ui_restoring = True
+        try:
+            if hasattr(self, "chk_bom_highlight"):
+                self.chk_bom_highlight.blockSignals(True)
+                self.chk_bom_highlight.setChecked(False)
+                self.chk_bom_highlight.blockSignals(False)
+                self.edit_bom_highlight.blockSignals(True)
+                self.edit_bom_highlight.clear()
+                self.edit_bom_highlight.setEnabled(False)
+                self.edit_bom_highlight.blockSignals(False)
+        finally:
+            self._bom_ui_restoring = False
+        self.bom_model.set_highlight_tokens("")
+
     def _schedule_save_bom_tab_settings(self) -> None:
         if self._bom_ui_restoring or self._restoring_settings:
             return
@@ -269,6 +333,9 @@ class TableActionsMixin:
         self._settings.beginGroup(f"bom/ui/{h}")
         self._settings.setValue("separator", self.bom_separator.currentText())
         self._settings.setValue("sheet", self._selected_sheet("bom") or SHEET_AUTO)
+        if hasattr(self, "chk_bom_highlight"):
+            self._settings.setValue("highlight_on", self.chk_bom_highlight.isChecked())
+            self._settings.setValue("highlight_tokens", self.edit_bom_highlight.text())
         if hasattr(self, "bom_col_combos") and self.bom_col_combos:
             self._settings.setValue(
                 "mappings",
@@ -302,6 +369,7 @@ class TableActionsMixin:
             # Stored for _populate_sheet_combo(); read before the separator early
             # return so a file saved before this key existed still resolves.
             self._bom_saved_sheet = self._read_saved_sheet(self._settings)
+            self._restore_bom_highlight_params(self._settings)
             if not self._settings.contains("separator"):
                 return
             self._bom_ui_restoring = True
@@ -322,6 +390,29 @@ class TableActionsMixin:
         if not isinstance(val, str) or val == SHEET_AUTO:
             return None
         return val or None
+
+    def _restore_bom_highlight_params(self, settings: QtCore.QSettings) -> None:
+        """Restore the Highlight checkbox + tokens for the active group.
+
+        Read before the separator early-return so files saved before this key
+        existed still resolve. Stored in the widget only; the model is updated
+        once the table has data (``_apply_bom_highlight`` after load).
+        """
+        if not hasattr(self, "chk_bom_highlight"):
+            return
+        tokens = settings.value("highlight_tokens", "")
+        on = settings.value("highlight_on", False, type=bool)
+        self._bom_ui_restoring = True
+        try:
+            self.edit_bom_highlight.blockSignals(True)
+            self.edit_bom_highlight.setText(str(tokens or ""))
+            self.edit_bom_highlight.blockSignals(False)
+            self.chk_bom_highlight.blockSignals(True)
+            self.chk_bom_highlight.setChecked(bool(on))
+            self.chk_bom_highlight.blockSignals(False)
+            self.edit_bom_highlight.setEnabled(bool(on))
+        finally:
+            self._bom_ui_restoring = False
 
     def _restore_pnp_tab_load_params(self, path: str) -> None:
         if not path:

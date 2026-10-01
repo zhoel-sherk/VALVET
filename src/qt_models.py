@@ -101,6 +101,53 @@ def _cell_values_equal(a: Any, b: Any) -> bool:
     return a == b
 
 
+def _normalise_highlight_tokens(tokens: object) -> tuple[str, ...]:
+    """Split user input into lowercase, non-empty substring tokens.
+
+    Accepts a string ("DIP THT") or any iterable of strings. Tokens shorter than
+    two characters are ignored: a single letter matches nearly every row and
+    makes the highlight useless rather than informative.
+    """
+    if tokens is None:
+        return ()
+    if isinstance(tokens, str):
+        raw: list[str] = tokens.split()
+    else:
+        try:
+            raw = [str(t) for t in tokens]
+        except TypeError:
+            raw = [str(tokens)]
+    seen: list[str] = []
+    for token in raw:
+        cleaned = token.strip().lower()
+        if len(cleaned) >= 2 and cleaned not in seen:
+            seen.append(cleaned)
+    return tuple(seen)
+
+
+def _rows_matching_tokens(df: pd.DataFrame, tokens: tuple[str, ...]) -> frozenset[int]:
+    """POSITIONAL row indices where any column contains any token.
+
+    Positions, not pandas index labels: Qt addresses rows by offset, and
+    ``SortableTableModel.sort()`` shuffles the index labels while leaving the
+    visual order to match the new positions.
+    """
+    if not tokens or df is None or df.empty:
+        return frozenset()
+    try:
+        text = df.astype(str).apply(lambda col: col.str.lower())
+        mask = pd.Series(False, index=df.index)
+        for token in tokens:
+            hit = text.apply(
+                lambda col: col.str.contains(token, regex=False, na=False)
+            ).any(axis=1)
+            mask = mask | hit
+        return frozenset(int(i) for i in np.flatnonzero(mask.to_numpy()))
+    except Exception as e:  # never let a cosmetic feature break the table
+        logger.warning("Highlight scan failed: %s", e)
+        return frozenset()
+
+
 class DataFrameCellEditCommand(QtGui.QUndoCommand):
     """Undo one cell edit on a PandasTableModel."""
 
@@ -462,7 +509,12 @@ class ReadOnlyTableModel(PandasTableModel):
 
 
 class SortableTableModel(PandasTableModel):
-    """Sortable model (click header to sort; optional sort arrow in header text)."""
+    """Sortable model (click header to sort; optional sort arrow in header text).
+
+    Also carries an optional row highlight: ``set_highlight_tokens()`` tints every
+    row containing any of the given substrings in any column. Purely visual - it
+    never filters, hides or edits rows.
+    """
 
     def __init__(
         self,
@@ -473,6 +525,63 @@ class SortableTableModel(PandasTableModel):
         super().__init__(dataframe, parent, editable=editable)
         self._sort_column = -1
         self._sort_order = QtCore.Qt.SortOrder.AscendingOrder
+        self._highlight_tokens: tuple[str, ...] = ()
+        self._highlight_rows: Optional[frozenset[int]] = None
+
+    # ------------------------------------------------------------------ highlight
+
+    def set_highlight_tokens(self, tokens: object) -> int:
+        """Tint rows containing any token (whitespace-separated, case-insensitive).
+
+        Returns the number of matching rows so callers can report it.
+        """
+        self._highlight_tokens = _normalise_highlight_tokens(tokens)
+        self._highlight_rows = None
+        count = len(self._compute_highlight_rows())
+        self._emit_highlight_changed()
+        return count
+
+    def highlight_tokens(self) -> tuple[str, ...]:
+        return self._highlight_tokens
+
+    def highlighted_row_count(self) -> int:
+        return len(self._compute_highlight_rows())
+
+    def _compute_highlight_rows(self) -> frozenset[int]:
+        if not self._highlight_tokens:
+            return frozenset()
+        if self._highlight_rows is None:
+            self._highlight_rows = _rows_matching_tokens(
+                self._df, self._highlight_tokens
+            )
+        return self._highlight_rows
+
+    def _emit_highlight_changed(self) -> None:
+        """Repaint only - callers must not treat this as a data change."""
+        if self.rowCount() <= 0 or self.columnCount() <= 0:
+            return
+        tl = self.index(0, 0)
+        br = self.index(self.rowCount() - 1, self.columnCount() - 1)
+        self.dataChanged.emit(tl, br, [QtCore.Qt.ItemDataRole.BackgroundRole])
+
+    def _get_background(self, row: int, col: int, value: Any) -> Optional[QtGui.QBrush]:
+        base = super()._get_background(row, col, value)
+        if base is not None:
+            return base
+        if not self._highlight_tokens or row < 0:
+            return None
+        rows = self._compute_highlight_rows()
+        if row not in rows:
+            return None
+        # Amber, nudged per zebra stripe so alternating rows stay readable.
+        alt = row % 2 == 1
+        if alt:
+            return QtGui.QBrush(QtGui.QColor(112, 84, 26))
+        return QtGui.QBrush(QtGui.QColor(126, 95, 29))
+
+    def update_dataframe(self, new_df: Optional[pd.DataFrame]) -> None:
+        self._highlight_rows = None
+        super().update_dataframe(new_df)
 
     def sort(
         self,
@@ -495,6 +604,8 @@ class SortableTableModel(PandasTableModel):
         except Exception as e:
             logger.warning("Table sort failed on %s: %s", col_name, e)
 
+        # sort_values reorders rows in place, so cached row indices are stale.
+        self._highlight_rows = None
         self.endResetModel()
 
     def headerData(

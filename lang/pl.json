@@ -394,5 +394,9 @@
   "bom.sheet_rows": "{sheet} — wierszy: {rows}",
   "pnp.sheet": "Arkusz:",
   "pnp.sheet_tip": "Który arkusz czytać z pliku rozmieszczenia Excel/ODS. '(auto)' wybiera pierwszy widoczny arkusz; ukryte są oznaczone '(hidden)'.",
-  "pnp.sheet_rows": "{sheet} — wierszy: {rows}"
+  "pnp.sheet_rows": "{sheet} — wierszy: {rows}",
+  "bom.group_highlight": "Podświetlanie",
+  "bom.highlight": "Podświetl wiersze",
+  "bom.highlight_tip": "Podświetla wiersze zawierające dowolne ze słów poniżej (np. DIP THT), przeszukuje wszystkie kolumny, bez rozróżniania wielkości liter. Tylko wizualnie - nic nie jest filtrowane ani usuwane.",
+  "bom.highlight_tokens": "np. DIP THT"
 }

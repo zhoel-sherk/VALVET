@@ -103,7 +103,7 @@ Other sample files:
 | Group | Tab | Does |
 | --- | --- | --- |
 | DATA | Project | Profile, UI language (`lang/`), session |
-| DATA | BOM / PnP | Load `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, pick worksheet, map columns, edit, autosave |
+| DATA | BOM / PnP | Load `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, pick worksheet, map columns, highlight rows, edit, autosave |
 | TRANSFORM | Clean BOM | R/C/L decode + regex; vendor PNs (Yageo, Murata, …) |
 | TRANSFORM | Merge / Export | Join BOM onto PnP; Top/Bot / `.mmd` |
 | OUTPUT | Report | BOM vs PnP checks |

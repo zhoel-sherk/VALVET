@@ -186,7 +186,7 @@ class PnpTabMixin:
             lambda pos: self._on_table_context_menu(pos, "pnp")
         )
         self.pnp_model.dataChanged.connect(
-            lambda *args: self._mark_working_dirty("pnp")
+            lambda *args: self._on_table_data_changed("pnp", *args)
         )
         pnp_pv.addWidget(self.pnp_table, 1)
         root.addWidget(self.pnp_preview_stack, 1)

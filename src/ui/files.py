@@ -289,6 +289,8 @@ class FilesMixin:
             self._loading_working_copy = False
             self._fill_bom_combos()
             self._restore_bom_mappings_after_fill(path)
+            # Model is populated now, so the restored Highlight tokens can match.
+            self._apply_bom_highlight(log=False)
             QtCore.QTimer.singleShot(0, self._autoresize_bom_columns)
 
             if path not in self._recent_bom:

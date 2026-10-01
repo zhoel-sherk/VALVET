@@ -24,6 +24,7 @@ class BomTabMixin:
             apply_equal_widths,
             help_button,
             left_rail_widget,
+            switch_checkbox,
         )
 
         root = QtWidgets.QHBoxLayout(tab)
@@ -75,6 +76,23 @@ class BomTabMixin:
         edit_l.addWidget(self.btn_bom_find)
         left_l.addWidget(self.gb_bom_edit)
 
+        self.gb_bom_highlight = QtWidgets.QGroupBox(self.ui_tr("bom.group_highlight"))
+        hl_l = QtWidgets.QVBoxLayout(self.gb_bom_highlight)
+        hl_l.setSpacing(CHROME_SPACING)
+        self.chk_bom_highlight = switch_checkbox(self.ui_tr("bom.highlight"))
+        self.chk_bom_highlight.setToolTip(self.ui_tr("bom.highlight_tip"))
+        hl_l.addWidget(self.chk_bom_highlight)
+        self.edit_bom_highlight = QtWidgets.QLineEdit()
+        self.edit_bom_highlight.setPlaceholderText(self.ui_tr("bom.highlight_tokens"))
+        self.edit_bom_highlight.setToolTip(self.ui_tr("bom.highlight_tip"))
+        self.edit_bom_highlight.setEnabled(False)
+        hl_l.addWidget(self.edit_bom_highlight)
+        self.chk_bom_highlight.toggled.connect(self._on_bom_highlight_toggled)
+        self.edit_bom_highlight.textEdited.connect(
+            lambda *_: self._schedule_bom_highlight_refresh()
+        )
+        left_l.addWidget(self.gb_bom_highlight)
+
         self.gb_bom_workspace = QtWidgets.QGroupBox(self.ui_tr("bom.group_workspace"))
         ws_l = QtWidgets.QVBoxLayout(self.gb_bom_workspace)
         self.btn_clear_bom = action_button(self.ui_tr("bom.clear_workspace"))
@@ -124,7 +142,7 @@ class BomTabMixin:
             lambda pos: self._on_table_context_menu(pos, "bom")
         )
         self.bom_model.dataChanged.connect(
-            lambda *args: self._mark_working_dirty("bom")
+            lambda *args: self._on_table_data_changed("bom", *args)
         )
         bom_pv.addWidget(self.bom_table, 1)
         root.addWidget(self.bom_preview_stack, 1)
@@ -168,6 +186,7 @@ class BomTabMixin:
             hh.clear_mapping_combos()
         self.bom_col_combos = []
         self._bom_saved_sheet = None
+        self._reset_bom_highlight()
         self._clear_sheet_picker("bom")
         configure_path_label(
             self.bom_path_label, "", empty_text=self.ui_tr("project.no_file")
