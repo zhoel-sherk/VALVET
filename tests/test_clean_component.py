@@ -419,6 +419,9 @@ def test_vendor_pn_list_does_not_fall_back_to_regex():
         "0402X105K6R3CT": ("CAP", "1uF"),
         "GRM155R60J105KE19D": ("CAP", "1uF"),
         "TAIYO/TMK107BJ105KA-T": ("CAP", "1uF"),
+        "TAIYO/TMK107BBJ106MA-T": ("CAP", "10uF"),
+        "TAIYO/JDK107BBJ226MA-T": ("CAP", "22uF"),
+        "TAIYO/LMK105B7104KV-F": ("CAP", "100nF"),
     }
     for raw, (part_code, expected) in cases.items():
         cleaned, _typ, code, source = clean_component.clean_one(raw, cfg)

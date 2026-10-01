@@ -58,3 +58,71 @@ def test_royal_ohm_rejects_unrealistic_expansion() -> None:
     # 4-digit exponent blow-up must still be rejected.
     got = _parse("0402WGF4999TCE", "RES")
     assert got is None
+
+
+# --- Taiyo Yuden ---------------------------------------------------------
+# Rated voltage is the FIRST LETTER of the part number (Taiyo Yuden MLCC
+# catalogue doc/info/DOC012627480.pdf). Expected values below were verified
+# against LCSC product data for each of these exact part numbers.
+#
+# These three are the ones that used to return None (missing the extra "B" of
+# the BBJ series code) or were decoded with a hardcoded 6.3V.
+
+
+def test_taiyo_bbj_voltage_comes_from_leading_t() -> None:
+    got = _parse("TMK107BBJ106MA-T", "CAP")
+    assert got == "0603_10uF_25V_X5R_20%"
+
+
+def test_taiyo_bbj_with_dimension_tolerance_a() -> None:
+    got = _parse("TMK316ABJ106KD-T", "CAP")
+    assert got == "1206_10uF_25V_X5R_10%"
+
+
+def test_taiyo_jdk_series_is_capacitor() -> None:
+    got = _parse("JDK107BBJ226MA-T", "CAP")
+    assert got == "0603_22uF_6.3V_X5R_20%"
+
+
+def test_taiyo_lmk_leading_l_is_10v() -> None:
+    got = _parse("LMK105BJ105KV-F", "CAP")
+    assert got == "0402_1uF_10V_X5R_10%"
+
+
+def test_taiyo_bare_b_series_is_x7r() -> None:
+    got = _parse("LMK105B7104KV-F", "CAP")
+    assert got == "0402_100nF_10V_X7R_10%"
+
+
+def test_taiyo_c6_series_is_x6s() -> None:
+    got = _parse("LMK063C6273KP-F", "CAP")
+    assert got == "0201_27nF_10V_X6S_10%"
+
+
+def test_taiyo_sd_series_has_no_x_code() -> None:
+    """SD is a low-distortion standard part; no dielectric code is emitted."""
+    got = _parse("LMK105SD332JV-F", "CAP")
+    assert got == "0402_3.3nF_10V_5%"
+
+
+def test_taiyo_bare_b_series_is_x7r_not_x5r() -> None:
+    """Regression: bare "B" was decoded as X5R; LCSC lists it as X7R."""
+    got = _parse("EMK105B7223KV-F", "CAP")
+    assert got == "0402_22nF_16V_X7R_10%"
+
+
+def test_taiyo_jmk_keeps_6v3_and_existing_output() -> None:
+    """The old branch hardcoded 6.3V, which was only ever right for J."""
+    got = _parse("JMK212BJ226MG-T", "CAP")
+    assert got == "0805_22uF_6.3V_X5R_20%"
+
+
+def test_taiyo_umk_legacy_layout_unchanged() -> None:
+    got = _parse("UMK105CH120JV-F", "CAP")
+    assert got == "0402_12pF_C0G_50V_5%"
+
+
+def test_taiyo_rejects_unknown_voltage_lead() -> None:
+    """Every ① code is P A J L E T G U H Q S X; R is not one of them."""
+    got = _parse("RMK107BBJ106MA-T", "CAP")
+    assert got is None
