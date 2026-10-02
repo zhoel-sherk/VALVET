@@ -29,9 +29,11 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Uniohm / Royal Ohm chip resistors reported the wrong tolerance.** The letter
   after the resistance value was read through the IEC tolerance map (`J`→±5%,
-  `K`→±10%), but in this layout that letter is a different field — the tolerance
-  comes from the *series* letter (`WG`/`WA`/`W8`… plus `F` for 1% or `J` for 5%).
-  Verified against LCSC product data:
+  `K`→±10%), but the manufacturer numbering gives tolerance its **own**
+  one-character field (`D`=±0.5%, `F`=±1%, `G`=±2%, `J`=±5%), alongside a
+  separate wattage field (`WG`=1/16W, `WA`=1/10W, …). `WGF`/`WGJ`/`WAF`/`WAJ`
+  therefore already carry the tolerance. Verified against the Uniohm catalogue
+  and LCSC product data:
 
   | Part number | LCSC | was | now |
   |---|---|---|---|
@@ -83,6 +85,23 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Notes
 
+- The vendor codecs are now documented against their manufacturer catalogues
+  (Taiyo Yuden MLCC, Uniohm thick film chip resistors); the source PDFs sit in
+  `doc/info/` but are **not committed** — see the open question about adding
+  vendor literature to the repository.
+- The Uniohm catalogue documents only a **four-digit** value field in the
+  ordering code ("the 1st to 3rd digits are the significant figures and the 4th
+  indicates the number of zeros following"), which the parser handles and which
+  matches LCSC for every four-digit part checked.
+- **Known limitation:** some part numbers carry a three-digit value field
+  instead. For those the deci-ohm reading is used (`200` → 20Ω), which the
+  manufacturer's own ordering example confirms (`1206W4J012JT5E` → 1.2Ω). A few
+  LCSC listings disagree by a decade — `0603WAF220JT5E` is listed as 22Ω but
+  `0603WAF220KT5E` as 2.2Ω, i.e. the same digits with a different trailing
+  letter. Since the trailing letter cannot physically change the magnitude by
+  10×, that data is self-inconsistent and no rule could be derived from it, so
+  the three-digit reading was left unchanged. Affects only part numbers that
+  are not built to the documented four-digit layout.
 - The selected sheet is stored **by name**, so it survives reordering or
   inserting sheets in the workbook. Auto-saved working copies are unchanged:
   the snapshot key still covers path/size/mtime, so existing autosaves keep

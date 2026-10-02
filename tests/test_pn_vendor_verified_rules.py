@@ -62,6 +62,28 @@ def test_uniohm_j_series_is_5_percent() -> None:
     assert got == "0402_22K_5%_1/16W"
 
 
+def test_uniohm_datasheet_ordering_example() -> None:
+    """Worked example from the Uniohm catalogue, doc/info/C0402WGF2001TCE.pdf p.3.
+
+    "Ordering Procedure (Example: 1206 1/4W 5% 1.2 R T/R-5000)" is given as
+    1206W4J012JT5E - it pins the field order (type / wattage / tolerance /
+    value / packing) and the deci-ohm reading of a 3-digit value field.
+    """
+    got = _parse("1206W4J012JT5E", "RES")
+    assert got == "1206_1.2R_5%_1/4W"
+
+
+def test_uniohm_value_field_four_digit_zero_count() -> None:
+    """Datasheet p.3: "the 1st to 3rd digits are the significant figures and the
+    4th indicates the number of zeros following" (≤1%); for 5% the leading digit
+    is 0 and the 2nd/3rd are significant.
+    """
+    # ≤1%: 200 x 10^1 = 2K (LCSC 0402WGF2001TCE = 2k)
+    assert _parse("0402WGF2001TCE", "RES") == "0402_2K_1%_1/16W"
+    # 5%: 0 + "22" significant + 3 zeros = 22K (LCSC 0402WGJ0223TCE = 22k)
+    assert _parse("0402WGJ0223TCE", "RES") == "0402_22K_5%_1/16W"
+
+
 def test_uniohm_wgj_series_is_parsed() -> None:
     got = _parse("0402WGJ0472TCE", "RES")
     assert got == "0402_4.7K_5%_1/16W"
