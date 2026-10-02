@@ -36,7 +36,30 @@ def test_walsin_b_line_emits_film() -> None:
 
 def test_royal_ohm_k_tolerance_is_preserved() -> None:
     got = _parse("0603WAF220KT5E", "RES")
-    assert got == "0603_22R_10%_1/10W"
+    assert got == "0603_22R_1%_1/10W"
+
+
+def test_uniohm_series_letter_gives_tolerance_not_trailing_letter() -> None:
+    """WGF is a 1% series: the letter after the value is not the tolerance.
+
+    LCSC lists 0402WGF499JTCE as 49.9R ±1%; the trailing J was previously read
+    through the IEC map as 5%.
+    """
+    got = _parse("0402WGF499JTCE", "RES")
+    assert got == "0402_49.9R_1%_1/16W"
+
+
+def test_uniohm_f_series_is_1_percent_regardless_of_trailing_letter() -> None:
+    """Verified against LCSC: 200J, 549J, 511K, 220K are all ±1%."""
+    assert _parse("0402WGF200JTCE", "RES") == "0402_20R_1%_1/16W"
+    assert _parse("0402WGF549JTCE", "RES") == "0402_54.9R_1%_1/16W"
+    assert _parse("0402WGF511KTCE", "RES") == "0402_51.1R_1%_1/16W"
+
+
+def test_uniohm_j_series_is_5_percent() -> None:
+    """LCSC lists 0402WGJ0223TCE as 22k ±5%."""
+    got = _parse("0402WGJ0223TCE", "RES")
+    assert got == "0402_22K_5%_1/16W"
 
 
 def test_uniohm_wgj_series_is_parsed() -> None:
@@ -45,8 +68,10 @@ def test_uniohm_wgj_series_is_parsed() -> None:
 
 
 def test_uniohm_legacy_3digit_j_code_is_parsed() -> None:
-    got = _parse("0402WGF499JTCE", "RES")
-    assert got == "0402_49.9R_5%_1/16W"
+    # Superseded by test_uniohm_series_letter_gives_tolerance_not_trailing_letter,
+    # which covers the same part with the tolerance verified against LCSC.
+    got = _parse("0402WGF4999TCE", "RES")
+    assert got is None
 
 
 def test_uniohm_zero_ohm_is_parsed() -> None:

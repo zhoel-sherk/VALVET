@@ -27,6 +27,29 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Uniohm / Royal Ohm chip resistors reported the wrong tolerance.** The letter
+  after the resistance value was read through the IEC tolerance map (`J`→±5%,
+  `K`→±10%), but in this layout that letter is a different field — the tolerance
+  comes from the *series* letter (`WG`/`WA`/`W8`… plus `F` for 1% or `J` for 5%).
+  Verified against LCSC product data:
+
+  | Part number | LCSC | was | now |
+  |---|---|---|---|
+  | `0402WGF200JTCE` | 20Ω ±1% | 5% | 1% |
+  | `0402WGF549JTCE` | 54.9Ω ±1% | 5% | 1% |
+  | `0402WGF499JTCE` | 49.9Ω ±1% | 5% | 1% |
+  | `0402WGF511KTCE` | 5.11Ω ±1% | 10% | 1% |
+  | `0603WAF220KT5E` | 2.2Ω ±1% | 10% | 1% |
+  | `0402WGJ0223TCE` | 22kΩ ±5% | 5% | 5% |
+
+  On the TechOne 27 (CO1271) SKU3 BOM this fixes 25 of 125 resistor rows whose
+  decoded tolerance disagreed with the tolerance written in the BOM
+  description. Datasheet sample rows that had recorded the wrong value are
+  updated to the verified ones.
+- **The Clean preview score tint vanished above ~90%.** `QColor` rejects
+  channels above 255 and silently returns a fully transparent brush, so the
+  green channel computed as 256–258 for high scores and the cell was left
+  untinted. Channel values are now clamped.
 - **Excel/ODS workbooks now load the first _visible_ worksheet.** Previously the
   reader always took the first sheet, including hidden ones. Workbooks that hide
   an auxiliary sheet (ECN change log, production notes) loaded that sheet instead

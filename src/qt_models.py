@@ -685,12 +685,15 @@ class CleanPreviewTableModel(SortableTableModel):
         except (TypeError, ValueError):
             return base
         pct = max(0.0, min(100.0, pct))
-        intensity = int(210 + (pct / 100.0) * 40)
+        # Clamp before building the colour: QColor rejects channels > 255 and
+        # silently yields a fully transparent brush, which made the tint vanish
+        # for scores above ~90%.
+        intensity = min(255, int(210 + (pct / 100.0) * 40))
         alt = row % 2 == 1
         if alt:
-            mix = int(230 - (pct / 100.0) * 35)
+            mix = max(0, min(255, int(230 - (pct / 100.0) * 35)))
             return QtGui.QBrush(QtGui.QColor(mix, intensity, mix))
-        return QtGui.QBrush(QtGui.QColor(235, intensity + 8, 235))
+        return QtGui.QBrush(QtGui.QColor(235, min(255, intensity + 8), 235))
 
     def _get_foreground(self, row: int, col: int, value: Any) -> Optional[QtGui.QBrush]:
         if row < len(self._df) and col < len(self._df.columns):

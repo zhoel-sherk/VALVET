@@ -124,6 +124,25 @@ def test_highlight_amber_colour() -> None:
     assert colour.red() > colour.blue()  # amber is warm
 
 
+def test_clean_preview_score_tint_is_opaque_at_high_scores() -> None:
+    """QColor rejects channels > 255 and returns a transparent brush.
+
+    The green score tint disappeared for Win% above ~90% because the green
+    channel was 256-258.
+    """
+    _qapp()
+    from qt_models import CleanPreviewTableModel
+
+    for pct in (0.0, 50.0, 90.0, 95.0, 100.0):
+        model = CleanPreviewTableModel(
+            pd.DataFrame({"Cleaned": ["x"], "Win%": [pct]}),
+            arbiter_score_highlight=True,
+        )
+        brush = model.data(model.index(0, 0), QtCore.Qt.ItemDataRole.BackgroundRole)
+        assert isinstance(brush, QtGui.QBrush), pct
+        assert brush.color().alpha() == 255, f"Win%={pct} -> {brush.color().getRgb()}"
+
+
 def test_highlight_empty_dataframe_is_safe() -> None:
     _qapp()
     m = SortableTableModel(pd.DataFrame())

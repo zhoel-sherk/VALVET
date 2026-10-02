@@ -131,11 +131,21 @@ def parse(pn: str, component_type: str) -> str | None:
         tolerance = ""
         res_code = ""
 
-        # Check if 3-digit format (resistance + tol at position 3)
+        # Check if 3-digit format (resistance + letter at position 3)
         if len(remaining2) >= 4:
             if remaining2[3] in tol_map:
-                tol_char = remaining2[3]
-                tolerance = tol_map.get(tol_char, "")
+                # The letter after the value is NOT the tolerance in this layout.
+                # Verified against LCSC for these exact part numbers (UNI-ROYAL,
+                # same layout as Uniohm):
+                #   0402WGF200JTCE  -> 20R   ±1%   (series letter F, trailing J)
+                #   0402WGF549JTCE  -> 54.9R ±1%   (series letter F, trailing J)
+                #   0402WGF511KTCE  -> 5.11R ±1%   (series letter F, trailing K)
+                #   0603WAF220KT5E  -> 2.2R  ±1%   (series letter F, trailing K)
+                #   0402WGJ0223TCE  -> 22K   ±5%   (series letter J, trailing T)
+                # The series letter already resolved into default_tolerance;
+                # reading the trailing letter through the IEC map reported
+                # 5%/10% for parts that are in fact 1%.
+                tolerance = default_tolerance or "1%"
                 res_code = remaining2[:3]
                 if res_code.isdigit():
                     resistance = _format_ohm(float(int(res_code)) / 10.0)
