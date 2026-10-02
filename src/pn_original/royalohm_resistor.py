@@ -135,8 +135,8 @@ def parse(pn: str, component_type: str) -> str | None:
         if len(remaining2) >= 4:
             if remaining2[3] in tol_map:
                 # The letter after the value is NOT the tolerance in this layout.
-                # Uniohm datasheet (doc/info/C0402WGF2001TCE.pdf), page 3,
-                # "Ordering Procedure": the part number is built as
+                # The Uniohm thick film chip resistor catalogue ("Ordering
+                # Procedure" section) builds the part number as
                 #   <type 4 digits> W <wattage> <tolerance> <value> <packing>
                 # with the tolerance in its own 1-character field:
                 #   D = ±0.5%, F = ±1%, G = ±2%, J = ±5%

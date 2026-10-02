@@ -72,7 +72,7 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   applies per row. Zebra striping is unchanged — verified pixel-identical
   against the previous stylesheet on the TechOne 27 BOM.
 - **Taiyo Yuden part numbers now decode their rated voltage from the first
-  letter**, per the manufacturer catalogue (`doc/info/DOC012627480.pdf`).
+  letter**, per the Taiyo Yuden multilayer ceramic capacitor catalogue.
   `TMK107BBJ106MA-T` did not parse at all, and `JDK`/`LMK` series were
   unhandled — `JDK` did not even classify as a capacitor. The old `BJ` branch
   hardcoded `6.3V`, which only happened to be right for the `J` prefix, so other
@@ -85,10 +85,14 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Notes
 
-- The vendor codecs are now documented against their manufacturer catalogues
-  (Taiyo Yuden MLCC, Uniohm thick film chip resistors); the source PDFs sit in
-  `doc/info/` but are **not committed** — see the open question about adding
-  vendor literature to the repository.
+- The vendor codecs are now documented against their manufacturer catalogues:
+  the **Taiyo Yuden multilayer ceramic capacitor catalogue** (2018, 26 pages —
+  supplies the rated-voltage, series-code and size tables) and the **Uniohm
+  thick film chip resistor catalogue** (supplies the wattage and tolerance code
+  tables and the part-number ordering example). Both PDFs are copyrighted
+  vendor literature and are excluded by `.gitignore`; the code and
+  `datasheet/*.md` state the decoding rules in prose and cite the catalogue by
+  name rather than by path.
 - The Uniohm catalogue documents only a **four-digit** value field in the
   ordering code ("the 1st to 3rd digits are the significant figures and the 4th
   indicates the number of zeros following"), which the parser handles and which

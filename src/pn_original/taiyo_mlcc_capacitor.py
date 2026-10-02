@@ -1,8 +1,9 @@
 """
 Taiyo Yuden Capacitor PN Parser
 
-Decoding follows the manufacturer catalogue "MLCC" (Taiyo Yuden,
-``doc/info/DOC012627480.pdf``, PARTS NUMBER pages):
+Decoding follows the Taiyo Yuden multilayer ceramic capacitor catalogue, the
+"PARTS NUMBER" section of the 2018 product catalogue (26 pages; not committed
+here - see ``doc/info`` and ``.gitignore``). Its layout is:
 
     J  M  K  3 1 6  △  B J 1 0 6  M  L  -  T
     ①  ②  ③   ④    ⑤  ⑥ ⑦     ⑧  ⑨  ⑩ ⑪

@@ -2,8 +2,9 @@
 
 Source: [`src/pn_original/taiyo_mlcc_capacitor.py`](../src/pn_original/taiyo_mlcc_capacitor.py)
 
-Decoding tables come from the manufacturer catalogue
-[`doc/info/DOC012627480.pdf`](../doc/info/DOC012627480.pdf) (PARTS NUMBER pages).
+Decoding tables come from the Taiyo Yuden multilayer ceramic capacitor
+catalogue (2018, 26 pages), "PARTS NUMBER" section. The catalogue PDF is not
+committed - keep a local copy if you want to re-verify.
 The rated voltage is the **first letter** of the part number, and the
 series-code -> dielectric mapping was verified against LCSC product data.
 

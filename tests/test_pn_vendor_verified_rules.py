@@ -63,7 +63,7 @@ def test_uniohm_j_series_is_5_percent() -> None:
 
 
 def test_uniohm_datasheet_ordering_example() -> None:
-    """Worked example from the Uniohm catalogue, doc/info/C0402WGF2001TCE.pdf p.3.
+    """Worked example from the Uniohm thick film chip resistor catalogue.
 
     "Ordering Procedure (Example: 1206 1/4W 5% 1.2 R T/R-5000)" is given as
     1206W4J012JT5E - it pins the field order (type / wattage / tolerance /
@@ -108,9 +108,9 @@ def test_royal_ohm_rejects_unrealistic_expansion() -> None:
 
 
 # --- Taiyo Yuden ---------------------------------------------------------
-# Rated voltage is the FIRST LETTER of the part number (Taiyo Yuden MLCC
-# catalogue doc/info/DOC012627480.pdf). Expected values below were verified
-# against LCSC product data for each of these exact part numbers.
+# Rated voltage is the FIRST LETTER of the part number (Taiyo Yuden multilayer
+# ceramic capacitor catalogue, "PARTS NUMBER" section). Expected values below
+# were verified against LCSC product data for each of these exact part numbers.
 #
 # These three are the ones that used to return None (missing the extra "B" of
 # the BBJ series code) or were decoded with a hardcoded 6.3V.
