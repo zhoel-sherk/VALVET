@@ -41,6 +41,7 @@ class PnpTabMixin:
 
         self.gb_pnp_file = QtWidgets.QGroupBox(self.ui_tr("pnp.group_file"))
         file_l = QtWidgets.QVBoxLayout(self.gb_pnp_file)
+        file_l.addLayout(self._create_sheet_picker("pnp", tr_key="pnp.sheet"))
         sep_row = QtWidgets.QHBoxLayout()
         self.lbl_pnp_separator = QtWidgets.QLabel(self.ui_tr("pnp.separator"))
         sep_row.addWidget(self.lbl_pnp_separator)
@@ -56,6 +57,7 @@ class PnpTabMixin:
         self.btn_pnp_help.setToolTip(self.ui_tr("pnp.help_title"))
         sep_row.addWidget(self.btn_pnp_help)
         file_l.addLayout(sep_row)
+        file_l.addWidget(self.pnp_sheet_rows)
         self.btn_reload_pnp = action_button(self.ui_tr("pnp.reload"))
         self.btn_reload_pnp.clicked.connect(self._reload_pnp)
         file_l.addWidget(self.btn_reload_pnp)
@@ -184,7 +186,7 @@ class PnpTabMixin:
             lambda pos: self._on_table_context_menu(pos, "pnp")
         )
         self.pnp_model.dataChanged.connect(
-            lambda *args: self._mark_working_dirty("pnp")
+            lambda *args: self._on_table_data_changed("pnp", *args)
         )
         pnp_pv.addWidget(self.pnp_table, 1)
         root.addWidget(self.pnp_preview_stack, 1)

@@ -388,5 +388,15 @@
   "pcb.layer_color": "Цвет",
   "pcb.layer_opacity": "Непрозрачность",
   "pcb.layer_color_tooltip": "Цвет выбранного слоя Gerber",
-  "pcb.gerber_loading": "Загрузка Gerber…"
+  "pcb.gerber_loading": "Загрузка Gerber…",
+  "bom.sheet": "Лист:",
+  "bom.sheet_tip": "Какой лист читать из Excel/ODS-файла BOM. '(auto)' берёт первый видимый лист; скрытые помечены '(hidden)'.",
+  "bom.sheet_rows": "{sheet} — строк: {rows}",
+  "pnp.sheet": "Лист:",
+  "pnp.sheet_tip": "Какой лист читать из Excel/ODS-файла размещения. '(auto)' берёт первый видимый лист; скрытые помечены '(hidden)'.",
+  "pnp.sheet_rows": "{sheet} — строк: {rows}",
+  "bom.group_highlight": "Подсветка",
+  "bom.highlight": "Подсветить строки",
+  "bom.highlight_tip": "Подсвечивает строки, содержащие любое из слов ниже (например DIP THT), поиск по всем колонкам без учёта регистра. Только подсветка - ничего не фильтруется и не удаляется.",
+  "bom.highlight_tokens": "напр. DIP THT"
 }

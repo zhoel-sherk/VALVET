@@ -20,7 +20,15 @@ from themes.colour_prefs import (
     merge_ui_colours,
 )
 from ui.project_tab import configure_path_label
+from ui.sheet_picker import SHEET_AUTO
 from ui_i18n import SUPPORTED_UI_LOCALES
+
+
+def _as_sheet_name(value: object) -> str | None:
+    """Normalise a stored sheet choice; None means 'auto'."""
+    if not isinstance(value, str):
+        return None
+    return None if value == SHEET_AUTO or not value else value
 
 
 class ProfilesMixin:
@@ -85,10 +93,12 @@ class ProfilesMixin:
             },
             "bom": {
                 "separator": self.bom_separator.currentText(),
+                "sheet": self._selected_sheet("bom"),
                 "mappings": bom_maps,
             },
             "pnp": {
                 "separator": self.pnp_separator.currentText(),
+                "sheet": self._selected_sheet("pnp"),
                 "units": "mm" if self._pnp_xy_stored_in_mm() else "mils",
                 "mappings": pnp_maps,
                 "secondary_path": (self._pnp_secondary_path or ""),
@@ -138,10 +148,14 @@ class ProfilesMixin:
         self._profile_restore_bom_mappings = (
             [str(x) for x in bm] if isinstance(bm, list) else None
         )
+        # Sheet choice is stored as a name so it survives sheet reordering; it is
+        # applied when the next file populates the combo, not before.
+        self._bom_saved_sheet = _as_sheet_name(bom.get("sheet"))
         pnp = data.get("pnp") or {}
         psep = str(pnp.get("separator", "auto"))
         if self.pnp_separator.findText(psep) >= 0:
             self.pnp_separator.setCurrentText(psep)
+        self._pnp_saved_sheet = _as_sheet_name(pnp.get("sheet"))
         self._apply_pnp_xy_units_everywhere(
             str(pnp.get("units", "mm")).lower() != "mils",
             save_settings=False,

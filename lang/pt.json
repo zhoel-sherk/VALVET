@@ -388,5 +388,15 @@
   "pcb.layer_color": "Cor",
   "pcb.layer_opacity": "Opacidade",
   "pcb.layer_color_tooltip": "Colorir a camada Gerber selecionada",
-  "pcb.gerber_loading": "A carregar Gerber…"
+  "pcb.gerber_loading": "A carregar Gerber…",
+  "bom.sheet": "Planilha:",
+  "bom.sheet_tip": "Qual planilha ler de um BOM Excel/ODS. '(auto)' usa a primeira planilha visível; as ocultas estão marcadas '(hidden)'.",
+  "bom.sheet_rows": "{sheet} — {rows} linhas",
+  "pnp.sheet": "Planilha:",
+  "pnp.sheet_tip": "Qual planilha ler de um arquivo de posicionamento Excel/ODS. '(auto)' usa a primeira planilha visível; as ocultas estão marcadas '(hidden)'.",
+  "pnp.sheet_rows": "{sheet} — {rows} linhas",
+  "bom.group_highlight": "Destaque",
+  "bom.highlight": "Destacar linhas",
+  "bom.highlight_tip": "Destaca todas as linhas que contiverem qualquer das palavras abaixo (ex.: DIP THT), procurando em todas as colunas, sem diferenciar maiúsculas. Apenas visual - nada é filtrado ou removido.",
+  "bom.highlight_tokens": "ex.: DIP THT"
 }

@@ -103,7 +103,7 @@ Other sample files:
 | Group | Tab | Does |
 | --- | --- | --- |
 | DATA | Project | Profile, UI language (`lang/`), session |
-| DATA | BOM / PnP | Load `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, map columns, edit, autosave |
+| DATA | BOM / PnP | Load `.xls` `.xlsx` `.csv` `.ods` `.txt` `.tab`, pick worksheet, map columns, highlight rows, edit, autosave |
 | TRANSFORM | Clean BOM | R/C/L decode + regex; vendor PNs (Yageo, Murata, …) |
 | TRANSFORM | Merge / Export | Join BOM onto PnP; Top/Bot / `.mmd` |
 | OUTPUT | Report | BOM vs PnP checks |
@@ -119,7 +119,7 @@ No-Qt CLI: `pip install -r requirements-cli.txt` then `PYTHONPATH=src python -m 
 
 ## More
 
-Roadmap: [doc/TODO.md](doc/TODO.md). Frozen Windows build: [doc/info/PACKAGING_WINDOWS.md](doc/info/PACKAGING_WINDOWS.md). License: [MIT](LICENSE).
+Roadmap: [doc/TODO.md](doc/TODO.md). Frozen Windows build: [doc/info/PACKAGING_WINDOWS.md](doc/info/PACKAGING_WINDOWS.md). Release notes: [CHANGELOG.md](CHANGELOG.md). License: [MIT](LICENSE).
 
 <p align="center">
   <img src="img/icon-512.png" alt="VALVET logo" width="120"/>

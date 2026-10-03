@@ -46,6 +46,7 @@ from ui.project_tab import configure_path_label, setup_project_tab
 from ui.report_tab import ReportTabMixin
 from ui.session import SessionMixin
 from ui.settings_tab import SettingsTabMixin
+from ui.sheet_picker import SheetPickerMixin
 from ui.table_actions import TableActionsMixin
 from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n
 from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
@@ -54,6 +55,7 @@ from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 class MainWindow(
     MappingMixin,
     TableActionsMixin,
+    SheetPickerMixin,
     FilesMixin,
     BomTabMixin,
     PnpTabMixin,
@@ -112,11 +114,18 @@ class MainWindow(
         self._bom_ui_restoring = False
         self._pnp_ui_restoring = False
         self._syncing_pnp_xy_units = False
+        self._sheets_updating = False
+        self._bom_saved_sheet: str | None = None
+        self._pnp_saved_sheet: str | None = None
+        self._sheet_paths: dict[str, str] = {}
         self._bom_tab_settings_timer = QtCore.QTimer(self)
         self._bom_tab_settings_timer.setSingleShot(True)
         self._bom_tab_settings_timer.timeout.connect(
             self._save_bom_tab_settings_to_disk
         )
+        self._bom_highlight_timer = QtCore.QTimer(self)
+        self._bom_highlight_timer.setSingleShot(True)
+        self._bom_highlight_timer.timeout.connect(self._apply_bom_highlight)
         self._pnp_tab_settings_timer = QtCore.QTimer(self)
         self._pnp_tab_settings_timer.setSingleShot(True)
         self._pnp_tab_settings_timer.timeout.connect(

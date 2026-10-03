@@ -106,7 +106,16 @@ def profile_colour_qss(
     *,
     tab_min_height: int = 22,
 ) -> str:
-    """QSS appended after qdarkstyle; fixes alternate row contrast for item views."""
+    """QSS appended after qdarkstyle; fixes alternate row contrast for item views.
+
+    The ``QTableView::item`` rules deliberately set only ``color``. A
+    ``background-color`` there would take priority over the model's
+    ``BackgroundRole`` and silently suppress every per-cell tint in the app
+    (row highlighting, and the Clean preview score shading). Row colours
+    therefore come from ``background-color`` / ``alternate-background-color`` on
+    the view itself, which the delegate still applies per row.
+    """
+
     u = ui
     t = table
     tb = merge_tab_colours(tab)
@@ -223,11 +232,9 @@ def profile_colour_qss(
         selection-color: {sf};
     }}
     QTableView::item:!alternate:!selected, QTreeView::item:!alternate:!selected {{
-        background-color: {bg};
         color: {tx};
     }}
     QTableView::item:alternate:!selected, QTreeView::item:alternate:!selected {{
-        background-color: {alt};
         color: {tx};
     }}
     QTableView::item:selected, QTreeView::item:selected {{

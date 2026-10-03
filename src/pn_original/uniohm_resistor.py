@@ -158,8 +158,18 @@ def parse(pn: str, component_type: str) -> str | None:
 
         if len(remaining2) >= 4 and not resistance:
             if remaining2[3] in tol_map:
-                tol_char = remaining2[3]
-                tolerance = tol_map.get(tol_char, "")
+                # The letter after the value is NOT the tolerance in this layout.
+                # Verified against LCSC for these exact part numbers:
+                #   0402WGF200JTCE  -> 20R   ±1%   (series letter F, trailing J)
+                #   0402WGF549JTCE  -> 54.9R ±1%   (series letter F, trailing J)
+                #   0402WGF511KTCE  -> 5.11R ±1%   (series letter F, trailing K)
+                #   0603WAF220KT5E  -> 2.2R  ±1%   (series letter F, trailing K)
+                #   0402WGJ0223TCE  -> 22K   ±5%   (series letter J, trailing T)
+                # Tolerance comes from the series letter (WG+W8/W4/... + F or J),
+                # already resolved into default_tolerance above. Reading the
+                # trailing letter through the IEC map reported 5%/10% for parts
+                # that are in fact 1%.
+                tolerance = default_tolerance or "1%"
                 res_code = remaining2[:3]
                 if res_code.isdigit():
                     # For legacy Royal/Uni families, "XYZJ" maps to X.YZ? no —

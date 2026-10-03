@@ -1,0 +1,19 @@
+# Vendor datasheets / catalogues are reference material only.
+#
+# They are copyrighted manufacturer documents (Taiyo Yuden, Uniohm, ...) and the
+# repository is public, so the PDFs are deliberately not committed. The parser
+# code and datasheet/*.md describe the decoding rules in prose instead, and cite
+# the catalogue by name and section rather than by path. Keep your own copies
+# locally if you want to re-verify something.
+*.pdf
+
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Runtime output
+logs/
+*.log

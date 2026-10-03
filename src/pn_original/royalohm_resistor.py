@@ -131,11 +131,29 @@ def parse(pn: str, component_type: str) -> str | None:
         tolerance = ""
         res_code = ""
 
-        # Check if 3-digit format (resistance + tol at position 3)
+        # Check if 3-digit format (resistance + letter at position 3)
         if len(remaining2) >= 4:
             if remaining2[3] in tol_map:
-                tol_char = remaining2[3]
-                tolerance = tol_map.get(tol_char, "")
+                # The letter after the value is NOT the tolerance in this layout.
+                # The Uniohm thick film chip resistor catalogue ("Ordering
+                # Procedure" section) builds the part number as
+                #   <type 4 digits> W <wattage> <tolerance> <value> <packing>
+                # with the tolerance in its own 1-character field:
+                #   D = ±0.5%, F = ±1%, G = ±2%, J = ±5%
+                # and wattage likewise:
+                #   WH=1/32W WM=1/20W WG=1/16W WA=1/10W W8=1/8W W4=1/4W W2=1/2W
+                # so WGF/WGJ/WAF/WAJ encode the tolerance, already resolved into
+                # default_tolerance above. The trailing letter after the value is
+                # a different field. Confirmed against LCSC for these exact part
+                # numbers (UNI-ROYAL, same layout as Uniohm):
+                #   0402WGF200JTCE  -> 20R   ±1%   (series F, trailing J)
+                #   0402WGF549JTCE  -> 54.9R ±1%   (series F, trailing J)
+                #   0402WGF511KTCE  -> 5.11R ±1%   (series F, trailing K)
+                #   0603WAF220KT5E  -> 2.2R  ±1%   (series F, trailing K)
+                #   0402WGJ0223TCE  -> 22K   ±5%   (series J, trailing T)
+                # Reading the trailing letter through the IEC map reported
+                # 5%/10% for parts that are in fact 1%.
+                tolerance = default_tolerance or "1%"
                 res_code = remaining2[:3]
                 if res_code.isdigit():
                     resistance = _format_ohm(float(int(res_code)) / 10.0)
