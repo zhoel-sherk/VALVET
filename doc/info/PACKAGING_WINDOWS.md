@@ -12,6 +12,31 @@ That produces an **onedir** folder `dist/VALVET/` (`VALVET.exe` plus Qt DLLs), n
 2. Confirm the window icon and **Help → About**.
 3. Open a small BOM/PnP pair; Clean Convert; Merge export CSV.
 
+## Bundled data files
+
+Frozen modules resolve data from `__file__`, which lands under `_MEIPASS`, so every
+`datas` destination must mirror the `src/`-relative path the module computes:
+
+| Source | `_MEIPASS` | Read by |
+| --- | --- | --- |
+| `lang/` | `lang` | `ui_i18n.py` |
+| `src/fonts/*.ttf` | `fonts` | `themes/fonts_loader.py` |
+| `src/themes/design_tokens.json` | `themes/` | `themes/__init__.py` |
+| `src/themes/assets/` | `themes/assets/` | `themes/tab_icons.py`, `themes/apple_switch.py` |
+| `src/package_vspd/catalog/` | `package_vspd/catalog/` | `package_vspd/catalog.py` |
+
+A missing entry is a **startup crash** when the reading module runs during
+`MainWindow` construction (`tree.json`) or a silent UI regression (tab icons,
+switch states). `tests/test_frozen_bundle_data.py` parses `datas` and fails when
+one of these pairs goes missing — run it after touching `valvet.spec`. The
+`--smoke` gate in *Release Windows* is the backstop, since it builds the real
+bundle before zipping.
+
+Note: `collect_all("pyvista")`/`("pyvistaqt")` in the spec bundle VTK **whenever
+those packages are importable**, so a venv with `requirements-step3d.txt`
+installed produces a far larger `dist/` than the CI runner (which installs only
+`requirements.txt` + dev).
+
 ## GitHub Actions zip
 
 Manual workflow **Release Windows** (`.github/workflows/release-windows.yml`): Actions → Run workflow.

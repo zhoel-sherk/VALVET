@@ -11,11 +11,20 @@ from PyInstaller.utils.hooks import collect_all
 block_cipher = None
 
 # App icons only (not README screenshots / readme.svg).
+# Destinations mirror the src/-relative layout: frozen modules resolve data via
+# Path(__file__).parent, which lands under _MEIPASS (e.g. package_vspd/catalog.py
+# -> _MEIPASS/package_vspd/catalog/tree.json).
 datas = [
     ("lang", "lang"),
     ("img/icon.ico", "img"),
     ("img/icon-256.png", "img"),
     ("src/themes/design_tokens.json", "themes"),
+    # Switch states + main-tab icons; without these the frozen build loses every
+    # tab icon and the project Debug-logs switch renders unstyled.
+    ("src/themes/assets", "themes/assets"),
+    # VSPD seed catalog; package_vspd/catalog.py reads these at Package-tab
+    # construction, so a missing tree.json crashes the app on startup.
+    ("src/package_vspd/catalog", "package_vspd/catalog"),
 ]
 _font_dir = Path("src/fonts")
 if _font_dir.is_dir():
