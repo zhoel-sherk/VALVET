@@ -5,6 +5,8 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.1] — BETA - 2026-10-04
+
 ### Added
 
 - **Highlight in the BOM tab** — a `Highlight` checkbox and a token field in the
@@ -82,6 +84,15 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `SMTSheetNotFoundError` is now actually raised for a missing sheet name. It
   previously existed but was never thrown, so a bad sheet name fell through to
   the CSV fallback and surfaced as "rename the file to .txt/.csv".
+- **The frozen Windows build crashed on startup and shipped no tab icons.**
+  `valvet.spec` did not bundle `src/package_vspd/catalog/` (`tree.json`,
+  `aliases.json`), which `package_vspd/catalog.py` resolves from `__file__`, so
+  the Package tab raised `FileNotFoundError` while `MainWindow` was still
+  building — the app never reached `show()`. `src/themes/assets/` (10 main-tab
+  icons plus 6 switch-state SVGs) was missing too, so every tab icon and the
+  Project "Debug logs" switch rendered unstyled. Both directories are now in
+  `datas` at the paths the frozen modules compute, and
+  `tests/test_frozen_bundle_data.py` keeps the spec in step with the modules.
 
 ### Notes
 
@@ -121,5 +132,6 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Initial public BETA line: Project, BOM/PnP, Clean BOM, Merge/Export, Report,
 PCB Preview, Step 3D, and Machine lib tabs.
 
-[Unreleased]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.0

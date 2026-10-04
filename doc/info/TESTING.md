@@ -239,6 +239,9 @@ When you touch an area in the table below, run the matching tests first.
 | Cross-check window / thread / Return | `tests/test_cross_check_window.py`, `tests/test_cross_check_thread.py`, `tests/test_merge_cross_check_routing.py` |
 | Merge layer display vs PCB side      | `tests/test_layer_side.py`                                                                                        |
 | Qt table roles / nested Qt modules   | `tests/test_clean_preview_model.py`, `tests/test_qt_nested_module_typos.py`                                      |
+| Worksheet visibility / sheet picker  | `tests/test_read_file_sheets.py`, `tests/test_sheet_picker.py`                                                   |
+| BOM row highlight (visual tint)      | `tests/test_bom_highlight.py`                                                                                    |
+| `valvet.spec` bundled data files     | `tests/test_frozen_bundle_data.py`                                                                               |
 
 
 **Clean BOM golden corpus** (`tests/fixtures/clean_corpus/`):

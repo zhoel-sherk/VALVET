@@ -6,7 +6,7 @@ on:
       version:
         description: Version without leading v (must match APP_VERSION for About)
         required: false
-        default: "0.5.0"
+        default: "0.5.1"
       create_release:
         description: Attach zip to a GitHub Release (tag v<version>)
         type: boolean
