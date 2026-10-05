@@ -873,7 +873,7 @@ class MainWindow(
         except Exception as e:
             # A failure here (e.g. the profile snapshot write) must not escape the
             # override: it would abort the close and lose the session entirely.
-            logger.error("Close: saving layout/profile failed: %s", e)
+            logger.exception("Close: saving layout/profile failed: %s", e)
         finally:
             super().closeEvent(event)
 

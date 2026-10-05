@@ -23,10 +23,10 @@ class CrossCheckThread(QtCore.QThread):
         try:
             r = self._proc.cross_check()
         except SMTProcessorError as e:
-            logger.error("cross_check failed: %s", e)
+            logger.exception("cross_check failed: %s", e)
             self.result_ready.emit(None, str(e))
         except Exception as e:
-            logger.error("cross_check failed: %s", e)
+            logger.exception("cross_check failed: %s", e)
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(r, "")
@@ -57,10 +57,10 @@ class HanwhaPartDetLoadThread(QtCore.QThread):
                 self._mdb_path, progress=self.progress.emit
             )
         except mdbtools.HanwhaMdbToolsError as e:
-            logger.error("Hanwha PART_Det load failed: %s", e)
+            logger.exception("Hanwha PART_Det load failed: %s", e)
             self.result_ready.emit(None, str(e))
         except Exception as e:
-            logger.error("Hanwha PART_Det load failed: %s", e)
+            logger.exception("Hanwha PART_Det load failed: %s", e)
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(df, "")
@@ -105,7 +105,7 @@ class HanwhaSqliteImportThread(QtCore.QThread):
             )
             df = hanwha_cache.load_preview_dataframe_from_sqlite(self._cache_dir)
         except Exception as e:
-            logger.error("Hanwha SQLite import failed: %s", e)
+            logger.exception("Hanwha SQLite import failed: %s", e)
             self.result_ready.emit(None, str(e))
         else:
             self.result_ready.emit(df, "")
@@ -138,7 +138,7 @@ class HanwhaFootprintBuildThread(QtCore.QThread):
                 self._cache_dir, self._profilename, partdesc=self._partdesc
             )
         except Exception as e:
-            logger.error(
+            logger.exception(
                 "Hanwha footprint build failed for %s: %s", self._profilename, e
             )
             self.result_ready.emit(None, str(e))

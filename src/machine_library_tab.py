@@ -962,5 +962,5 @@ class MachineLibraryTab(QtWidgets.QWidget):
         try:
             self._fp_preview.show_result(result, title=profile or result.partgroup_name)
         except Exception as e:
-            logger.error("footprint preview paint failed: %s", e)
+            logger.exception("footprint preview paint failed: %s", e)
             self._fp_preview.set_idle(str(e)[:400])
