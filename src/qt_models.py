@@ -148,6 +148,53 @@ def _rows_matching_tokens(df: pd.DataFrame, tokens: tuple[str, ...]) -> frozense
         return frozenset()
 
 
+def _relative_luminance(color: QtGui.QColor) -> float:
+    """WCAG 2.1 relative luminance of an opaque sRGB colour (0.0..1.0)."""
+    total = 0.0
+    for value, weight in zip(
+        (color.red(), color.green(), color.blue()),
+        (0.2126, 0.7152, 0.0722),
+    ):
+        channel = value / 255.0
+        if channel <= 0.03928:
+            linear = channel / 12.92
+        else:
+            linear = ((channel + 0.055) / 1.055) ** 2.4
+        total += weight * linear
+    return total
+
+
+def _contrast_ratio(a: QtGui.QColor, b: QtGui.QColor) -> float:
+    """WCAG 2.1 contrast ratio between two opaque sRGB colours (1.0..21.0)."""
+    la = _relative_luminance(a)
+    lb = _relative_luminance(b)
+    if la < lb:
+        la, lb = lb, la
+    return (la + 0.05) / (lb + 0.05)
+
+
+# Foreground candidates for a tinted cell. Both are theme-independent, and the
+# one with the better contrast against the fill is picked at runtime.
+_TINT_FG_DARK = QtGui.QColor(26, 26, 26)  # #1A1A1A
+_TINT_FG_LIGHT = QtGui.QColor(255, 255, 255)  # #FFFFFF
+
+
+def _readable_foreground(background: QtGui.QColor) -> QtGui.QColor:
+    """Pick dark or light text so a tinted cell stays readable in any theme.
+
+    The theme's own text colour cannot be used: the light theme's near-black text
+    and the dark theme's near-white text are each unreadable on the other one.
+    Choosing by the fill's own luminance keeps ``contrast(fg, bg) >= 4.5`` for
+    any tint intensity, and keeps the choice stable when the theme changes.
+    """
+    return (
+        _TINT_FG_DARK
+        if _contrast_ratio(_TINT_FG_DARK, background)
+        >= _contrast_ratio(_TINT_FG_LIGHT, background)
+        else _TINT_FG_LIGHT
+    )
+
+
 class DataFrameCellEditCommand(QtGui.QUndoCommand):
     """Undo one cell edit on a PandasTableModel."""
 
@@ -663,27 +710,30 @@ class CleanPreviewTableModel(SortableTableModel):
             self.dataChanged.emit(
                 tl,
                 br,
-                [QtCore.Qt.ItemDataRole.BackgroundRole],
+                [
+                    QtCore.Qt.ItemDataRole.BackgroundRole,
+                    QtCore.Qt.ItemDataRole.ForegroundRole,
+                ],
             )
 
-    def _get_background(self, row: int, col: int, value: Any) -> Any:
-        base = super()._get_background(row, col, value)
+    def _clean_tint_color(self, row: int, col: int) -> Optional[QtGui.QColor]:
+        """Green fill for the ``Cleaned`` cell, or None when no tint applies."""
         if not self._arbiter_score_highlight:
-            return base
-        if row >= len(self._df) or col >= len(self._df.columns):
-            return base
+            return None
+        if row < 0 or row >= len(self._df) or col >= len(self._df.columns):
+            return None
         if str(self._df.columns[col]) != "Cleaned" or "Win%" not in self._df.columns:
-            return base
+            return None
         wcell = self._df.iloc[row]["Win%"]
         try:
             if wcell is None or (isinstance(wcell, float) and pd.isna(wcell)):
-                return base
+                return None
             s = str(wcell).strip()
             if not s:
-                return base
+                return None
             pct = float(s)
         except (TypeError, ValueError):
-            return base
+            return None
         pct = max(0.0, min(100.0, pct))
         # Clamp before building the colour: QColor rejects channels > 255 and
         # silently yields a fully transparent brush, which made the tint vanish
@@ -692,8 +742,15 @@ class CleanPreviewTableModel(SortableTableModel):
         alt = row % 2 == 1
         if alt:
             mix = max(0, min(255, int(230 - (pct / 100.0) * 35)))
-            return QtGui.QBrush(QtGui.QColor(mix, intensity, mix))
-        return QtGui.QBrush(QtGui.QColor(235, min(255, intensity + 8), 235))
+            return QtGui.QColor(mix, intensity, mix)
+        return QtGui.QColor(235, min(255, intensity + 8), 235)
+
+    def _get_background(self, row: int, col: int, value: Any) -> Any:
+        base = super()._get_background(row, col, value)
+        tint = self._clean_tint_color(row, col)
+        if tint is None:
+            return base
+        return QtGui.QBrush(tint)
 
     def _get_foreground(self, row: int, col: int, value: Any) -> Optional[QtGui.QBrush]:
         if row < len(self._df) and col < len(self._df.columns):
@@ -705,4 +762,10 @@ class CleanPreviewTableModel(SortableTableModel):
                     sv = str(value)
                     if "PARTIAL" in sv.upper():
                         return QtGui.QBrush(QtGui.QColor(220, 85, 0))
+        # A tinted cell paints its own fill, so the theme's text colour (light in
+        # the dark theme) would be unreadable on it. Pair the fill with a
+        # foreground derived from the fill itself.
+        tint = self._clean_tint_color(row, col)
+        if tint is not None:
+            return QtGui.QBrush(_readable_foreground(tint))
         return super()._get_foreground(row, col, value)
