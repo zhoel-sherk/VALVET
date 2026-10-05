@@ -5,10 +5,14 @@ Walsin MLCC Part Number Format (several families — see regexes in code):
 - ``0402N…`` / ``0603N…``: package + N + EIA(3) or 5R0-style + tolerance + voltage digits + tape
 - ``0402B…CT``, ``0805X…CT``, ``1206X…CT``: B/X line + value + tolerance + voltage encoding
 
+Packaging suffix (last two letters of the B/X lines):
+- ``CT`` — 7" paper tape; ``NT`` — 7" plastic tape (same reel code family)
+
 Examples:
 - 0402N100J500CT → CAP_0402_10pF_50V_5%
 - 0402B102K500CT → CAP_0402_1nF_50V_10%
 - 0805X475M6R3CT → CAP_0805_4.7uF_6.3V_20%
+- 0201X104K6R3NT → CAP_0201_100nF_6.3V_X5R_10%
 
 Size codes:
 0201, 0402, 0603, 0805, 1206, 1210 (leading 4 digits in PN)
@@ -51,12 +55,12 @@ _RE_N5R = compile(
     r"^(\d{4})N(5R[0-9])(.)([0-9]{2,3})([A-Z]{1,3})$",
     I,
 )
-# 0402B102K500CT — B line, 102 EIA, K tol, 500 = 50V
-_RE_BCT = compile(r"^(\d{4})B(\d{3})([A-Z])(\d{3,4})CT$", I)
+# 0402B102K500CT / 0402B102K500NT — B line, 102 EIA, K tol, 500 = 50V
+_RE_BCT = compile(r"^(\d{4})B(\d{3})([A-Z])(\d{3,4})(?:CT|NT)$", I)
 # 0805X475M6R3CT — 475 EIA, 6R3 = 6.3V; leading M = 20% (optional)
-_RE_X6R3 = compile(r"^(\d{4})X(\d{3,4})([A-Z]?)(\d)R(\d)CT$", I)
+_RE_X6R3 = compile(r"^(\d{4})X(\d{3,4})([A-Z]?)(\d)R(\d)(?:CT|NT)$", I)
 # 1206X106K250CT — 106 value, K tol, 250 = 25V
-_RE_XKV = compile(r"^(\d{4})X(\d{3,4})([A-Z])(\d{3,4})CT$", I)
+_RE_XKV = compile(r"^(\d{4})X(\d{3,4})([A-Z])(\d{3,4})(?:CT|NT)$", I)
 _TOL = {"F": "1%", "G": "2%", "J": "5%", "K": "10%", "M": "20%"}
 _FILM_BY_SERIES = {
     "B": "X7R",
@@ -104,7 +108,9 @@ def parse(pn: str, component_type: str) -> str | None:
         return "_".join(p for p in (_SIZE[pz], cap, film, "6.3V", tol) if p)
 
     mxk = _RE_XKV.match(pn2)
-    if mxk and not search(r"[0-9]R[0-9]CT$", pn2, I):
+    # Guard: the dRd voltage encoding (…6R3CT / …6R3NT) belongs to _RE_X6R3, so
+    # the optional packaging letters after it must be tolerated here as well.
+    if mxk and not search(r"[0-9]R[0-9][A-Z]{0,2}$", pn2, I):
         pz, cblock, tch, vraw = mxk.groups()
         if pz not in _SIZE:
             return None
