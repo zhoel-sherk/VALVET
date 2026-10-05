@@ -23,6 +23,7 @@ from machine_library.yamaha_tou_geometry import (
     build_outline_from_name,
     build_outline_from_tou_record,
 )
+from package_vspd.resolve import cell_text as _cell
 from qt_models import SortableTableModel
 from ui.chrome import left_rail_widget
 from ui.machine_lib.footprint_preview import FootprintPreviewWidget
@@ -567,8 +568,23 @@ class MachineLibraryTab(QtWidgets.QWidget):
 
     def _on_mdb_load_finished(self, df: object, err: str) -> None:
         sender = self.sender()
-        gen = getattr(sender, "load_gen", None) if sender is not None else None
-        if gen is not None and gen != self._mdb_load_gen:
+        gen = getattr(sender, "load_gen", None)
+        if gen is None:
+            # Not one of our load threads (direct call, or a sender without the
+            # generation tag). Returning here would swallow the signal, and staying
+            # silent would let an untagged result overwrite the table - so say so
+            # and accept it rather than dropping it without a trace.
+            self._host_log(
+                "MDB load result from an unrecognised sender "
+                f"(no load_gen; current gen={self._mdb_load_gen}) - accepted unverified",
+                "warning",
+            )
+        elif gen != self._mdb_load_gen:
+            self._host_log(
+                f"Discarding stale MDB load result (gen {gen}, current "
+                f"{self._mdb_load_gen})",
+                "debug",
+            )
             return
         self._set_mdb_busy(False)
         if err:
@@ -816,8 +832,8 @@ class MachineLibraryTab(QtWidgets.QWidget):
         if not idx.isValid():
             return "", "", ""
         row = self._table_model.get_row_values(idx.row())
-        partname = str(row.get("PARTNAME") or "").strip()
-        partdesc = str(row.get("PARTDESC") or "").strip()
+        partname = _cell(row.get("PARTNAME"))
+        partdesc = _cell(row.get("PARTDESC"))
         profilename = partname
         df = self._hanwha_df
         if df is not None and not df.empty and partname and "PARTNAME" in df.columns:
@@ -825,11 +841,11 @@ class MachineLibraryTab(QtWidgets.QWidget):
             if not hit.empty:
                 rec = hit.iloc[0]
                 if "PROFILENAME" in hit.columns:
-                    pn = str(rec.get("PROFILENAME") or "").strip()
+                    pn = _cell(rec.get("PROFILENAME"))
                     if pn:
                         profilename = pn
                 if not partdesc and "PARTDESC" in hit.columns:
-                    partdesc = str(rec.get("PARTDESC") or "").strip()
+                    partdesc = _cell(rec.get("PARTDESC"))
         return partname, profilename, partdesc
 
     def _fp_thread_running(self) -> bool:
@@ -853,8 +869,8 @@ class MachineLibraryTab(QtWidgets.QWidget):
             self._fp_preview.set_idle("Select a Yamaha part")
             return
         row = self._table_model.get_row_values(idx.row())
-        name = str(row.get("PARTNAME") or "").strip()
-        kind = str(row.get("Kind") or "").strip()
+        name = _cell(row.get("PARTNAME"))
+        kind = _cell(row.get("Kind"))
         if not name:
             self._fp_preview.set_idle("Select a Yamaha part")
             return

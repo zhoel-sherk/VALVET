@@ -4,6 +4,7 @@ PandasTableModel — bridge between a pandas DataFrame and PySide6 QTableView.
 Subclass of QtCore.QAbstractTableModel; handles pandas NaN/NaT safely.
 """
 
+import math
 from typing import Any, Callable, Optional
 
 import numpy as np
@@ -437,16 +438,10 @@ class PandasTableModel(QtCore.QAbstractTableModel):
         if new_df is None:
             new_df = pd.DataFrame()
 
-        old_rows = len(self._df)
-        old_cols = len(self._df.columns)
-
         self.clear_undo_stack()
         self.beginResetModel()
         self._df = new_df
         self.endResetModel()
-
-        if old_rows != len(new_df) or old_cols != len(new_df.columns):
-            pass
 
     def get_dataframe(self) -> pd.DataFrame:
         return self._df
@@ -609,22 +604,45 @@ class SortableTableModel(PandasTableModel):
             return
         tl = self.index(0, 0)
         br = self.index(self.rowCount() - 1, self.columnCount() - 1)
-        self.dataChanged.emit(tl, br, [QtCore.Qt.ItemDataRole.BackgroundRole])
+        self.dataChanged.emit(
+            tl,
+            br,
+            [
+                QtCore.Qt.ItemDataRole.BackgroundRole,
+                QtCore.Qt.ItemDataRole.ForegroundRole,
+            ],
+        )
 
-    def _get_background(self, row: int, col: int, value: Any) -> Optional[QtGui.QBrush]:
-        base = super()._get_background(row, col, value)
-        if base is not None:
-            return base
+    def _highlight_color(self, row: int) -> Optional[QtGui.QColor]:
+        """Amber fill for a highlighted row, or None when no tint applies."""
         if not self._highlight_tokens or row < 0:
             return None
         rows = self._compute_highlight_rows()
         if row not in rows:
             return None
-        # Amber, nudged per zebra stripe so alternating rows stay readable.
-        alt = row % 2 == 1
-        if alt:
-            return QtGui.QBrush(QtGui.QColor(112, 84, 26))
-        return QtGui.QBrush(QtGui.QColor(126, 95, 29))
+        # Amber, nudged per zebra stripe so alternating rows stay distinguishable.
+        if row % 2 == 1:
+            return QtGui.QColor(112, 84, 26)
+        return QtGui.QColor(126, 95, 29)
+
+    def _get_background(self, row: int, col: int, value: Any) -> Optional[QtGui.QBrush]:
+        base = super()._get_background(row, col, value)
+        if base is not None:
+            return base
+        tint = self._highlight_color(row)
+        return None if tint is None else QtGui.QBrush(tint)
+
+    def _get_foreground(self, row: int, col: int, value: Any) -> Optional[QtGui.QBrush]:
+        base = super()._get_foreground(row, col, value)
+        if base is not None:
+            return base
+        # The fill is a hardcoded amber, so the theme's own text colour (near-white
+        # in the dark theme) would be unreadable on it. Pair the fill with a
+        # foreground derived from the fill itself.
+        tint = self._highlight_color(row)
+        if tint is not None:
+            return QtGui.QBrush(_readable_foreground(tint))
+        return None
 
     def update_dataframe(self, new_df: Optional[pd.DataFrame]) -> None:
         self._highlight_rows = None
@@ -726,13 +744,18 @@ class CleanPreviewTableModel(SortableTableModel):
             return None
         wcell = self._df.iloc[row]["Win%"]
         try:
-            if wcell is None or (isinstance(wcell, float) and pd.isna(wcell)):
+            if wcell is None or pd.isna(wcell):
                 return None
             s = str(wcell).strip()
             if not s:
                 return None
             pct = float(s)
         except (TypeError, ValueError):
+            return None
+        # A non-empty cell can still parse to NaN (the literal string "nan"), and
+        # min(100.0, nan) returns 100.0 - which would paint a full-intensity fill
+        # for a row that has no score at all.
+        if not math.isfinite(pct):
             return None
         pct = max(0.0, min(100.0, pct))
         # Clamp before building the colour: QColor rejects channels > 255 and

@@ -53,6 +53,24 @@ from ui_i18n import SUPPORTED_UI_LOCALES, UiI18n
 from valvetpack import OPEN_FILTER, SAVE_FILTER, VALVETPACK_EXT
 
 
+def _settings_int(raw: Any, default: int = 0) -> int:
+    """int() for a QSettings value, falling back instead of raising.
+
+    QSettings returns whatever type the .ini happens to hold, so a hand-edited or
+    partially-written value can be a non-numeric string and would take the whole
+    window construction down with it.
+    """
+    if raw is None:
+        return default
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError):
+        logger.warning(
+            "Ignoring non-numeric settings value %r (using %d)", raw, default
+        )
+        return default
+
+
 class MainWindow(
     MappingMixin,
     TableActionsMixin,
@@ -793,7 +811,7 @@ class MainWindow(
         if not hasattr(self, "tabs") or self.tabs.count() <= 0:
             return
         s = self._settings
-        idx = int(s.value("ui/main_tab_index", 0) or 0)
+        idx = _settings_int(s.value("ui/main_tab_index", 0), default=0)
         idx = max(0, min(idx, self.tabs.count() - 1))
         self.tabs.blockSignals(True)
         self.tabs.setCurrentIndex(idx)
@@ -852,6 +870,10 @@ class MainWindow(
             w = getattr(self, "_console_window", None)
             if w is not None:
                 w.hide()
+        except Exception as e:
+            # A failure here (e.g. the profile snapshot write) must not escape the
+            # override: it would abort the close and lose the session entirely.
+            logger.error("Close: saving layout/profile failed: %s", e)
         finally:
             super().closeEvent(event)
 
