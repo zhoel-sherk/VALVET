@@ -1279,11 +1279,12 @@ class CleanTabMixin:
             f"BOM → Clean: imported {n} row(s) from column(s) {col_desc} using active BOM range",
             "info",
         )
+        # Row number and length only. The comment text is the customer's free
+        # text from the BOM, and this panel is mirrored into the session log
+        # that ships inside the release zip, so the text itself is not logged.
         for i, c in enumerate(self._clean_imported_comments[:5], start=1):
-            one = c.replace("\n", " ")
-            if len(one) > 72:
-                one = one[:70] + ".."
-            self._log(f"  sample row {i}: {one}", "info")
+            one = str(c).replace("\n", " ")
+            self._log(f"  sample row {i}: {len(one)} char(s) imported", "info")
         if n > 5:
             self._log(
                 f"  … plus {n - 5} more rows (see Original column in the table)", "info"
@@ -1330,7 +1331,7 @@ class CleanTabMixin:
             rows = clean_preview(self._clean_imported_comments, cfg)
         except Exception as e:
             self._log(f"Clean BOM: Convert! error: {e}", "error")
-            logger.error("Clean BOM clean_preview failed: %s", e)
+            logger.exception("Clean BOM clean_preview failed")
             return
         self._clean_last_preview = rows
         self._clean_preview_stale = False
@@ -1470,7 +1471,9 @@ class CleanTabMixin:
         )
         path = Path(lib_path) if lib_path else default_components_path()
         if ok:
-            self._log(f"Learned component saved to {path}", "info")
+            # basename only: session logs ship inside the release zip, so an
+            # absolute path would leak the user's folder layout.
+            self._log(f"Learned component saved to {path.name}", "info")
         else:
             self._log("Component already exists in user library", "warning")
 
@@ -1550,11 +1553,14 @@ class CleanTabMixin:
             path += ".xlsx"
         try:
             self._bom_df.to_excel(path, index=False)
-            self._log(f"Clean BOM: saved {path}", "info")
-            logger.info("Clean BOM saved Excel: %s", path)
+            # basename only: session logs ship inside the release zip, so an
+            # absolute path would leak the user's folder layout.
+            name = Path(path).name
+            self._log(f"Clean BOM: saved {name}", "info")
+            logger.info("Clean BOM saved Excel: %s", name)
         except Exception as e:
             self._log(f"Save Excel error: {e}", "error")
-            logger.error("Clean BOM save Excel failed: %s", e)
+            logger.exception("Clean BOM save Excel failed")
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
 
     def _gather_clean_prefs_payload(self) -> dict[str, Any]:
