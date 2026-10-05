@@ -255,8 +255,15 @@ def import_mdb_to_cache(
 
 
 def load_preview_dataframe_from_sqlite(cache_dir: str | Path) -> pd.DataFrame:
+    """Preview frame for the machine-library list, or an empty frame when unavailable.
+
+    An empty frame here is the caller's "no cache / nothing to show" signal, so the
+    return type stays ``DataFrame``; the *reason* is logged so a broken ``vision.sqlite``
+    is not mistaken for a legitimately empty library.
+    """
     path = sqlite_path(Path(cache_dir))
     if not path.is_file():
+        logger.warning("Hanwha sqlite cache: no cache file at %s", path)
         return pd.DataFrame()
     conn = sqlite3.connect(str(path))
     try:
@@ -266,12 +273,18 @@ def load_preview_dataframe_from_sqlite(cache_dir: str | Path) -> pd.DataFrame:
                 "SELECT PROFILENAME, UPDPARTGROUPID FROM PROFILE_Det", conn
             )
         except Exception:
+            logger.error(
+                "Hanwha sqlite cache: read failed for PROFILE_Det", exc_info=True
+            )
             profile = pd.DataFrame(columns=["PROFILENAME", "UPDPARTGROUPID"])
         try:
             gmap = pd.read_sql_query(
                 "SELECT UPDPARTGROUPID, UPDPARTGROUPNAME FROM PARTGROUP_Map", conn
             )
         except Exception:
+            logger.error(
+                "Hanwha sqlite cache: read failed for PARTGROUP_Map", exc_info=True
+            )
             gmap = pd.DataFrame(columns=["UPDPARTGROUPID", "UPDPARTGROUPNAME"])
     finally:
         conn.close()
@@ -284,7 +297,8 @@ def _sqlite_table(
     name: str,
     *,
     all_rows: bool = False,
-) -> pd.DataFrame:
+) -> pd.DataFrame | None:
+    """Rows for one profile, or ``None`` when the read failed (never an empty frame)."""
     safe = table.replace('"', "")
     try:
         if all_rows:
@@ -294,8 +308,38 @@ def _sqlite_table(
             conn,
             params=(name,),
         )
-    except Exception:
-        return pd.DataFrame()
+    except Exception as exc:
+        if _is_missing_table(exc):
+            # The cache was dumped without this table (common: only tables the MDB
+            # actually had are written). "Not dumped" is a legitimate empty state.
+            return pd.DataFrame()
+        # A locked / corrupt / schema-mismatched database must not read as "table
+        # legitimately empty": callers built snapshots from zero-geometry tables and
+        # emitted degenerate (size 0.0) outlines. Return None instead.
+        logger.error(
+            "Hanwha sqlite cache: read failed for table %s (profile %s, all_rows=%s)",
+            table,
+            name,
+            all_rows,
+            exc_info=True,
+        )
+        return None
+
+
+def _is_missing_table(exc: BaseException) -> bool:
+    """True when SQLite says the *table* is absent, as opposed to the DB being bad.
+
+    pandas wraps ``sqlite3.OperationalError`` in ``DatabaseError``, so the message is
+    searched across the whole ``__cause__`` chain rather than only the outer type.
+    """
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if "no such table" in str(cur).lower():
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
 
 
 def load_profile_snapshot_from_sqlite(cache_dir: str | Path, profilename: str) -> Any:
@@ -306,10 +350,26 @@ def load_profile_snapshot_from_sqlite(cache_dir: str | Path, profilename: str) -
     conn = sqlite3.connect(str(sqlite_path(dest)))
     try:
         tables: dict[str, pd.DataFrame] = {}
+        read_failures: list[str] = []
         for table in upd_geom.VISION_DUMP_TABLES:
-            tables[table] = _sqlite_table(
+            frame = _sqlite_table(
                 conn, table, name, all_rows=(table == "PARTGROUP_Map")
             )
+            if frame is None:
+                read_failures.append(table)
+                continue
+            tables[table] = frame
+        if read_failures:
+            # Building a snapshot from the surviving tables would yield zero-size
+            # geometry that looks like a valid (degenerate) footprint.
+            logger.error(
+                "Hanwha sqlite cache: refusing to build outline for profile %s; "
+                "%d table(s) unreadable: %s",
+                name,
+                len(read_failures),
+                ", ".join(read_failures[:10]),
+            )
+            return upd_fp.UpdProfileSnapshot(profilename=name)
         snap = upd_geom.snapshot_from_table_map(tables, name)
         parent = snap.parentprofile
         vt = snap.vision_type

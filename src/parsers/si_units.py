@@ -48,7 +48,15 @@ def _as_float(s: str) -> float:
 
 
 def convert_nf_token_to_uf(value: str) -> str:
-    """``1000NF`` → ``1UF``, ``22NF`` → ``0.022UF``. Empty/unparsed → original."""
+    """``1000NF`` → ``1UF``, ``22NF`` → ``0.022UF``.
+
+    Unit convention: this helper only ever rewrites ``NF`` tokens into ``UF``, so a
+    column it touches is wholly in microfarad. On failure the **original token** is
+    returned and a warning is logged, because dropping the value would lose data the
+    operator can still read. Callers that place the result next to other ``UF``
+    values must therefore treat a returned ``NF`` token as a conversion failure —
+    see :func:`try_convert_nf_token_to_uf`.
+    """
     m = match(r"^([\d.]+)NF$", str(value).strip(), I)
     if not m:
         return value
@@ -61,10 +69,33 @@ def convert_nf_token_to_uf(value: str) -> str:
             exc,
         )
         return value
+    return _format_uf(uf)
+
+
+def _format_uf(uf: float) -> str:
     if uf == int(uf):
         return f"{int(uf)}UF"
     t = f"{uf:.6f}".rstrip("0").rstrip(".")
     return f"{t}UF"
+
+
+def try_convert_nf_token_to_uf(value: str) -> str | None:
+    """Strict NF → UF conversion for output columns that are wholly in microfarad.
+
+    Returns the ``UF`` token, or ``None`` when the input is an ``NF`` token that
+    could not be converted. Never returns an ``NF`` token: mixing nanofarad into a
+    microfarad column makes a downstream reader scale the value by 1000.
+    """
+    token = str(value).strip()
+    m = match(r"^([\d.]+)NF$", token, I)
+    if not m:
+        return None
+    try:
+        uf = _as_float(m.group(1)) / 1000.0
+    except Exception as exc:
+        logger.warning("NF→UF conversion failed for %r: %s", value, exc)
+        return None
+    return _format_uf(uf)
 
 
 def quantity_farads(value_token: str) -> SiQuantity | None:

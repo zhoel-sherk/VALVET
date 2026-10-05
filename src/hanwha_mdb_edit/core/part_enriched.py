@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 
+import logger
 import machine_library.hanwha_mdbtools as mdbtools
 from hanwha_mdb_edit.core.part_group import join_part_group_names
 
@@ -134,6 +135,7 @@ def load_wide_editor_dataframe(mdb_path: str | Path) -> pd.DataFrame:
         t for t in mdbtools.list_mdb_tables(mdb_path) if not str(t).startswith("~")
     ]
     merged_count = 0
+    failed: list[str] = []
 
     for table in tables:
         if table in _MERGED_IN_BASE:
@@ -145,6 +147,13 @@ def load_wide_editor_dataframe(mdb_path: str | Path) -> pd.DataFrame:
         try:
             sub = load_table_dataframe(mdb_path, table)
         except Exception:
+            # Do NOT count a table we never read: merged_count gates the
+            # _MAX_WIDE_TABLES budget, so a silent skip inflates progress while
+            # the wide frame stays short.
+            logger.warning(
+                "Wide PART table merge: read failed for %s", table, exc_info=True
+            )
+            failed.append(f"{table} (read)")
             continue
         if sub is None or sub.empty or len(sub.columns) < 2:
             continue
@@ -172,7 +181,22 @@ def load_wide_editor_dataframe(mdb_path: str | Path) -> pd.DataFrame:
         try:
             base = base.merge(sub2, on=merge_key, how="left")
         except Exception:
+            logger.warning(
+                "Wide PART table merge: merge failed for %s on %s",
+                table,
+                merge_key,
+                exc_info=True,
+            )
+            failed.append(f"{table} (merge)")
             continue
         merged_count += 1
 
+    if failed:
+        logger.warning(
+            "Wide PART table merge: %d of %d table(s) skipped (%s); %d merged",
+            len(failed),
+            len(tables),
+            "; ".join(failed[:10]),
+            merged_count,
+        )
     return base

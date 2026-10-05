@@ -71,7 +71,7 @@ def _hanwha_primary_match(
         return None
     groups = part_groups or {}
     fp = _norm_hanwha(footprint) if footprint else ""
-    scored: list[tuple[int, int, int, str]] = []
+    scored: list[tuple[int, int, int, str, str]] = []
     for pn in sorted(partnames, key=lambda x: str(x).casefold()):
         p = str(pn).strip()
         if len(p) < 2:
@@ -81,13 +81,17 @@ def _hanwha_primary_match(
             continue
         gnorm = _norm_hanwha(str(groups.get(p, "") or ""))
         bonus = 1 if fp and (fp in np or fp in gnorm) else 0
-        scored.append((bonus, len(np), len(p), p))
+        scored.append((bonus, len(np), len(p), np, p))
     if not scored:
         return None
     scored.sort(reverse=True)
     top = scored[0]
-    ties = [x for x in scored if x[0] == top[0] and x[1] == top[1]]
-    best_pn = top[3]
+    # 4-key tie test: bonus, len(norm), len(raw), and the normalized PN itself.
+    # Two spellings of the same normalized part (``PART-A`` / ``PART_A``) are a
+    # genuine ambiguity; two *different* parts that merely share a length are not,
+    # and reporting those as AMBIGUOUS silently dropped the correct one.
+    ties = [x for x in scored if x[:4] == top[:4]]
+    best_pn = top[4]
     nbest = _norm_hanwha(best_pn)
     literal_in = best_pn.strip().casefold() in s.casefold()
     if len(ties) > 1:
@@ -402,8 +406,13 @@ def _try_parse_vendor_pn(
 
         mpn = joined_clean_comment_mpn(orig)
         return parse_pn(mpn.strip(), ct, config)
-    except Exception as e:
-        logger.debug(f"parse_pn failed: {e}")
+    except Exception:
+        logger.error(
+            "parse_pn failed for %r (%s); falling back to the generic regex parser",
+            orig,
+            ct,
+            exc_info=True,
+        )
         return None
 
 
@@ -435,8 +444,13 @@ def _clean_one_try_library(
 
         lib_path = cfg.component_library_path or None
         lib_entry = lookup_component(s, lib_path)
-    except Exception as e:
-        logger.debug(f"component library lookup failed: {e}")
+    except Exception:
+        logger.error(
+            "component library lookup failed for %r; "
+            "skipping the curated override (parts fall through to generic parsing)",
+            s,
+            exc_info=True,
+        )
         return None
     if not lib_entry:
         return None
@@ -1004,7 +1018,7 @@ def clean_preview(
             results.append(row)
             if echo_preview:
                 logger.info(
-                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120r",
+                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120s",
                     row[0],
                     row[3],
                     row[4],
@@ -1039,7 +1053,7 @@ def clean_preview(
             results.append(row)
             if echo_preview:
                 logger.info(
-                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120r",
+                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120s",
                     row[0],
                     row[3],
                     row[4],
@@ -1072,7 +1086,7 @@ def clean_preview(
             results.append(row)
             if echo_preview:
                 logger.info(
-                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120r",
+                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120s",
                     row[0],
                     row[3],
                     row[4],
@@ -1101,7 +1115,7 @@ def clean_preview(
             results.append(row)
             if echo_preview:
                 logger.info(
-                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120r",
+                    "clean_preview row=%s type=%s source=%r cleaned=%r orig=%.120s",
                     row[0],
                     row[3],
                     row[4],

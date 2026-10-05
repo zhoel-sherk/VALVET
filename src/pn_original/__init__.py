@@ -42,6 +42,12 @@ except Exception:
         def warning(self, *args, **kwargs):
             pass
 
+        def error(self, *args, **kwargs):
+            pass
+
+        def exception(self, *args, **kwargs):
+            pass
+
     logger = MockLogger()
 
 CONVERTERS = {}
@@ -67,8 +73,8 @@ def load_converters():
 
             CONVERTERS[vendor] = {"module": module, "types": types}
             logger.info("Loaded PN converter: %s %s", vendor, types)
-        except Exception as e:
-            logger.warning(f"Failed to load converter {module_name}: {e}")
+        except Exception:
+            logger.exception("Failed to load PN converter module %s", module_name)
 
 
 def _normalize_part_number_for_vendors(pn: str) -> str:
@@ -108,6 +114,18 @@ def parse_pn(pn: str, component_type: str, config) -> str | None:
     """
     Parse original PN using vendor-specific converters.
 
+    Vendor parsers are consulted in ``PARSER_PRIORITY`` order (highest first) and the
+    first non-empty result wins.
+
+    Arbiter contract for a vendor whose ``parse()`` **raises**:
+      the exception is recorded (``logger.exception``, deduplicated per
+      ``(pn, vendor)``), the vendor is skipped, and the loop continues to the next
+      vendor. Returning a *different* vendor's part is the historical behaviour and
+      is kept because most BOM rows are not the raising vendor's format at all — but
+      the raise is now logged at exception level with a traceback so the substituted
+      value is never silent again. A vendor that legitimately returns ``None`` is
+      indistinguishable in outcome and simply falls through.
+
     Args:
         pn: Original part number
         component_type: Expected component type (CAP, RES, IND)
@@ -133,16 +151,55 @@ def parse_pn(pn: str, component_type: str, config) -> str | None:
     for vendor, converter in ordered:
         module = converter["module"]
         parse_func = getattr(module, "parse", None)
-        if parse_func:
-            try:
-                result = parse_func(s, component_type)
-                if result:
-                    logger.debug("Parsed %r -> %r (%s)", pn, result, vendor)
-                    return result
-            except Exception as e:
-                logger.warning(f"Error parsing {pn} with {vendor}: {e}")
+        if not parse_func:
+            continue
+        try:
+            result = parse_func(s, component_type)
+        except Exception:
+            # Deduped: a systematic parser bug repeats per BOM row, and one
+            # traceback per row floods the log (see 2.8).
+            _log_vendor_failure_once(pn, vendor, component_type)
+            continue
+        if result:
+            logger.debug("Parsed %r -> %r (%s)", pn, result, vendor)
+            return result
 
     return None
+
+
+# Raised-vendor pairs already reported this run, so a systemic parser bug emits one
+# traceback instead of one per BOM row. Bounded so a long session cannot grow it.
+_MAX_REPORTED_VENDOR_FAILURES = 200
+_REPORTED_VENDOR_FAILURES: set[tuple[str, str, str]] = set()
+
+
+def _log_vendor_failure_once(pn: str, vendor: str, component_type: str) -> None:
+    """``logger.exception`` for a raising vendor, once per ``(pn, vendor, type)``."""
+    key = (str(pn), str(vendor), str(component_type))
+    if key in _REPORTED_VENDOR_FAILURES:
+        return
+    _REPORTED_VENDOR_FAILURES.add(key)
+    if len(_REPORTED_VENDOR_FAILURES) > _MAX_REPORTED_VENDOR_FAILURES:
+        logger.error(
+            "Vendor PN parser failures exceeded %d; further per-PN failure "
+            "reports suppressed",
+            _MAX_REPORTED_VENDOR_FAILURES,
+        )
+        _REPORTED_VENDOR_FAILURES.clear()
+        return
+    logger.exception(
+        "Vendor %s parser raised on %s (%s); falling through to the next vendor — "
+        "the resulting PN may not belong to %s",
+        vendor,
+        pn,
+        component_type,
+        vendor,
+    )
+
+
+def _reset_vendor_failure_log() -> None:
+    """Test hook: forget which vendor failures were already reported."""
+    _REPORTED_VENDOR_FAILURES.clear()
 
 
 def get_supported_vendors() -> list[str]:

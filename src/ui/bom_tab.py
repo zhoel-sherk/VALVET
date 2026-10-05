@@ -5,6 +5,7 @@ from __future__ import annotations
 import pandas as pd
 from PySide6 import QtCore, QtWidgets
 
+import logger
 from app.constants import _DANGER_CLEAR_BTN_STYLE
 from qt_models import SortableTableModel
 from ui.project_tab import configure_path_label
@@ -195,11 +196,29 @@ class BomTabMixin:
         self._profile_restore_bom_mappings = None
         self._log(self.ui_tr("msg.bom_cleared"), "info")
 
+    def _warn_dropped_mapping_profile(
+        self, kind: str, stored: int, actual: int
+    ) -> None:
+        """Stored profile column roles were discarded: columns do not line up.
+
+        Role ``Comment`` decides which field becomes the part number, so a silently
+        dropped mapping produces plausible but wrong part numbers downstream. Tell
+        the operator instead of falling through.
+        """
+        msg = (
+            f"{kind}: saved column mapping discarded "
+            f"(profile has {stored} columns, loaded file has {actual}); "
+            "roles were NOT restored — re-map the columns manually"
+        )
+        logger.warning("%s", msg)
+        self._log(msg, "warning")
+
     def _apply_pending_profile_bom_mappings(self) -> None:
         pm = getattr(self, "_profile_restore_bom_mappings", None)
         if not pm or not getattr(self, "bom_col_combos", None):
             return
         if len(pm) != len(self.bom_col_combos):
+            self._warn_dropped_mapping_profile("BOM", len(pm), len(self.bom_col_combos))
             return
         self._bom_ui_restoring = True
         try:

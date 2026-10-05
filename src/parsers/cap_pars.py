@@ -106,7 +106,7 @@ def try_parse_mlcc_bom_line_slots(
         else:
             pcts = findall(r"(\d+\.?\d*)\s*%", s)
             if pcts:
-                tolerance = f"{pcts[-1]}%"
+                tolerance = f"{pcts[0]}%"
 
     fields = {
         "pack": package,
@@ -223,23 +223,23 @@ def parse_capacitor_token_fields(
         and value.upper().endswith("NF")
         and "UF" not in value.upper()
     ):
-        try:
-            from parsers.si_units import convert_nf_token_to_uf
+        # ``cap_convert_nf_to_uf`` promises one unit for the whole ``nom`` column.
+        # The old inline fallback only handled ``n >= 1``, so ``0.5NF``/``0.1NF``
+        # kept their NF suffix and ended up next to ``1UF`` — a 1000x read error.
+        from parsers.si_units import try_convert_nf_token_to_uf
 
-            value = convert_nf_token_to_uf(value)
-        except Exception as exc:
-            logger.warning(
-                "si_units NF→UF conversion failed for %r; using manual fallback: %s",
+        converted = try_convert_nf_token_to_uf(value)
+        if converted is not None:
+            value = converted
+        else:
+            # Never leave NF in a column the operator asked to be in UF. Drop the
+            # nominal and say so, rather than emit a wrong magnitude.
+            logger.error(
+                "NF→UF conversion failed for %r; nominal dropped "
+                "(column would mix nF with uF)",
                 value,
-                exc,
             )
-            m = match(r"^([\d.]+)NF$", value, I)
-            if m:
-                n = float(m.group(1))
-                if n >= 1000 and n % 1000 == 0:
-                    value = f"{int(n // 1000)}UF"
-                elif n >= 1:
-                    value = f"{n / 1000.0}UF".replace(".0UF", "UF")
+            value = ""
 
     if value:
         for part in parts:
