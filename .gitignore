@@ -17,3 +17,8 @@ __pycache__/
 # Runtime output
 logs/
 *.log
+
+# Working audit / planning documents (local only, never committed).
+# These are scratch analysis for a release; the durable record is CHANGELOG.md.
+PLAN_*.md
+AUDIT_*.md
