@@ -78,3 +78,61 @@ def test_murata_unknown_letter_series_is_not_mislabelled() -> None:
     """An unverified R6-letter series must stay unparsed, never guessed."""
     assert murata_capacitor.parse("GRM188R6ZA106MA73D", "CAP") is None
     assert _parse("GRM188R6ZA106MA73D", "CAP") is None
+
+
+# --- Murata: official rated-voltage codes (datasheet C02E21) ----------------
+
+
+def test_murata_voltage_table_matches_published_c02e21() -> None:
+    """The two-character rated-voltage codes, verbatim from the datasheet.
+
+    C02E21 "Chip Multilayer Ceramic Capacitors for General", section 6
+    "Rated Voltage". YA = DC35V is the entry that confirms the R6Y line.
+    """
+    table = murata_capacitor._VOLT_2CH
+    expected = {
+        "0E": "2.5V",
+        "0G": "4V",
+        "0J": "6.3V",
+        "1A": "10V",
+        "1C": "16V",
+        "1E": "25V",
+        "1H": "50V",
+        "1J": "63V",
+        "1K": "80V",
+        "2A": "100V",
+        "2D": "200V",
+        "2E": "250V",
+        "2W": "450V",
+        "2H": "500V",
+        "2J": "630V",
+        "3A": "1kV",
+        "3D": "2kV",
+        "3F": "3.15kV",
+        "BB": "350V",
+        "E2": "AC250V",
+        "GB": "AC250V",
+        "GD": "AC250V",
+        "GF": "AC250V",
+        "YA": "35V",
+    }
+    assert table == expected
+    # The whole point of the table: a one-character map cannot express YA.
+    assert "Y" not in table
+    assert len(table) == 24
+
+
+def test_murata_r6y_voltage_comes_from_the_published_code() -> None:
+    """R6Y + A is the YA code, so 35V is read from the datasheet table."""
+    assert _parse("GRM188R6YA106MA73D", "CAP") == "0603_10uF_35V_X5R_20%"
+    assert _parse("GRM188R6YA475KE15J", "CAP") == "0603_4.7uF_35V_X5R_10%"
+
+
+def test_murata_numeric_series_prefers_published_pair_then_falls_back() -> None:
+    """R61A resolves through the published 1A; R60H has no published pair."""
+    # 1A is a published code and equals what the legacy per-series map gave.
+    assert _parse("GRM188R61A106MA73D", "CAP") == "0603_10uF_10V_X5R_20%"
+    # 0A is not published, so the legacy fallback still decides (10V).
+    assert _parse("GRM188R60A106MA73D", "CAP") == "0603_10uF_10V_X5R_20%"
+    # 0H is not published either; legacy letter map gives 50V.
+    assert _parse("GRM188R60H106MA73D", "CAP") == "0603_10uF_50V_X5R_20%"

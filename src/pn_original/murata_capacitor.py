@@ -63,14 +63,47 @@ _R6X_FOLLOW_VOL = {
     "P": "10V",
 }
 _TOL = {"J": "5%", "K": "10%", "M": "20%", "Z": "+80/-20%"}
-# Letter series codes after R6 (e.g. R6Y): the letter following the series is a
-# packaging/thickness code, not a voltage code, so the voltage has to come from
-# the series itself. Only codes confirmed from catalogue data are listed here;
-# an unknown letter series is left unparsed rather than mis-labelled.
+# Two-character rated-voltage codes, exactly as published in the Murata GRM
+# series datasheet C02E21 ("Chip Multilayer Ceramic Capacitors for General"),
+# "Rated Voltage" table. This is the general-purpose GRM numbering, where the
+# voltage field is two characters wide - which is why a one-character table
+# cannot express e.g. the YA of GRM188R6YA106MA73D.
+#
+# In the R6x/R7x lines the character pair that follows the series code IS this
+# voltage field, so these are consulted before the per-series fallbacks below.
+# Note the safety-standard entries (E2/GB/GD/GF) are AC 250V certified types.
+_VOLT_2CH = {
+    "0E": "2.5V",
+    "0G": "4V",
+    "0J": "6.3V",
+    "1A": "10V",
+    "1C": "16V",
+    "1E": "25V",
+    "1H": "50V",
+    "1J": "63V",
+    "1K": "80V",
+    "2A": "100V",
+    "2D": "200V",
+    "2E": "250V",
+    "2W": "450V",
+    "2H": "500V",
+    "2J": "630V",
+    "3A": "1kV",
+    "3D": "2kV",
+    "3F": "3.15kV",
+    "BB": "350V",
+    "E2": "AC250V",
+    "GB": "AC250V",
+    "GD": "AC250V",
+    "GF": "AC250V",
+    "YA": "35V",
+}
+# Fallback for letter series where the pair after the series is not a published
+# voltage code. R6Y is a fixed 35V X5R line, confirmed by C02E21 (YA = DC35V)
+# and by catalogue data: GRM188R6YA106MA73D = 0603 10uF 35V X5R +/-20%,
+# GRM188R6YA475KE15J = 0603 4.7uF 35V X5R +/-10%. An unconfirmed letter series
+# is left unparsed rather than mis-labelled.
 _R6_LETTER_SERIES_VOL = {
-    # Murata R6Y is a 35V X5R line: GRM188R6YA106MA73D = 0603 10uF 35V X5R
-    # +/-20%, GRM188R6YA475KE15J = 0603 4.7uF 35V X5R +/-10% (Murata/LCSC/
-    # DigiKey catalogue data). Voltage is fixed for the whole series.
     "Y": "35V",
 }
 _SIZE = {
@@ -128,9 +161,19 @@ def parse(pn: str, component_type: str) -> str | None:
         if not size or not cap:
             return None
         if series[:1].isdigit():
-            vol = _VOLT.get(vcode.upper(), _R6X_FOLLOW_VOL.get(vcode.upper(), ""))
+            # R60/R61/... keep a voltage letter after the series. The published
+            # two-character code is preferred when the pair forms one (e.g. R61A
+            # -> 1A = 10V), otherwise the per-series fallback applies.
+            pair = (series[1:2] + vcode).upper()
+            vol = _VOLT_2CH.get(
+                pair, _VOLT.get(vcode.upper(), _R6X_FOLLOW_VOL.get(vcode.upper(), ""))
+            )
         else:
-            vol = _R6_LETTER_SERIES_VOL.get(series[:1].upper(), "")
+            # Letter series such as R6Y: the pair after R6 is the voltage field.
+            pair = (series[-1:] + vcode).upper()
+            vol = _VOLT_2CH.get(pair, "")
+            if not vol:
+                vol = _R6_LETTER_SERIES_VOL.get(series[:1].upper(), "")
             if not vol:
                 return None
         tol = _TOL.get(tcode.upper(), "")
