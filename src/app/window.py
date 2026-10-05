@@ -12,7 +12,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import logger
 import session_file_log
-from app.constants import SETTINGS_APP, SETTINGS_ORG
+from __version__ import __version__
+from app.constants import APP_NAME, SETTINGS_APP, SETTINGS_ORG
 from app.prefs import _prefs_profile_bool
 from app.workers import CrossCheckThread
 from app_paths import autosave_root
@@ -155,7 +156,7 @@ class MainWindow(
         _raw_lang = self._settings.value("ui/language", "en")
         _lang = str(_raw_lang) if _raw_lang is not None else "en"
         self._i18n = UiI18n(_lang if _lang in SUPPORTED_UI_LOCALES else "en")
-        self.setWindowTitle(self.ui_tr("app.window_title"))
+        self.setWindowTitle(self._window_title())
 
         self._setup_ui()
         self._load_settings()
@@ -165,6 +166,16 @@ class MainWindow(
         self._ensure_session_log_file()
         self._session_geometry_restored = False
         self._log(self.ui_tr("msg.app_ready"), "info")
+
+    def _window_title(self) -> str:
+        """Translated window title with the single-source-of-truth version inlined."""
+        try:
+            title = self.ui_tr("app.window_title", version=__version__)
+        except Exception:
+            title = ""
+        if not isinstance(title, str) or not title.strip():
+            return f"{APP_NAME} - {__version__}"
+        return title.format(version=__version__)
 
     def ui_tr(self, key: str, **kwargs: Any) -> str:
         """UI string from current language catalog."""
@@ -260,7 +271,7 @@ class MainWindow(
 
     def _refresh_static_ui_texts(self) -> None:
         """Re-apply translated strings (after language change)."""
-        self.setWindowTitle(self.ui_tr("app.window_title"))
+        self.setWindowTitle(self._window_title())
         self._sync_tab_titles_i18n()
         self._refresh_project_tab_static_texts()
         if hasattr(self, "_refresh_settings_tab_static_texts"):

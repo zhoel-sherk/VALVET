@@ -68,6 +68,9 @@ jobs:
       - name: Ruff format
         run: python -m ruff format --check src tests
 
+      - name: Version check (single source of truth)
+        run: python -m tools.version check
+
       - name: Core has no PySide6 (pytest)
         env:
           PYTHONPATH: src

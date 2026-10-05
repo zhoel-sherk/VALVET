@@ -1,5 +1,5 @@
 {
-  "app.window_title": "VALVET — BETA v0.5.1",
+  "app.window_title": "VALVET — BETA v{version}",
   "tab.group.data": "Data",
   "tab.group.transform": "Transform",
   "tab.group.output": "Output",
