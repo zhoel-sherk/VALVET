@@ -146,9 +146,92 @@ def merge_coordinate_cell(value: object) -> float:
     return np.nan if v is None else float(v)
 
 
+def _parse_placement_xy(pnp_data: tuple) -> Optional[Tuple[float, float]]:
+    """Raw ``(X, Y)`` of a PnP record, or None when it cannot be placed.
+
+    Both axes have to be there. A missing Y used to be filled in as ``0.0``,
+    which parked the part on the Y=0 line where it could collide with parts that
+    really are there and produce a false *critical* ``duplicate_coord``. The
+    origin ``(0.0, 0.0)`` is a legitimate coordinate and is kept.
+    """
+    if len(pnp_data) <= 3:
+        return None
+    x_cell, y_cell = pnp_data[2], pnp_data[3]
+    if x_cell is None or y_cell is None:
+        return None
+    if pd.isna(x_cell) or pd.isna(y_cell):
+        return None
+    try:
+        fx = float(x_cell)
+        fy = float(y_cell)
+    except (TypeError, ValueError):
+        return None
+    if fx != fx or fy != fy:  # NaN compares unequal to itself
+        return None
+    return (fx, fy)
+
+
 # ==============================================================================
 # File Readers
 # ==============================================================================
+
+# Candidate text encodings, tried in this order. BOM-bearing UTF-8 comes first and
+# is indistinguishable from plain UTF-8 when there is no BOM; the single-byte
+# never-failing codecs come last so that reaching one is a visible event rather
+# than the automatic outcome. `latin-1` maps all 256 byte values, so a decode
+# with it can never fail — it is the only candidate here that can silently turn
+# unreadable bytes into mojibake that looks like data.
+_TEXT_ENCODINGS: tuple[str, ...] = (
+    "utf-8-sig",
+    "utf-8",
+    "cp932",  # Japanese (Shift-JIS / CP932) — the usual vendor export
+    "gb18030",  # Simplified Chinese (GB2312 / GBK / GB18030)
+    "big5",  # Traditional Chinese (Taiwan)
+    "cp1251",  # Cyrillic Windows
+    "latin-1",  # lossy catch-all, only when nothing else fits
+)
+
+
+def detect_text_encoding(raw: bytes) -> Optional[str]:
+    """Pick the first candidate that decodes ``raw`` strictly, else None.
+
+    Trial decoding is deliberately ordered rather than random: UTF-8 wins outright,
+    then the CJK single/double-byte codecs in the order vendor exports appear,
+    and only then a codec that cannot fail. Callers that fall back to ``latin-1``
+    themselves must log it, because that is the branch that produces mojibake.
+    """
+    for enc in _TEXT_ENCODINGS:
+        try:
+            raw.decode(enc)
+        except (UnicodeDecodeError, LookupError):
+            continue
+        return enc
+    return None
+
+
+def read_text_lines_detected(path: str) -> list[str]:
+    """Lines of a text file, decoded with a deliberately chosen encoding.
+
+    Non-UTF8 input is handled by trial-decoding a fixed candidate list instead of
+    the old ``except UnicodeDecodeError: latin-1`` branch. That branch could not
+    fail, so a Shift-JIS or GBK file "succeeded" as mojibake and the garbage
+    designators went on into the merge export. Here the encoding is named in a
+    warning whenever the lossy catch-all is the only thing that fits.
+    """
+    raw = Path(path).read_bytes()
+    enc = detect_text_encoding(raw)
+    if enc is None:
+        raise SMTProcessorError(
+            f"Cannot decode {path!r} as text: it is not UTF-8, CP932/Shift-JIS, "
+            "GB18030/GBK, Big5 or CP1251. Re-export the file as UTF-8 CSV."
+        )
+    if enc == "latin-1":
+        logger.warning(
+            "Placement file %s is not readable as UTF-8/CP932/GB18030/Big5/CP1251; "
+            "decoded as latin-1, so non-ASCII designators and part numbers may be mojibake",
+            Path(path).name,
+        )
+    return raw.decode(enc).splitlines()
 
 
 def _require_readable_file(path: str) -> Path:
@@ -394,6 +477,31 @@ def _read_excel_with_engine(
     return df
 
 
+def _validate_csv_fallback_frame(
+    df: pd.DataFrame, path: str, last_err: Optional[Exception]
+) -> pd.DataFrame:
+    """Reject a CSV fallback that did not come from a real table.
+
+    Reaching here means every Excel engine failed, so the file is being
+    re-read as text. For a binary workbook that produces a one-column garbage
+    table that looks like data; it used to be returned to the caller unchanged
+    and logged at ``info`` level, where nobody sees it.
+    """
+    if df is None or df.empty:
+        raise SMTEmptyDataError(
+            f"Cannot read Excel file: {last_err}. The CSV fallback found no rows "
+            f"in {path!r}."
+        )
+    if len(df.columns) < 2:
+        raise SMTProcessorError(
+            f"Cannot read Excel file: {last_err}. The CSV fallback produced a "
+            f"single column with {len(df)} row(s) — the file is not a spreadsheet, "
+            "or it is a binary workbook being decoded as text. If this is a text "
+            "placement file, rename it to .txt/.csv or open it as a text file."
+        )
+    return df
+
+
 def _read_excel(
     path: str,
     sheet_name: Optional[str] = None,
@@ -419,13 +527,13 @@ def _read_excel(
         df = _read_csv(
             path, separator=None, column_headers_from_file=column_headers_from_file
         )
-        logger.info("Excel read failed (%s); loaded as CSV: %s", last_err, path)
-        return df
     except Exception:
         raise SMTProcessorError(
             f"Cannot read Excel file: {last_err}. "
             "If this is a text placement file, rename it to .txt/.csv or open it as a text file."
         )
+    logger.warning("Excel read failed (%s); loaded as CSV: %s", last_err, path)
+    return _validate_csv_fallback_frame(df, path, last_err)
 
 
 EAGLE_CMP_9_COLS: list[str] = [
@@ -468,6 +576,11 @@ def _read_sp_quoted_row(row_cells: list[str]) -> list[str]:
                 quoted_cell = ""
         else:
             row_out.append(cell.strip())
+    if quoted_cell:
+        # Unterminated quote: the buffered tail used to fall out of the loop
+        # unread, which dropped a cell and shifted every later column one place
+        # left on that row.
+        row_out.append(quoted_cell[1:] if quoted_cell.startswith('"') else quoted_cell)
     return row_out
 
 
@@ -619,13 +732,8 @@ def read_text_fixed_width(path: str, starts: Sequence[int]) -> pd.DataFrame:
 
 
 def _read_text_lines(path: str) -> list[str]:
-    """Read a placement file as lines, tolerating non-UTF8 encodings."""
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read().splitlines()
-    except UnicodeDecodeError:
-        with open(path, "r", encoding="latin-1") as f:
-            return f.read().splitlines()
+    """Read a placement file as lines; encoding is chosen by read_text_lines_detected."""
+    return read_text_lines_detected(path)
 
 
 def read_text_whitespace_sp(path: str) -> pd.DataFrame:
@@ -670,6 +778,63 @@ def apply_row_as_column_header(df: pd.DataFrame, row_index: int) -> pd.DataFrame
     return out.reset_index(drop=True)
 
 
+def _resolve_csv_encoding(path: str) -> tuple[str, bool]:
+    """``(encoding, is_lossy)`` for a CSV read; lossless unless latin-1 is the last resort."""
+    raw = Path(path).read_bytes()
+    enc = detect_text_encoding(raw)
+    if enc is None:
+        raise SMTProcessorError(
+            f"Cannot decode {path!r} as text: it is not UTF-8, CP932/Shift-JIS, "
+            "GB18030/GBK, Big5 or CP1251. Re-export the file as UTF-8 CSV."
+        )
+    return enc, enc == "latin-1"
+
+
+def _read_csv_frame(
+    path: str,
+    separator: str,
+    encoding: str,
+    start_row: int,
+    header: Optional[int],
+) -> pd.DataFrame:
+    """One ``read_csv`` pass that counts the rows it throws away.
+
+    ``on_bad_lines="skip"`` used to drop malformed rows with no counter and no log,
+    so a short placement list read as good news while the cross-check simply saw
+    fewer rows than the file has. A callable handler lets the skip be counted and
+    reported; the row is still dropped, because one broken row must not fail the
+    whole board.
+
+    pandas only invokes the callable for rows with *more* fields than the header
+    (rows with fewer are padded with NaN), so the count matches exactly what was
+    lost. Returning ``None`` from the callable is the documented way to drop a
+    row; returning a non-list is appended verbatim and breaks the read.
+    """
+    skipped: list[int] = []
+
+    def _count_and_drop(bad_row: list) -> None:
+        skipped.append(1)
+        return None
+
+    df = pd.read_csv(
+        path,
+        sep=separator,
+        encoding=encoding,
+        skiprows=start_row,
+        header=header,
+        on_bad_lines=_count_and_drop,
+        # pandas only accepts a callable on_bad_lines on the python engine.
+        engine="python",
+    )
+    if skipped:
+        logger.warning(
+            "%d malformed rows skipped in %s (more fields than the header)",
+            len(skipped),
+            Path(path).name,
+        )
+    return df
+
+
 def _read_csv(
     path: str,
     separator: Optional[str] = None,
@@ -700,62 +865,46 @@ def _read_csv(
         separator = _detect_delimiter(path)
 
     hdr = 0 if column_headers_from_file else None
+    encoding, lossy = _resolve_csv_encoding(path)
     try:
-        df = pd.read_csv(
-            path,
-            sep=separator,
-            encoding="utf-8",
-            skiprows=start_row,
-            header=hdr,
-            on_bad_lines="skip",
+        df = _read_csv_frame(path, separator, encoding, start_row, hdr)
+    except pd.errors.ParserError as e1:
+        # A guess that does not fit the file at all: one deliberate retry with a
+        # tab separator. The latin-1 "retry" that used to sit in between could
+        # never fail, so it always absorbed the ParserError and the tab branch
+        # below it was dead code.
+        logger.debug(
+            "CSV read failed with sep=%r (%s); retrying as tab: %s", separator, e1, path
         )
-    except (UnicodeDecodeError, pd.errors.ParserError) as e1:
-        try:
-            df = pd.read_csv(
-                path,
-                sep=separator,
-                encoding="latin-1",
-                skiprows=start_row,
-                header=hdr,
-                on_bad_lines="skip",
-            )
-            logger.debug("CSV utf-8 failed (%s); using latin-1: %s", e1, path)
-        except Exception as e2:
-            logger.debug("CSV latin-1 failed (%s); using tab utf-8: %s", e2, path)
-            df = pd.read_csv(
-                path,
-                sep="\t",
-                encoding="utf-8",
-                skiprows=start_row,
-                header=hdr,
-                on_bad_lines="skip",
-            )
+        df = _read_csv_frame(path, "\t", encoding, start_row, hdr)
+    if lossy:
+        logger.warning(
+            "CSV %s is not readable as UTF-8/CP932/GB18030/Big5/CP1251; decoded as "
+            "latin-1, so non-ASCII designators and part numbers may be mojibake",
+            Path(path).name,
+        )
     return df
 
 
 def _is_fixed_width(path: str, start_row: int) -> bool:
     """Heuristic: fixed-width when multiple runs of spaces appear."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            head = "".join(f.readline() for _ in range(24))
+        lines = _read_text_lines(path)
+        head = "".join(lines[:24])
         hl = head.lower()
         if "board" in hl and "unit" in hl and ("mm" in hl or "mil" in hl):
             return True
-        f2 = open(path, "r", encoding="utf-8")
-        try:
-            for i, line in enumerate(f2):
-                if i < start_row:
-                    continue
-                if i > start_row + 2:
-                    break
-                line = line.rstrip("\n")
-                if not line:
-                    continue
-                if "  " in line and "\t" not in line:
-                    if len(line) > 20 and " " in line:
-                        return True
-        finally:
-            f2.close()
+        for i, line in enumerate(lines):
+            if i < start_row:
+                continue
+            if i > start_row + 2:
+                break
+            line = line.rstrip("\n")
+            if not line:
+                continue
+            if "  " in line and "\t" not in line:
+                if len(line) > 20 and " " in line:
+                    return True
     except Exception:
         pass
     return False
@@ -765,12 +914,7 @@ def _read_fixed_width(path: str, start_row: int) -> pd.DataFrame:
     """Read fixed-width rows split on 2+ spaces."""
     import re
 
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-    except UnicodeDecodeError:
-        with open(path, "r", encoding="latin-1") as f:
-            lines = f.readlines()
+    lines = _read_text_lines(path)
 
     try:
         if len(lines) <= start_row:
@@ -887,12 +1031,7 @@ def _read_fixed_width(path: str, start_row: int) -> pd.DataFrame:
 
 def _detect_delimiter(path: str) -> str:
     """Guess the dominant CSV delimiter."""
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            first_lines = [f.readline() for _ in range(15)]
-    except UnicodeDecodeError:
-        with open(path, "r", encoding="latin-1") as f:
-            first_lines = [f.readline() for _ in range(15)]
+    first_lines = _read_text_lines(path)[:15]
 
     # Count delimiter occurrences
     separators = {",": 0, ";": 0, "\t": 0, "|": 0}
@@ -909,56 +1048,55 @@ def _detect_delimiter(path: str) -> str:
 def _find_data_start(path: str) -> int:
     """Find first row that looks like real table data (skip metadata)."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            for i, line in enumerate(f):
-                line = line.strip()
-                if not line:
-                    continue
+        for i, line in enumerate(_read_text_lines(path)):
+            line = line.strip()
+            if not line:
+                continue
 
-                # Skip separator lines like ====
-                if line.startswith("==="):
-                    continue
+            # Skip separator lines like ====
+            if line.startswith("==="):
+                continue
 
-                line_lower = line.lower()
+            line_lower = line.lower()
 
-                # Skip pure metadata lines (key: value) - no comma, no quotes
-                # But still check if line has column content
-                has_columns = any(
-                    k in line_lower
-                    for k in [
-                        "designator",
-                        "comment",
-                        "layer",
-                        "footprint",
-                        "center",
-                        "pattern",
-                        "refdes",
-                        "valued",
-                        "name",
-                        "rotation",
-                        "center-x",
-                        "center-y",
-                    ]
-                )
+            # Skip pure metadata lines (key: value) - no comma, no quotes
+            # But still check if line has column content
+            has_columns = any(
+                k in line_lower
+                for k in [
+                    "designator",
+                    "comment",
+                    "layer",
+                    "footprint",
+                    "center",
+                    "pattern",
+                    "refdes",
+                    "valued",
+                    "name",
+                    "rotation",
+                    "center-x",
+                    "center-y",
+                ]
+            )
 
-                # Has quoted CSV header (has both quotes and comma)
-                if line.startswith('"') and '"' in line and "," in line:
+            # Has quoted CSV header (has both quotes and comma)
+            if line.startswith('"') and '"' in line and "," in line:
+                return i
+
+            # Has tab-separated columns
+            if "\t" in line and has_columns:
+                return i
+
+            # Has typical column names AND has separator (comma/tab)
+            if has_columns and ("," in line or "\t" in line):
+                return i
+
+            # Has multiple spaces between words and has columns
+            if "  " in line and not line.startswith(" "):
+                parts = line.split()
+                if len(parts) >= 3 and has_columns:
                     return i
-
-                # Has tab-separated columns
-                if "\t" in line and has_columns:
-                    return i
-
-                # Has typical column names AND has separator (comma/tab)
-                if has_columns and ("," in line or "\t" in line):
-                    return i
-
-                # Has multiple spaces between words and has columns
-                if "  " in line and not line.startswith(" "):
-                    parts = line.split()
-                    if len(parts) >= 3 and has_columns:
-                        return i
-    except OSError:
+    except (OSError, SMTProcessorError):
         pass
     return 0  # Default
 
@@ -1339,22 +1477,16 @@ class SMTDataProcessor:
         )
         coord_map: dict[tuple, list[str]] = {}
         for designator, pnp_data in pnp_parts.items():
-            if len(pnp_data) > 2 and pnp_data[2] is not None:
-                try:
-                    coord = (
-                        float(pnp_data[2]),
-                        float(pnp_data[3]) if len(pnp_data) > 3 else 0.0,
-                    )
-                    if coord != (0.0, 0.0):
-                        layer_key = ""
-                        if len(pnp_data) > 4 and pnp_data[4] is not None:
-                            layer_key = str(pnp_data[4]).strip().upper()
-                        loc_key = (layer_key, coord[0], coord[1])
-                        if loc_key not in coord_map:
-                            coord_map[loc_key] = []
-                        coord_map[loc_key].append(designator)
-                except (ValueError, TypeError):
-                    pass
+            coord = _parse_placement_xy(pnp_data)
+            if coord is None:
+                continue
+            layer_key = ""
+            if len(pnp_data) > 4 and pnp_data[4] is not None:
+                layer_key = str(pnp_data[4]).strip().upper()
+            loc_key = (layer_key, coord[0], coord[1])
+            if loc_key not in coord_map:
+                coord_map[loc_key] = []
+            coord_map[loc_key].append(designator)
 
         dup_pairs = 0
         for loc_key, parts in coord_map.items():
@@ -1554,8 +1686,8 @@ class SMTDataProcessor:
                     "BOM_Value": r.bom_value if r.bom_value else "",
                     "PnP_Value": r.pnp_value if r.pnp_value else "",
                     "Footprint": r.footprint if r.footprint else "",
-                    "Coord_X": r.coord_x if r.coord_x else "",
-                    "Coord_Y": r.coord_y if r.coord_y else "",
+                    "Coord_X": r.coord_x if r.coord_x is not None else "",
+                    "Coord_Y": r.coord_y if r.coord_y is not None else "",
                     "Severity": r.severity,
                 }
             )
@@ -1807,6 +1939,11 @@ def _check_overlapping(
     """
     Pairwise center distances below ``min_distance_mm`` (always interpreted as millimeters).
 
+    Each unordered pair yields at most one ``(first, second, distance)`` record.
+    Pairs are visited in PnP insertion order — the outer part comes from the
+    earlier position, the inner one from the later — and records keep that visit
+    order, so a record reads the same way as it did before the de-duplication fix.
+
     ``overlap_xy_are_mm``: True when raw PnP X/Y are already mm; False when they are mils
     (converted with ×0.0254 **only** for this distance comparison — stored data unchanged).
     """
@@ -1827,21 +1964,19 @@ def _check_overlapping(
 
     conflicts = []
     decoded_coords: dict[str, Tuple[float, float]] = {}
-    checked: dict[str, list[str]] = {}
+    seen_pairs: set[tuple] = set()
 
-    for key_a in pnp_parts:
-        for key_b in pnp_parts:
-            if key_a == key_b:
+    # Snapshot: the dict must not change under us, and ``.get()`` on every inner
+    # step was the other half of the old O(n^3) cost.
+    items = list(pnp_parts.items())
+    for index_a, (key_a, pnp_data_a) in enumerate(items):
+        for index_b in range(index_a + 1, len(items)):
+            key_b, pnp_data_b = items[index_b]
+            pair = (key_a, key_b)
+            if pair in seen_pairs:
                 continue
+            seen_pairs.add(pair)
 
-            if key_a in checked.get(key_b, []):
-                continue
-            if key_b not in checked:
-                checked[key_b] = []
-            checked[key_b].append(key_a)
-
-            pnp_data_a = pnp_parts.get(key_a, ())
-            pnp_data_b = pnp_parts.get(key_b, ())
             layer_a = pnp_data_a[4] if len(pnp_data_a) > 4 else None
             layer_b = pnp_data_b[4] if len(pnp_data_b) > 4 else None
             if layer_a is not None and layer_b is not None:
