@@ -20,9 +20,13 @@ R=4V, Q=6.3V, P=10V, L=16V, J=6.3V/25V (series), H=50V, E=100V, A=250V, K=10V, M
 
 Tolerance:
 F=±1%, G=±2%, J=±5%, K=±10%, M=±20%; digits and extra letters (P,Q,R,S,T) supported — see code.
+
+Note:
+``parse()`` does not swallow exceptions. "Not my format" is reported by an explicit
+``return None``; a raise means a genuine parser bug and is meant to reach the
+``pn_original.parse_pn`` arbiter, which logs it with a traceback and names the vendor.
 """
 
-import logger
 from parsers.regex_api import I, search, sub
 
 from ._cap_decode import pf_eia_3_to_str
@@ -125,55 +129,50 @@ def parse(pn: str, component_type: str) -> str | None:
         "0": "20%",
     }
 
-    try:
-        if len(pn) < 10:
-            return None
-
-        # Size: positions 2-3 (CL05 -> 05 = 0402)
-        size_code = pn[2:4]
-        size = size_map.get(size_code, "")
-
-        # Temp: position 4
-        temp = temp_map.get(pn[4], "")
-
-        # Value: positions 5-7 (EIA 3 digits, pF base)
-        value_code = pn[5:8]
-        value_str = ""
-        if value_code.isdigit() and len(value_code) == 3:
-            value_str = pf_eia_3_to_str(value_code) or ""
-
-        # Voltage: position 8 (M in CL05A105M...)
-        voltage_char = pn[8] if len(pn) > 8 else ""
-        voltage = voltage_map.get(voltage_char, "")
-
-        # Thickness/Plating: position 9 (not used)
-
-        # Tolerance: position 10 (0-based) after rated voltage + one internal char (e.g. …KB5…).
-        tol_char = pn[10] if len(pn) > 10 else ""
-        tol = tol_map.get(tol_char, "")
-        if not tol:
-            # Alternate layouts / packaging: last tolerance letter before NNN… suffix
-            mm = search(r"([FGJKM])(?:NN|NC|NE|NR|NQ)", pn, I)
-            if mm:
-                tol = tol_map.get(mm.group(1).upper(), "")
-
-        parts = []
-        if size:
-            parts.append(size)
-        if value_str:
-            parts.append(value_str)
-        if voltage:
-            parts.append(voltage)
-        if temp:
-            parts.append(temp)
-        if tol:
-            parts.append(tol)
-
-        return "_".join(parts) if parts else None
-
-    except Exception as exc:
-        logger.warning("Samsung parse failed for %r: %s", pn, exc)
+    if len(pn) < 10:
         return None
+
+    # Size: positions 2-3 (CL05 -> 05 = 0402)
+    size_code = pn[2:4]
+    size = size_map.get(size_code, "")
+
+    # Temp: position 4
+    temp = temp_map.get(pn[4], "")
+
+    # Value: positions 5-7 (EIA 3 digits, pF base)
+    value_code = pn[5:8]
+    value_str = ""
+    if value_code.isdigit() and len(value_code) == 3:
+        value_str = pf_eia_3_to_str(value_code) or ""
+
+    # Voltage: position 8 (M in CL05A105M...)
+    voltage_char = pn[8] if len(pn) > 8 else ""
+    voltage = voltage_map.get(voltage_char, "")
+
+    # Thickness/Plating: position 9 (not used)
+
+    # Tolerance: position 10 (0-based) after rated voltage + one internal char (e.g. …KB5…).
+    tol_char = pn[10] if len(pn) > 10 else ""
+    tol = tol_map.get(tol_char, "")
+    if not tol:
+        # Alternate layouts / packaging: last tolerance letter before NNN… suffix
+        mm = search(r"([FGJKM])(?:NN|NC|NE|NR|NQ)", pn, I)
+        if mm:
+            tol = tol_map.get(mm.group(1).upper(), "")
+
+    parts = []
+    if size:
+        parts.append(size)
+    if value_str:
+        parts.append(value_str)
+    if voltage:
+        parts.append(voltage)
+    if temp:
+        parts.append(temp)
+    if tol:
+        parts.append(tol)
+
+    return "_".join(parts) if parts else None
 
 
 def format_example(pn: str) -> str:
