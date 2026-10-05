@@ -7,9 +7,10 @@ Accepts file paths or DataFrames and returns result DataFrames.
 
 import datetime
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -485,6 +486,148 @@ def _unique_dataframe_column_names(raw: list[str]) -> list[str]:
     return out
 
 
+def _token_spans(line: str) -> list[tuple[int, int, str]]:
+    """``(start, end, token)`` for every whitespace-delimited run in ``line``."""
+    spans: list[tuple[int, int, str]] = []
+    for m in re.finditer(r"\S+", line):
+        spans.append((m.start(), m.end(), m.group(0)))
+    return spans
+
+
+def _occupied_column_ranges(
+    rows: Sequence[str],
+) -> Optional[list[tuple[int, int]]]:
+    """Character ranges covered by tokens, as ``[start, end)`` column ranges.
+
+    Columns are separated by at least one blank column that no token ever
+    touches, so the runs of occupied positions are exactly the columns. Unlike
+    clustering token *starts*, this survives right-aligned numbers (one logical
+    column reports a different start on every row) and does not depend on some
+    row happening to land on an intermediate offset.
+    """
+    width = max((len(r) for r in rows), default=0)
+    if width <= 0:
+        return None
+    occupied = bytearray(width)
+    for row in rows:
+        for start, end, _tok in _token_spans(row):
+            for i in range(start, min(end, width)):
+                occupied[i] = 1
+
+    ranges: list[tuple[int, int]] = []
+    i = 0
+    while i < width:
+        if not occupied[i]:
+            i += 1
+            continue
+        start = i
+        while i < width and occupied[i]:
+            i += 1
+        ranges.append((start, i))
+    return ranges
+
+
+def detect_fixed_width_columns(
+    lines: Sequence[str],
+) -> Optional[tuple[int, ...]]:
+    """Column start offsets when ``lines`` are fixed-width, else ``None``.
+
+    Real placement files are frequently emitted fixed-width rather than
+    whitespace-delimited. When a column is empty on some rows (the ``Layer``
+    column is blank for every Top-side part), ``str.split()`` collapses it and
+    every later column shifts one place left on those rows, so a fixed-column
+    mapping reads ``Footprint`` out of the ``Layer`` column. That is silent: the
+    frame still has the right shape once padded.
+
+    Only a strict, self-validating case is claimed as fixed-width:
+
+    * one row width dominates the file (a genuinely variable file fails here);
+    * the number of whitespace tokens differs between rows (the symptom - if
+      every row splits into the same count there is nothing to misalign, so the
+      caller keeps its existing behaviour);
+    * the occupied character positions form contiguous ranges separated by at
+      least one never-touched column, each backed by a real share of the rows,
+      so the layout is positional rather than ragged;
+    * slicing at those boundaries reproduces every row's tokens exactly, which
+      keeps the guarantee that no value can be silently dropped or invented.
+
+    When in doubt it returns ``None`` and the caller falls back to whitespace
+    splitting, so a misdetection degrades to today's behaviour.
+    """
+    rows = [ln for ln in lines if _check_row_valid_whitespace_sp(ln.split())]
+    if len(rows) < 20:
+        return None
+
+    widths = Counter(len(ln) for ln in rows)
+    _dominant_width, dominant_count = widths.most_common(1)[0]
+    if dominant_count / len(rows) < 0.9:
+        return None
+
+    if len({len(ln.split()) for ln in rows}) < 2:
+        # Uniform token count: nothing can shift, so leave the file alone.
+        return None
+
+    ranges = _occupied_column_ranges(rows)
+    if not ranges or len(ranges) < 2:
+        return None
+
+    # Every column must be anchored by a meaningful share of the rows, otherwise
+    # one stray row could invent a phantom column.
+    for start, end in ranges:
+        support = sum(
+            1 for r in rows if any(s < end and e > start for s, e, _ in _token_spans(r))
+        )
+        if support / len(rows) < 0.02:
+            return None
+
+    # Validate: positional slicing must reproduce the whitespace tokens exactly.
+    # If it does not, we would be inventing or losing data, so decline.
+    starts = [start for start, _end in ranges]
+    for ln in rows:
+        cells = _slice_fixed_width_row(ln, starts)
+        if [c for c in cells if c] != ln.split():
+            return None
+    return tuple(starts)
+
+
+def _slice_fixed_width_row(line: str, starts: Sequence[int]) -> list[str]:
+    """Slice ``line`` at ``starts``; a column may legitimately come out empty."""
+    cells: list[str] = []
+    for i, start in enumerate(starts):
+        end = starts[i + 1] if i + 1 < len(starts) else len(line)
+        cells.append(line[start:end].strip())
+    return cells
+
+
+def read_text_fixed_width(path: str, starts: Sequence[int]) -> pd.DataFrame:
+    """Read a fixed-width placement file, preserving empty interior columns."""
+    _require_readable_file(path)
+    file_lines = _read_text_lines(path)
+    out_rows: list[list[str]] = []
+    for line in file_lines:
+        if not line.strip():
+            continue
+        # Validate on the whitespace tokens, not on the sliced grid: a units
+        # banner such as "UUNITS = MILS" lands in a single slice and would
+        # otherwise slip through as a data row.
+        if not _check_row_valid_whitespace_sp(line.split()):
+            continue
+        out_rows.append(_slice_fixed_width_row(line, starts))
+    if not out_rows:
+        return pd.DataFrame()
+    return pd.DataFrame(out_rows, columns=[str(i) for i in range(len(starts))])
+
+
+def _read_text_lines(path: str) -> list[str]:
+    """Read a placement file as lines, tolerating non-UTF8 encodings."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().splitlines()
+    except UnicodeDecodeError:
+        with open(path, "r", encoding="latin-1") as f:
+            return f.read().splitlines()
+
+
 def read_text_whitespace_sp(path: str) -> pd.DataFrame:
     """
     Classic Boomer SPACES (Profile SPACES / *sp): use str.split() on each line.
@@ -493,12 +636,7 @@ def read_text_whitespace_sp(path: str) -> pd.DataFrame:
     it does not promote a row into headers (preview keeps every data row).
     """
     _require_readable_file(path)
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            file_lines = f.read().splitlines()
-    except UnicodeDecodeError:
-        with open(path, "r", encoding="latin-1") as f:
-            file_lines = f.read().splitlines()
+    file_lines = _read_text_lines(path)
     max_cols = 0
     out_rows: list[list[str]] = []
     for row in file_lines:
@@ -880,8 +1018,24 @@ def read_pnp_whitespace(
     first_row: int = 0,
     last_row: int = -1,
 ) -> pd.DataFrame:
-    """Load whitespace-separated PnP grid with optional first/last row trim."""
-    df = _clean_empty_rows(read_text_whitespace_sp(path))
+    """Load whitespace-separated PnP grid with optional first/last row trim.
+
+    Fixed-width placement files are detected and read positionally, so an empty
+    interior column (typically ``Layer`` blank for every Top-side part) keeps its
+    place instead of shifting every later column one position left on those rows.
+    """
+    _require_readable_file(path)
+    starts = detect_fixed_width_columns(_read_text_lines(path))
+    if starts is not None:
+        df = _clean_empty_rows(read_text_fixed_width(path, starts))
+        logger.info(
+            "Fixed-width PnP detected in %s: %d columns at offsets %s",
+            Path(path).name,
+            len(starts),
+            list(starts),
+        )
+    else:
+        df = _clean_empty_rows(read_text_whitespace_sp(path))
     if df.empty:
         raise SMTEmptyDataError(f"No data rows in {path!r} (spaces mode)")
     n = len(df)
@@ -917,6 +1071,10 @@ class SMTDataProcessor:
         self._pnp_df: Optional[pd.DataFrame] = None
         self._bom_config: Optional[ColumnConfig] = None
         self._pnp_config: Optional[ColumnConfig] = None
+        # Populated by the last merge_bom_pnp() call so callers can report the
+        # two exclusion reasons separately instead of losing placements quietly.
+        self.last_merge_not_in_bom_refs: list[str] = []
+        self.last_merge_dnp_refs: list[str] = []
 
     # --------------------------------------------------------------------------
     # Loading Methods
@@ -1507,6 +1665,12 @@ class SMTDataProcessor:
 
         # Build merged frame
         merged = []
+        # "Not in BOM" and "marked DNP" are different facts: the first means
+        # the source data has a gap, the second is an intentional exclusion.
+        # They must not be lumped into one silent drop, so count them apart and
+        # report both (see last_merge_not_in_bom_refs / last_merge_dnp_refs).
+        not_in_bom: list[str] = []
+        dnp_refs: list[str] = []
 
         for _, row in self._pnp_df.iterrows():
             if pnp_designator_col is None or pd.isna(row[pnp_designator_col]):
@@ -1518,6 +1682,8 @@ class SMTDataProcessor:
             ref_key = _ref_key(ref)
             in_bom = ref_key in bom_map
 
+            if not in_bom:
+                not_in_bom.append(ref)
             # Delete DNP in merge means "only keep placements found in BOM".
             if not include_dnp and not in_bom:
                 continue
@@ -1536,6 +1702,7 @@ class SMTDataProcessor:
                 "DNP",
                 "DNP_FROM_BOM",
             ]:
+                dnp_refs.append(ref)
                 continue
 
             # Coordinates — same magnitude as source (only trailing mil/mm stripped during parse).
@@ -1576,6 +1743,19 @@ class SMTDataProcessor:
                     "Layer": layer,
                 }
             )
+
+        self.last_merge_not_in_bom_refs = not_in_bom
+        self.last_merge_dnp_refs = dnp_refs
+
+        if not_in_bom:
+            logger.warning(
+                "Merge dropped %d placement(s) that are not in the BOM "
+                "(missing BOM rows, not DNP): %s",
+                len(not_in_bom),
+                ", ".join(not_in_bom[:10]) + ("..." if len(not_in_bom) > 10 else ""),
+            )
+        if dnp_refs:
+            logger.info("Merge dropped %d DNP placement(s).", len(dnp_refs))
 
         return pd.DataFrame(merged)
 
