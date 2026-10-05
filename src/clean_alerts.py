@@ -147,20 +147,67 @@ def analyze_token_alert(
     return TokenAlert((), 0, 0)
 
 
-def append_missing_tokens_log(payload: dict) -> None:
-    """Append one JSON line for token-missing alerts."""
-    p = dict(payload)
-    p.setdefault("ts", datetime.now(timezone.utc).isoformat())
-    log_path = (
-        os.environ.get("VALVET_MISSING_TOKENS_LOG", "").strip()
-        or os.environ.get("BOOMER_MISSING_TOKENS_LOG", "").strip()
+# Opt-in only: no env flag means no file at all. The old default wrote one line
+# per BOM row into %APPDATA%/logs/missing_tokens.jsonl on every run.
+_LOG_FLAG_ENV = "VALVET_MISSING_TOKENS_LOG"
+_LOG_FLAG_ENV_LEGACY = "BOOMER_MISSING_TOKENS_LOG"
+_FLAG_VALUES = ("1", "true", "yes", "on")
+
+# Component text never goes to disk: only its length is diagnostic.
+_TEXT_KEYS = ("original", "cleaned")
+_MAX_VALUE_CHARS = 200
+
+_write_failed_warned = False
+
+
+def missing_tokens_log_path() -> Path | None:
+    """Target file for ``append_missing_tokens_log``, or None when opted out.
+
+    The env value is either a target path or a truthy flag for the default
+    location - same opt-in shape as ``VALVET_CLEAN_PREVIEW_LOG`` (truthy) and
+    ``VALVET_USER_PARSERS_DIR`` (path).
+    """
+    raw = (
+        os.environ.get(_LOG_FLAG_ENV, "").strip()
+        or os.environ.get(_LOG_FLAG_ENV_LEGACY, "").strip()
     )
-    if log_path:
-        out = Path(log_path)
-    else:
+    if not raw:
+        return None
+    if raw.lower() in _FLAG_VALUES:
         from app_paths import user_state_dir
 
-        out = user_state_dir() / "logs" / "missing_tokens.jsonl"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(p, ensure_ascii=False) + "\n")
+        return user_state_dir() / "logs" / "missing_tokens.jsonl"
+    return Path(raw)
+
+
+def _loggable_payload(payload: dict) -> dict:
+    """Counts and keys only - no BOM comment text."""
+    out: dict = {}
+    for key, value in payload.items():
+        name = str(key)
+        if name in _TEXT_KEYS:
+            out[f"{name}_len"] = len(str(value or ""))
+            continue
+        if isinstance(value, str) and len(value) > _MAX_VALUE_CHARS:
+            out[name] = value[:_MAX_VALUE_CHARS] + "…"
+            continue
+        out[name] = value
+    out.setdefault("ts", datetime.now(timezone.utc).isoformat())
+    return out
+
+
+def append_missing_tokens_log(payload: dict) -> None:
+    """Append one JSON line for token-missing alerts (opt-in, best effort)."""
+    global _write_failed_warned
+    out = missing_tokens_log_path()
+    if out is None:
+        return
+    line = json.dumps(_loggable_payload(payload), ensure_ascii=False) + "\n"
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("a", encoding="utf-8") as f:
+            f.write(line)
+    except OSError as exc:
+        if not _write_failed_warned:
+            _write_failed_warned = True
+            logger.warning("missing tokens log write failed, continuing: %s", exc)

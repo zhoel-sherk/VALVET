@@ -295,7 +295,10 @@ def test_session_file_records_error_and_hidden_debug(
         win._log("visible-error-line", "error")
         assert win._session_log_path is not None
         text = win._session_log_path.read_text(encoding="utf-8")
-        assert "DEBUG hidden-debug-line" in text
+        # Debug never reaches the file: the console filter is a display switch,
+        # and session logs ship inside the release zip.
+        assert "DEBUG hidden-debug-line" not in text
+        assert "hidden-debug-line" not in text
         assert "ERROR visible-error-line" in text
         html = win.console.toHtml()
         assert "visible-error-line" in html

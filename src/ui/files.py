@@ -216,7 +216,12 @@ class FilesMixin:
         return None
 
     def _inject_pnp_layer_values(self) -> None:
-        """Fill Layer column for merged rows (expects combos already built)."""
+        """Fill Layer column for merged rows (expects combos already built).
+
+        The patch goes through the model and ``_mark_working_dirty``: writing
+        straight into the DataFrame left the view, the dirty flag and autosave
+        unaware of the edit, so the layer tokens were gone on the next reload.
+        """
         if self._pnp_df is None or len(self._pnp_df) == 0:
             return
         if not self.chk_pnp_layer_override.isChecked():
@@ -241,10 +246,14 @@ class FilesMixin:
         j = self._pnp_mapped_layer_column_index()
         if j is None:
             return
+        df = self._pnp_df.copy()
         if n1 > 0:
-            self._pnp_df.iloc[:n1, j] = v1
+            df.iloc[:n1, j] = v1
         if n2 > 0 and v2 is not None:
-            self._pnp_df.iloc[n1:, j] = v2
+            df.iloc[n1:, j] = v2
+        self._pnp_df = df
+        self.pnp_model.update_dataframe(df)
+        self._mark_working_dirty("pnp")
 
     def _load_bom(self, path: str, *, force_original: bool = False):
         path = (path or "").strip()
@@ -299,9 +308,11 @@ class FilesMixin:
                     self._recent_bom.pop()
 
             sheet = self._selected_sheet("bom")
+            # basename only: session logs ship inside the release zip, so an
+            # absolute path would leak the user's folder layout.
             self._log(
                 f"Loaded BOM ({recovered_note}): {len(self._bom_df)} rows, "
-                f"{len(self._bom_df.columns)} cols from {os.path.abspath(path)}"
+                f"{len(self._bom_df.columns)} cols from {os.path.basename(path)}"
                 + (f" [sheet: {sheet}]" if sheet else " [sheet: auto]"),
                 "info",
             )
@@ -414,7 +425,7 @@ class FilesMixin:
 
             self._log(
                 f"Loaded PnP ({recovered_note}): {len(self._pnp_df)} rows, "
-                f"{len(self._pnp_df.columns)} cols from {os.path.abspath(path)}",
+                f"{len(self._pnp_df.columns)} cols from {os.path.basename(path)}",
                 "info",
             )
             self._log(f"Columns: {list(self._pnp_df.columns)}", "debug")
