@@ -79,5 +79,5 @@ class GerberLoadThread(QtCore.QThread):
             self.result_ready.emit((payload, image, pose))
         except Exception as e:
             msg = str(e)
-            logger.error("Gerber load failed for %s: %s", self._path, msg)
+            logger.exception("Gerber load failed for %s: %s", self._path, msg)
             self.result_ready.emit((self._error_payload(msg), None, empty_pose))

@@ -23,11 +23,26 @@ _CHIP_MM: dict[str, tuple[float, float]] = {
 
 
 def _find_imperial_code(name: str) -> Optional[str]:
-    u = name.upper().replace("_", "").replace("-", "").replace(" ", "")
-    for code in sorted(_CHIP_MM.keys(), key=len, reverse=True):
-        if code in u:
-            return code
-    m = re.search(r"\b(\d{4,5})\b", name)
+    u = (name or "").upper().replace("_", "").replace("-", "").replace(" ", "")
+    if not u:
+        return None
+    # Pick the code that starts earliest in the name, breaking ties by taking
+    # the longer one. Scanning the codes in table order instead made the result
+    # depend on dict insertion order, which has two consequences:
+    #   - "x-2010-1210" resolved to 1210 although 2010 comes first in the name;
+    #   - "C_1210_2010" resolved to 0201, a code that exists only as the four
+    #     characters straddling the boundary between the two real codes.
+    best: Optional[tuple[int, int, str]] = None
+    for code in _CHIP_MM:
+        idx = u.find(code)
+        if idx < 0:
+            continue
+        candidate = (idx, -len(code), code)
+        if best is None or candidate < best:
+            best = candidate
+    if best is not None:
+        return best[2]
+    m = re.search(r"\b(\d{4,5})\b", name or "")
     if m and m.group(1) in _CHIP_MM:
         return m.group(1)
     return None

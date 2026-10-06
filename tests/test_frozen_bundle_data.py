@@ -14,12 +14,22 @@ so the cheapest guard is to keep ``valvet.spec`` in step with the modules.
 from __future__ import annotations
 
 import ast
+import re
+import shutil
+import zipfile
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATH = REPO_ROOT / "valvet.spec"
+WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "release-windows.yml"
+
+# A frozen run creates logs/ next to VALVET.exe (session_file_log resolves
+# ``Path(__file__).parent.parent / "logs"`` -> dist/VALVET/logs) and that folder
+# carries the user's absolute file paths, so it must never ship. The release
+# workflow zips before the smoke test for exactly this reason (plan variant A).
+LOGS_ENTRY_RE = re.compile(r"(?:^|/)logs/")
 
 # (source relative to repo root, destination inside _MEIPASS, consuming module).
 # The destination is what the module computes from __file__ when frozen.
@@ -91,6 +101,72 @@ def test_catalog_json_files_are_not_filtered_out() -> None:
         assert "examples" not in _norm(source).lower(), source
         assert "examples" not in _norm(dest).lower(), dest
     assert "datas = [x for x in datas if _not_repo_examples(x)]" in spec_src
+
+
+def _workflow_step_order() -> dict[str, int]:
+    """Step name -> index, for the release workflow's ``windows-zip`` job."""
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    return {
+        name: index
+        for index, name in enumerate(
+            re.findall(r"^\s*- name:\s*(.+?)\s*$", text, re.MULTILINE)
+        )
+    }
+
+
+def test_zip_is_built_before_the_smoke_test() -> None:
+    """Smoke must run on the unpacked zip, or logs/ lands in the shipped archive.
+
+    ``--smoke`` reaches MainWindow, which creates ``dist/VALVET/logs``. Zipping
+    first keeps that folder out of the artifact (plan variant A).
+    """
+    order = _workflow_step_order()
+    assert "Zip onedir folder" in order, order
+    assert "Smoke unpacked zip" in order, order
+    assert order["Zip onedir folder"] < order["Smoke unpacked zip"], (
+        "zip after smoke => the logs/ folder created by the smoke run ships"
+    )
+    workflow_src = WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert "unzip -q" in workflow_src, "smoke must run on the unpacked zip"
+    assert "./smoke/VALVET/VALVET.exe --smoke" in workflow_src
+    assert "VALVET/logs/" in workflow_src, "the zip step must reject a logs/ entry"
+
+
+def test_release_takes_the_version_from_the_version_file() -> None:
+    """``inputs.version`` is validation only; src/__version__.py ships."""
+    workflow_src = WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert "python tools/version.py show" in workflow_src
+    assert "python tools/version.py check" in workflow_src
+    assert 'echo "VERSION=${VERSION}" >> "$GITHUB_ENV"' in workflow_src
+    assert "${{ inputs.version }}-windows-x64.zip" not in workflow_src, (
+        "artifact paths must use the resolved version, not the dispatch input"
+    )
+
+
+def test_logs_entry_is_detected_in_a_built_zip(tmp_path: Path) -> None:
+    """The guard's rule: any ``logs/`` entry in the archive is a failure.
+
+    Focuses on the check itself (a real zip round-trip is cheap; a PyInstaller
+    build is not) so a regression in the pattern cannot ship silently.
+    """
+    onedir = tmp_path / "VALVET"
+    (onedir / "_internal").mkdir(parents=True)
+    (onedir / "VALVET.exe").write_bytes(b"MZ")
+    (onedir / "logs").mkdir()
+    (onedir / "logs" / "sessionlog.txt").write_text(
+        "C:\\Users\\Someone", encoding="utf-8"
+    )
+
+    archive = tmp_path / "dirty"
+    shutil.make_archive(str(archive), "zip", tmp_path, "VALVET")
+    with zipfile.ZipFile(archive.with_suffix(".zip")) as zf:
+        polluted = [name for name in zf.namelist() if LOGS_ENTRY_RE.search(name)]
+    assert polluted, "the guard must flag a logs/ entry"
+
+    shutil.rmtree(onedir / "logs")
+    shutil.make_archive(str(archive), "zip", tmp_path, "VALVET")
+    with zipfile.ZipFile(archive.with_suffix(".zip")) as zf:
+        assert not [name for name in zf.namelist() if LOGS_ENTRY_RE.search(name)]
 
 
 def test_fonts_are_globbed_not_hardcoded() -> None:

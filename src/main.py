@@ -14,10 +14,10 @@ if str(_SRC) not in sys.path:
 from PySide6 import QtCore, QtGui, QtWidgets  # noqa: E402
 
 import logger  # noqa: E402
+from __version__ import __version__  # noqa: E402
 from app.constants import (  # noqa: E402
     APP_EXPANSION,
     APP_NAME,
-    APP_VERSION,
     SETTINGS_ORG,
 )
 from app.icons import application_icon_path  # noqa: E402
@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> None:
     qt_argv = [sys.argv[0], *rest] if argv is None else rest
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(qt_argv)
     app.setApplicationName(APP_NAME)
-    app.setApplicationVersion(APP_VERSION)
+    app.setApplicationVersion(__version__)
     app.setOrganizationName(SETTINGS_ORG)
     icon_path = application_icon_path()
     if icon_path is not None:

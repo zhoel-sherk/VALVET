@@ -9,6 +9,8 @@ from typing import Any
 
 import pandas as pd
 
+import logger
+
 # ``clean_preview`` rows: (#, original, cleaned, type_tag, source[, arbiter, win%]).
 _PREVIEW_MIN_LEN = 5
 
@@ -27,12 +29,11 @@ def _preview_row_fields(row: tuple[Any, ...] | list[Any]) -> tuple[str, str, str
 def _resolve_clean_target_column(
     df: pd.DataFrame, source_column: str, *, replace_source: bool
 ) -> str:
+    # Not replace_source: every path lands on the single output column, so the
+    # `df.columns` probe was dead - the caller creates the column when missing.
+    del df
     if replace_source:
         return source_column
-    if source_column == _CLEAN_OUTPUT_COLUMN:
-        return _CLEAN_OUTPUT_COLUMN
-    if _CLEAN_OUTPUT_COLUMN in df.columns:
-        return _CLEAN_OUTPUT_COLUMN
     return _CLEAN_OUTPUT_COLUMN
 
 
@@ -55,19 +56,39 @@ def apply_clean_preview_to_bom(
             if meta_col not in df.columns:
                 df[meta_col] = ""
 
+    # Rows beyond len(source_indices) fall back to positional df_i = preview_i,
+    # which silently writes into the wrong row. Say so instead.
+    if len(source_indices) != len(preview_rows):
+        logger.warning(
+            "Clean apply: %d preview rows vs %d source indices - the extra "
+            "rows fall back to positional matching and may hit the wrong row",
+            len(preview_rows),
+            len(source_indices),
+        )
+
     for preview_i, row in enumerate(preview_rows):
         if preview_i < len(source_indices):
             df_i = source_indices[preview_i]
         else:
             df_i = preview_i
         if df_i < 0 or df_i >= len(df):
+            logger.warning(
+                "Clean apply: preview row %d maps to BOM row %s (out of range for "
+                "%d rows) - skipped",
+                preview_i,
+                df_i,
+                len(df),
+            )
             continue
         cleaned, typ, source = _preview_row_fields(row)
         part_code = "RES" if typ == "RESISTOR" else "IND" if typ == "INDUCTOR" else typ
-        df.at[df.index[df_i], target_col] = cleaned
+        # df.index[df_i] is a positional lookup: hoisting it out of the column
+        # writes keeps the loop O(n) instead of O(n^2) on long BOMs.
+        label = df.index[df_i]
+        df.at[label, target_col] = cleaned
         if not replace_source:
-            df.at[df.index[df_i], "clean_type"] = typ
-            df.at[df.index[df_i], "clean_part_code"] = part_code
-            df.at[df.index[df_i], "clean_vendor"] = source
+            df.at[label, "clean_type"] = typ
+            df.at[label, "clean_part_code"] = part_code
+            df.at[label, "clean_vendor"] = source
 
     return df

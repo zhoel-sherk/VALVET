@@ -35,6 +35,11 @@ def _cell(raw: Any) -> str:
     return s
 
 
+# Public alias: callers outside this module used to open-code ``str(x or "")``,
+# which turns a real ``0`` / ``0.0`` into ``""`` and a NaN into ``"nan"``.
+cell_text = _cell
+
+
 def group_key(
     value: Any,
     footprint: Any = "",

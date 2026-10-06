@@ -2,21 +2,24 @@
 Murata Capacitor PN Parser
 
 Murata MLCC (GRM…) Part Number Format (subset — several regex families in code):
-GRM + size key + R71|R72|R61|R60… + voltage/dielectric letters + EIA capacitance(3) + tolerance + suffix
+GRM + size key + R71|R72|R61|R60|R6Y… + voltage/dielectric letters + EIA capacitance(3) + tolerance + suffix
 
 Examples:
 - GRM155R71C104KA88D → CAP_0402_100nF_16V_X7R_10%
 - GRM188R71H102KA01D → CAP_0603_1nF_50V_X7R_10%
 - GRM1555C1H100JA01D → CAP_0402_10pF_50V_C0G_5%
+- GRM188R6YA106MA73D → CAP_0603_10uF_35V_X5R_20%
 
 Size keys (fragment):
 155=0402, 188=0603, 21A/21B/216=0805, 31M=1206, 32E=1210, 1555/1885/2160=C0G series keys
 
 Dielectric / series:
-X7R vs X5R from R71 vs R72 and branch-specific patterns; C1H + C0G for NP0-class lines
+X7R vs X5R from R71 vs R72 and branch-specific patterns; C1H + C0G for NP0-class lines.
+The R6x family (R60/R61/R6Y) is always X5R.
 
 Voltage:
-Letter maps _VOLT (C=6.3V, D=10V, E=16V, …) and R71/R6x-specific tables in code
+Letter maps _VOLT (C=6.3V, D=10V, E=16V, …) and R71/R6x-specific tables in code.
+Letter series codes (R6Y) carry the voltage in the series itself (_R6_LETTER_SERIES_VOL).
 
 Tolerance:
 J=±5%, K=±10%, M=±20%, Z=+80/-20% (and branch defaults where PN omits explicit code)
@@ -60,6 +63,49 @@ _R6X_FOLLOW_VOL = {
     "P": "10V",
 }
 _TOL = {"J": "5%", "K": "10%", "M": "20%", "Z": "+80/-20%"}
+# Two-character rated-voltage codes, exactly as published in the Murata GRM
+# series datasheet C02E21 ("Chip Multilayer Ceramic Capacitors for General"),
+# "Rated Voltage" table. This is the general-purpose GRM numbering, where the
+# voltage field is two characters wide - which is why a one-character table
+# cannot express e.g. the YA of GRM188R6YA106MA73D.
+#
+# In the R6x/R7x lines the character pair that follows the series code IS this
+# voltage field, so these are consulted before the per-series fallbacks below.
+# Note the safety-standard entries (E2/GB/GD/GF) are AC 250V certified types.
+_VOLT_2CH = {
+    "0E": "2.5V",
+    "0G": "4V",
+    "0J": "6.3V",
+    "1A": "10V",
+    "1C": "16V",
+    "1E": "25V",
+    "1H": "50V",
+    "1J": "63V",
+    "1K": "80V",
+    "2A": "100V",
+    "2D": "200V",
+    "2E": "250V",
+    "2W": "450V",
+    "2H": "500V",
+    "2J": "630V",
+    "3A": "1kV",
+    "3D": "2kV",
+    "3F": "3.15kV",
+    "BB": "350V",
+    "E2": "AC250V",
+    "GB": "AC250V",
+    "GD": "AC250V",
+    "GF": "AC250V",
+    "YA": "35V",
+}
+# Fallback for letter series where the pair after the series is not a published
+# voltage code. R6Y is a fixed 35V X5R line, confirmed by C02E21 (YA = DC35V)
+# and by catalogue data: GRM188R6YA106MA73D = 0603 10uF 35V X5R +/-20%,
+# GRM188R6YA475KE15J = 0603 4.7uF 35V X5R +/-10%. An unconfirmed letter series
+# is left unparsed rather than mis-labelled.
+_R6_LETTER_SERIES_VOL = {
+    "Y": "35V",
+}
 _SIZE = {
     "155": "0402",
     "188": "0603",
@@ -85,8 +131,10 @@ _RE_R7V = compile(
     I,
 )
 _RE_61E = compile(r"R61([A-Z])(\d{3})M[0-9A-Z]", I)  # R61E226ME39L
+# Series code is 1 or 2 chars: R60/R61 keep a separate voltage letter (A/B/…), a
+# letter series such as R6Y absorbs the char after it (GRM188R6YA106MA73D).
 _RE_R6V = compile(
-    r"^GRM(155|188|21A|21B|216|31M|32E)R6([01])([A-Z])([0-9]{3})(J|K|M|Z)([A-Z0-9]*)$",
+    r"^GRM(155|188|21A|21B|216|31M|32E)R6([0-9A-Z]{1,2})([A-Z])([0-9]{3})(J|K|M|Z)([A-Z0-9]*)$",
     I,
 )
 _RE_60J = compile(r"R60J(\d{3})M[0-9A-Z]", I)
@@ -107,12 +155,27 @@ def parse(pn: str, component_type: str) -> str | None:
 
     m6v = _RE_R6V.match(pn0)
     if m6v:
-        sc, _dnum, vcode, c3, tcode, _tail = m6v.groups()
+        sc, series, vcode, c3, tcode, _tail = m6v.groups()
         size = _SIZE.get(sc.upper(), "")
         cap = pf_eia_3_to_str(c3) or ""
         if not size or not cap:
             return None
-        vol = _VOLT.get(vcode.upper(), _R6X_FOLLOW_VOL.get(vcode.upper(), ""))
+        if series[:1].isdigit():
+            # R60/R61/... keep a voltage letter after the series. The published
+            # two-character code is preferred when the pair forms one (e.g. R61A
+            # -> 1A = 10V), otherwise the per-series fallback applies.
+            pair = (series[1:2] + vcode).upper()
+            vol = _VOLT_2CH.get(
+                pair, _VOLT.get(vcode.upper(), _R6X_FOLLOW_VOL.get(vcode.upper(), ""))
+            )
+        else:
+            # Letter series such as R6Y: the pair after R6 is the voltage field.
+            pair = (series[-1:] + vcode).upper()
+            vol = _VOLT_2CH.get(pair, "")
+            if not vol:
+                vol = _R6_LETTER_SERIES_VOL.get(series[:1].upper(), "")
+            if not vol:
+                return None
         tol = _TOL.get(tcode.upper(), "")
         return "_".join(p for p in (size, cap, vol, "X5R", tol) if p)
 

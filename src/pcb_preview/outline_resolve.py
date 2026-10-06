@@ -203,6 +203,8 @@ def _apply_hanwha_mdb_fallback(
         )
         stats["misses"] = len(pending)
         return stats
+    misses: list[tuple[str, str, str]] = []
+    hits: list[str] = []
     for key in pending:
         if should_stop is not None and should_stop():
             break
@@ -213,21 +215,36 @@ def _apply_hanwha_mdb_fallback(
         hit, tried = _hanwha_outline_for_name(key, cache_dir, group_to_profile)
         if hit is None:
             stats["misses"] += 1
-            logger.info(
-                "PCB package outline: hanwha_upd miss for %s (VSPD %s; tried %s)",
-                key,
-                prev,
-                ",".join(tried[:12]) or "-",
-            )
+            misses.append((key, prev, ",".join(tried[:12]) or "-"))
             continue
-        logger.info(
-            "PCB package outline: VSPD %s; using hanwha_upd sqlite for %s",
-            prev,
-            key,
-        )
+        hits.append(key)
         stats["hits"] += 1
         for cand in footprint_name_keys(key):
             old = result.get(cand)
             if old is None or old.source != "hanwha_upd":
                 result[cand] = hit
+    # One aggregated line per outcome instead of one per footprint: a board with
+    # hundreds of packages produced hundreds of identical INFO lines (see 2.8).
+    if misses:
+        logger.info(
+            "PCB package outline: hanwha_upd miss for %d package(s): %s "
+            "(each entry: package, previous source, profiles tried)",
+            len(misses),
+            _aggregate_names(
+                [f"{k} [was {prev}, tried {tr}]" for k, prev, tr in misses]
+            ),
+        )
+    if hits:
+        logger.info(
+            "PCB package outline: VSPD source -> hanwha_upd sqlite for %d package(s): %s",
+            len(hits),
+            _aggregate_names(hits),
+        )
     return stats
+
+
+def _aggregate_names(names: list[str], limit: int = 10) -> str:
+    """, ``-joined`` list capped at ``limit`` with an ``(+N more)`` tail."""
+    shown = ", ".join(names[:limit])
+    extra = len(names) - limit
+    return f"{shown} (+{extra} more)" if extra > 0 else shown

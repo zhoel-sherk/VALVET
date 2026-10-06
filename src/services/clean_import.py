@@ -39,5 +39,13 @@ def import_bom_comments_for_clean(
             for i in active_row_indices
         ]
 
+    # Single column: route through the same helper so None / float NaN / "nan" are
+    # skipped instead of reaching the parser as the literal string "nan".
     primary_col = comment_cols[0]
-    return [str(bom_df.iloc[i][primary_col]) for i in active_row_indices]
+    return [
+        merge_clean_comment_cell_parts(
+            [bom_df.iloc[i][primary_col]],
+            double_comment_separator,
+        )
+        for i in active_row_indices
+    ]

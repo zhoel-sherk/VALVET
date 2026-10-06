@@ -1,7 +1,19 @@
+import sys
+from pathlib import Path
+
+_SRC = Path(__file__).resolve().parents[1]
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from __version__ import __version__  # noqa: E402
+
 APP_NAME = "VALVET"
 APP_EXPANSION = "Validator And Line-Verified Export Tool"
-APP_VERSION = "0.5.1"
-VERSION_DISPLAY = "BETA v0.5.1"
+# Re-exported, never written by hand: the single source of truth is
+# src/__version__.py (see tools/version.py check / sync).
+APP_VERSION = __version__
+# Derived, kept only because src/app/__init__.py re-exports it; nothing consumes it.
+VERSION_DISPLAY = f"BETA v{__version__}"
 
 SETTINGS_ORG = "VALVET"
 SETTINGS_APP = "VALVET"

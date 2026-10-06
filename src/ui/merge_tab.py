@@ -638,12 +638,33 @@ class MergeTabMixin:
                 f"Merge complete: {len(merged)} rows (Merge → dataframe)",
                 "info",
             )
+            self._warn_merge_missing_from_bom(include_dnp)
             self._refresh_pcb_preview_from_ui(force=False)
         except SMTProcessorError as e:
             self._log(f"Merge error: {e}", "error")
             self._last_merge_df = None
             self._update_merge_layer_export_controls()
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
+
+    def _warn_merge_missing_from_bom(self, include_dnp: bool) -> None:
+        """Surface placements dropped because they are absent from the BOM.
+
+        A designator that is missing from the BOM is a gap in the source data,
+        not an intentional DNP. Silently dropping it makes an incomplete BOM look
+        like a clean merge, so the count and the refs are always reported.
+        """
+        missing = list(getattr(self.processor, "last_merge_not_in_bom_refs", []))
+        if not missing:
+            return
+        shown = ", ".join(missing[:12])
+        if len(missing) > 12:
+            shown += f", ... (+{len(missing) - 12} more)"
+        self._log(
+            f"{len(missing)} placement(s) are not in the BOM and were NOT merged: "
+            f"{shown}. Check the BOM for missing rows"
+            + ("" if include_dnp else " (they stay out until the BOM is fixed)."),
+            "warning",
+        )
 
     def _replace_pnp_from_merge(self) -> None:
         if self._last_merge_df is None or self._last_merge_df.empty:

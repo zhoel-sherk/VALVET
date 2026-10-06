@@ -20,9 +20,13 @@ F=±1%, J=±5%
 
 Resistance coding:
 3-digit E24 XXY = XX×10^Y Ω; 4-digit E96 XXXY = XXX×10^Y Ω
+
+Note:
+``parse()`` does not swallow exceptions. "Not my format" is reported by an explicit
+``return None``; a raise means a genuine parser bug and is meant to reach the
+``pn_original.parse_pn`` arbiter, which logs it with a traceback and names the vendor.
 """
 
-import logger
 from parsers.regex_api import match
 
 VENDOR_NAME = "Royal Ohm"
@@ -83,130 +87,125 @@ def parse(pn: str, component_type: str) -> str | None:
     if not match(r"^\d{4}", pn):
         return None
 
-    try:
-        size = pn[:4]
-        remaining = pn[4:]
+    size = pn[:4]
+    remaining = pn[4:]
 
-        wattage_rules = (
-            ("WGFTC", "1/16W", ""),
-            ("WGF", "1/16W", ""),
-            ("WGJ", "1/16W", "5%"),
-            ("WAF", "1/10W", ""),
-            ("WAJ", "1/10W", "5%"),
-            ("WMF", "1/20W", ""),
-            ("WMJ", "1/20W", "5%"),
-            ("W8F", "1/8W", ""),
-            ("W8J", "1/8W", "5%"),
-            ("W4F", "1/4W", ""),
-            ("W4J", "1/4W", "5%"),
-            ("W2F", "1/2W", ""),
-            ("W2J", "1/2W", "5%"),
-            ("WG", "1/16W", ""),
-            ("WA", "1/10W", ""),
-            ("W8", "1/8W", ""),
-            ("W4", "1/4W", ""),
-        )
+    wattage_rules = (
+        ("WGFTC", "1/16W", ""),
+        ("WGF", "1/16W", ""),
+        ("WGJ", "1/16W", "5%"),
+        ("WAF", "1/10W", ""),
+        ("WAJ", "1/10W", "5%"),
+        ("WMF", "1/20W", ""),
+        ("WMJ", "1/20W", "5%"),
+        ("W8F", "1/8W", ""),
+        ("W8J", "1/8W", "5%"),
+        ("W4F", "1/4W", ""),
+        ("W4J", "1/4W", "5%"),
+        ("W2F", "1/2W", ""),
+        ("W2J", "1/2W", "5%"),
+        ("WG", "1/16W", ""),
+        ("WA", "1/10W", ""),
+        ("W8", "1/8W", ""),
+        ("W4", "1/4W", ""),
+    )
 
-        wattage = ""
-        default_tolerance = ""
-        res_start = 0
-        for code, label, tol in wattage_rules:
-            if remaining.startswith(code):
-                wattage = label
-                default_tolerance = tol
-                res_start = len(code)
-                break
+    wattage = ""
+    default_tolerance = ""
+    res_start = 0
+    for code, label, tol in wattage_rules:
+        if remaining.startswith(code):
+            wattage = label
+            default_tolerance = tol
+            res_start = len(code)
+            break
 
-        if res_start == 0:
-            return None
+    if res_start == 0:
+        return None
 
-        remaining2 = remaining[res_start:]
+    remaining2 = remaining[res_start:]
 
-        tol_map = {"F": "1%", "J": "5%", "K": "10%"}
+    tol_map = {"F": "1%", "J": "5%", "K": "10%"}
 
-        # Royal Ohm format: after wattage code
-        # 3-digit resistance: XXX + tol at position 3 (e.g., 100J = 10R)
-        # 4-digit resistance: XXXX (E96 series, default ±1%) + optional TCR + pack
+    # Royal Ohm format: after wattage code
+    # 3-digit resistance: XXX + tol at position 3 (e.g., 100J = 10R)
+    # 4-digit resistance: XXXX (E96 series, default ±1%) + optional TCR + pack
 
-        tolerance = ""
-        res_code = ""
+    tolerance = ""
+    res_code = ""
 
-        # Check if 3-digit format (resistance + letter at position 3)
-        if len(remaining2) >= 4:
-            if remaining2[3] in tol_map:
-                # The letter after the value is NOT the tolerance in this layout.
-                # The Uniohm thick film chip resistor catalogue ("Ordering
-                # Procedure" section) builds the part number as
-                #   <type 4 digits> W <wattage> <tolerance> <value> <packing>
-                # with the tolerance in its own 1-character field:
-                #   D = ±0.5%, F = ±1%, G = ±2%, J = ±5%
-                # and wattage likewise:
-                #   WH=1/32W WM=1/20W WG=1/16W WA=1/10W W8=1/8W W4=1/4W W2=1/2W
-                # so WGF/WGJ/WAF/WAJ encode the tolerance, already resolved into
-                # default_tolerance above. The trailing letter after the value is
-                # a different field. Confirmed against LCSC for these exact part
-                # numbers (UNI-ROYAL, same layout as Uniohm):
-                #   0402WGF200JTCE  -> 20R   ±1%   (series F, trailing J)
-                #   0402WGF549JTCE  -> 54.9R ±1%   (series F, trailing J)
-                #   0402WGF511KTCE  -> 5.11R ±1%   (series F, trailing K)
-                #   0603WAF220KT5E  -> 2.2R  ±1%   (series F, trailing K)
-                #   0402WGJ0223TCE  -> 22K   ±5%   (series J, trailing T)
-                # Reading the trailing letter through the IEC map reported
-                # 5%/10% for parts that are in fact 1%.
-                tolerance = default_tolerance or "1%"
-                res_code = remaining2[:3]
-                if res_code.isdigit():
-                    resistance = _format_ohm(float(int(res_code)) / 10.0)
-                else:
-                    resistance = ""
+    # Check if 3-digit format (resistance + letter at position 3)
+    if len(remaining2) >= 4:
+        if remaining2[3] in tol_map:
+            # The letter after the value is NOT the tolerance in this layout.
+            # The Uniohm thick film chip resistor catalogue ("Ordering
+            # Procedure" section) builds the part number as
+            #   <type 4 digits> W <wattage> <tolerance> <value> <packing>
+            # with the tolerance in its own 1-character field:
+            #   D = ±0.5%, F = ±1%, G = ±2%, J = ±5%
+            # and wattage likewise:
+            #   WH=1/32W WM=1/20W WG=1/16W WA=1/10W W8=1/8W W4=1/4W W2=1/2W
+            # so WGF/WGJ/WAF/WAJ encode the tolerance, already resolved into
+            # default_tolerance above. The trailing letter after the value is
+            # a different field. Confirmed against LCSC for these exact part
+            # numbers (UNI-ROYAL, same layout as Uniohm):
+            #   0402WGF200JTCE  -> 20R   ±1%   (series F, trailing J)
+            #   0402WGF549JTCE  -> 54.9R ±1%   (series F, trailing J)
+            #   0402WGF511KTCE  -> 5.11R ±1%   (series F, trailing K)
+            #   0603WAF220KT5E  -> 2.2R  ±1%   (series F, trailing K)
+            #   0402WGJ0223TCE  -> 22K   ±5%   (series J, trailing T)
+            # Reading the trailing letter through the IEC map reported
+            # 5%/10% for parts that are in fact 1%.
+            tolerance = default_tolerance or "1%"
+            res_code = remaining2[:3]
+            if res_code.isdigit():
+                resistance = _format_ohm(float(int(res_code)) / 10.0)
             else:
                 resistance = ""
         else:
             resistance = ""
+    else:
+        resistance = ""
 
-        # If not 3-digit, check if 4-digit (E96 series, default ±1%)
-        if not res_code:
-            if len(remaining2) >= 4 and remaining2[:4].isdigit():
-                res_code = remaining2[:4]
-                tolerance = default_tolerance or "1%"  # Default for 4-digit E96
-            elif len(remaining2) >= 3:
-                res_code = remaining2[:3]
-                tolerance = default_tolerance or tolerance
+    # If not 3-digit, check if 4-digit (E96 series, default ±1%)
+    if not res_code:
+        if len(remaining2) >= 4 and remaining2[:4].isdigit():
+            res_code = remaining2[:4]
+            tolerance = default_tolerance or "1%"  # Default for 4-digit E96
+        elif len(remaining2) >= 3:
+            res_code = remaining2[:3]
+            tolerance = default_tolerance or tolerance
 
-        # If not 3-digit, check 4-digit format (resistance at positions 0-3, tol at position 4)
-        if not res_code and len(remaining2) >= 5:
-            if remaining2[4] in tol_map:
-                tol_char = remaining2[4]
-                tolerance = tol_map.get(tol_char, "")
-                res_code = remaining2[:4]
+    # If not 3-digit, check 4-digit format (resistance at positions 0-3, tol at position 4)
+    if not res_code and len(remaining2) >= 5:
+        if remaining2[4] in tol_map:
+            tol_char = remaining2[4]
+            tolerance = tol_map.get(tol_char, "")
+            res_code = remaining2[:4]
 
-        # Fallback: assume 4-digit if all digits
-        if not res_code:
-            if len(remaining2) >= 4 and remaining2[:4].isdigit():
-                res_code = remaining2[:4]
-            elif len(remaining2) >= 3:
-                res_code = remaining2[:3]
+    # Fallback: assume 4-digit if all digits
+    if not res_code:
+        if len(remaining2) >= 4 and remaining2[:4].isdigit():
+            res_code = remaining2[:4]
+        elif len(remaining2) >= 3:
+            res_code = remaining2[:3]
 
-        if not resistance:
-            resistance = parse_resistance(res_code) if res_code.isdigit() else ""
-        if not resistance:
-            return None
-
-        parts = []
-        if size:
-            parts.append(size)
-        if resistance:
-            parts.append(resistance)
-        if tolerance:
-            parts.append(tolerance)
-        if wattage:
-            parts.append(wattage)
-
-        return "_".join(parts) if parts else None
-
-    except Exception as exc:
-        logger.warning("Royal Ohm parse failed for %r: %s", pn, exc)
+    if not resistance:
+        resistance = parse_resistance(res_code) if res_code.isdigit() else ""
+    if not resistance:
         return None
+
+    parts = []
+    if size:
+        parts.append(size)
+    if resistance:
+        parts.append(resistance)
+    if tolerance:
+        parts.append(tolerance)
+    if wattage:
+        parts.append(wattage)
+
+    return "_".join(parts) if parts else None
 
 
 def format_example(pn: str) -> str:

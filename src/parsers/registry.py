@@ -174,11 +174,18 @@ def _load_user_scripts(user_dir: Path) -> None:
 
 
 def ensure_discovered() -> None:
-    """Import every built-in parser module once, then optional user scripts."""
+    """Import every built-in parser module once, then optional user scripts.
+
+    ``_done`` is set **only** after a fully successful pass. Marking it in a
+    ``finally`` made a failed first attempt permanent: the broken built-in module
+    was never retried, and the failure looked like "no parsers exist".
+    """
     if getattr(ensure_discovered, "_done", False):
         return
     try:
         _import_builtin_modules()
         _load_user_scripts(default_user_parsers_dir())
-    finally:
-        ensure_discovered._done = True  # type: ignore[attr-defined]
+    except Exception:
+        logger.exception("BOM parser discovery failed; will retry on next call")
+        raise
+    ensure_discovered._done = True  # type: ignore[attr-defined]

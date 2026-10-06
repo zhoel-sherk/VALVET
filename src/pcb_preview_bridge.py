@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Optional
 
@@ -9,6 +10,7 @@ import pandas as pd
 
 from layer_side import parse_board_side
 from pcb_preview.types import PlacementRecord
+from smt_processor import coord_cell_float_for_math
 
 _RE_UNITS_MM = re.compile(r"(?i)UUNITS\s*=\s*MILLIMETERS?")
 _RE_UNITS_MIL = re.compile(r"(?i)UUNITS\s*=\s*MILS?")
@@ -98,20 +100,28 @@ def placements_from_pnp_dataframe(
         if ref.upper().startswith("UUNITS") or ref.startswith("#"):
             continue
         try:
-            xv = float(s_x.iloc[i])
-            yv = float(s_y.iloc[i])
+            xv = coord_cell_float_for_math(s_x.iloc[i])
+            yv = coord_cell_float_for_math(s_y.iloc[i])
         except (TypeError, ValueError):
             warnings.append(f"Row {i}: non-numeric X/Y for {ref}")
+            continue
+        if xv is None or yv is None:
+            warnings.append(f"Row {i}: non-numeric X/Y for {ref}")
+            continue
+        # coord_cell_float_for_math accepts "1234.5mil" / "1,234.5" like the rest of
+        # the app, and maps NaN to None - but it passes inf straight through, which
+        # would place the part at an infinite coordinate in the overlay.
+        if not (math.isfinite(xv) and math.isfinite(yv)):
+            warnings.append(f"Row {i}: non-finite X/Y for {ref}")
             continue
         if not effective_mm:
             xv *= mil_to_mm
             yv *= mil_to_mm
         rot = 0.0
         if s_rot is not None:
-            try:
-                rot = float(s_rot.iloc[i])
-            except (TypeError, ValueError):
-                rot = 0.0
+            rot_val = coord_cell_float_for_math(s_rot.iloc[i])
+            if rot_val is not None and math.isfinite(rot_val):
+                rot = rot_val
         side = parse_board_side(s_layer.iloc[i] if s_layer is not None else None)
         fp = ""
         if s_fp is not None:

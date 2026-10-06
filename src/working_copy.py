@@ -124,7 +124,13 @@ def _read_snapshot_pickle(data_path: Path) -> pd.DataFrame:
 
 def load_snapshot(meta_path: str | os.PathLike[str]) -> Snapshot:
     mp = Path(meta_path)
-    meta = json.loads(mp.read_text(encoding="utf-8"))
+    try:
+        meta = json.loads(mp.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        # save_snapshot writes meta non-atomically, so a truncated file is possible;
+        # surface it as SnapshotLoadError so callers' existing handler covers it.
+        logger.warning("Snapshot meta unreadable: %s (%s)", mp, e)
+        raise SnapshotLoadError(str(mp)) from e
     data_path = mp.with_suffix(".pkl")
     df = _read_snapshot_pickle(data_path)
     return Snapshot(meta=meta, dataframe=df)
@@ -162,10 +168,20 @@ def find_snapshot(
             candidates.append(meta_path)
     if not candidates:
         return None
-    candidates.sort(
-        key=lambda p: json.loads(p.read_text(encoding="utf-8")).get("saved_at", ""),
-        reverse=True,
-    )
+
+    # Re-read the meta to get saved_at: a truncated .json (see the guard above, and
+    # save_snapshot writing meta non-atomically) must not raise JSONDecodeError
+    # out of the sort key.
+    def _saved_at_key(path: Path) -> str:
+        try:
+            meta = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            logger.warning("Snapshot meta unreadable while sorting: %s", path)
+            return ""
+        value = meta.get("saved_at", "")
+        return value if isinstance(value, str) else ""
+
+    candidates.sort(key=_saved_at_key, reverse=True)
     for meta_path in candidates:
         try:
             return load_snapshot(meta_path)

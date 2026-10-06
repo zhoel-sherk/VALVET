@@ -4,17 +4,25 @@ Walsin Capacitor PN Parser
 Walsin MLCC Part Number Format (several families — see regexes in code):
 - ``0402N…`` / ``0603N…``: package + N + EIA(3) or 5R0-style + tolerance + voltage digits + tape
 - ``0402B…CT``, ``0805X…CT``, ``1206X…CT``: B/X line + value + tolerance + voltage encoding
+- ``0402CG…CT/NT``: CG (C0G/NP0) line + value + tolerance + voltage digits + tape;
+  the value is EIA-3 (``100`` → 10pF) or the decimal form (``0R5`` → 0.5pF,
+  ``5R6`` → 5.6pF, ``8R2`` → 8.2pF) — ``R`` stands in for the decimal point
+
+Packaging suffix (last two letters of the B/X/CG lines):
+- ``CT`` — 7" paper tape; ``NT`` — 7" plastic tape (same reel code family)
 
 Examples:
 - 0402N100J500CT → CAP_0402_10pF_50V_5%
 - 0402B102K500CT → CAP_0402_1nF_50V_10%
 - 0805X475M6R3CT → CAP_0805_4.7uF_6.3V_20%
+- 0201X104K6R3NT → CAP_0201_100nF_6.3V_X5R_10%
+- 0402CG0R5C500NT → CAP_0402_0.5pF_C0G_0.25pF_50V
 
 Size codes:
 0201, 0402, 0603, 0805, 1206, 1210 (leading 4 digits in PN)
 
 Tolerance:
-F=±1%, G=±2%, J=±5%, K=±10%, M=±20%
+F=±1%, G=±2%, J=±5%, K=±10%, M=±20%; on the CG line C=±0.25pF (absolute)
 
 Voltage:
 Numeric blocks (e.g. 500→50V) via ``walsin_vol_code_to_v``; X-line ``dRd`` = d.V (e.g. 6R3 → 6.3V)
@@ -51,17 +59,33 @@ _RE_N5R = compile(
     r"^(\d{4})N(5R[0-9])(.)([0-9]{2,3})([A-Z]{1,3})$",
     I,
 )
-# 0402B102K500CT — B line, 102 EIA, K tol, 500 = 50V
-_RE_BCT = compile(r"^(\d{4})B(\d{3})([A-Z])(\d{3,4})CT$", I)
+# 0402B102K500CT / 0402B102K500NT — B line, 102 EIA, K tol, 500 = 50V
+_RE_BCT = compile(r"^(\d{4})B(\d{3})([A-Z])(\d{3,4})(?:CT|NT)$", I)
+# 0402CG100J500NT / 0402CG0R5C500NT — CG (C0G) line. Capacitance is either the
+# 3-digit EIA form (100 → 10pF) or the decimal "R is the decimal point" form
+# (0R5 → 0.5pF, 5R6 → 5.6pF, 8R2 → 8.2pF); tolerance C = ±0.25pF per the Walsin
+# MLCC "How to order" table (C=+0.25pF for caps ≤ 10pF).
+_RE_CG = compile(r"^(\d{4})CG(\d{3}|\dR\d)([A-Z])(\d{3})(?:CT|NT)$", I)
 # 0805X475M6R3CT — 475 EIA, 6R3 = 6.3V; leading M = 20% (optional)
-_RE_X6R3 = compile(r"^(\d{4})X(\d{3,4})([A-Z]?)(\d)R(\d)CT$", I)
+_RE_X6R3 = compile(r"^(\d{4})X(\d{3,4})([A-Z]?)(\d)R(\d)(?:CT|NT)$", I)
 # 1206X106K250CT — 106 value, K tol, 250 = 25V
-_RE_XKV = compile(r"^(\d{4})X(\d{3,4})([A-Z])(\d{3,4})CT$", I)
+_RE_XKV = compile(r"^(\d{4})X(\d{3,4})([A-Z])(\d{3,4})(?:CT|NT)$", I)
 _TOL = {"F": "1%", "G": "2%", "J": "5%", "K": "10%", "M": "20%"}
+# CG line only: C = ±0.25pF absolute tolerance, kept as the bare "0.25pF" token
+# the BOM/regex path already emits (see parsers/bom_text_utils.is_abs_pf_tolerance).
+_TOL_CG = {**_TOL, "C": "0.25pF"}
 _FILM_BY_SERIES = {
     "B": "X7R",
     "X": "X5R",
 }
+
+
+def _pf_from_code(code: str) -> str | None:
+    """``0R5`` → ``0.5pF`` (R stands in for the decimal point), else EIA-3."""
+    mr = match(r"^(\d)R(\d)$", code, I)
+    if mr:
+        return f"{mr.group(1)}.{mr.group(2)}pF"
+    return pf_eia_3_to_str(code) if code.isdigit() else None
 
 
 def parse(pn: str, component_type: str) -> str | None:
@@ -69,6 +93,18 @@ def parse(pn: str, component_type: str) -> str | None:
         return None
     pn0 = sub(r"\s*<[gG]>\s*$", "", str(pn).strip())
     pn2 = sub(r"\s+", "", pn0).strip().upper()
+
+    mcg = _RE_CG.match(pn2)
+    if mcg:
+        pz, cval, tch, vraw = mcg.groups()
+        if pz not in _SIZE:
+            return None
+        cap = _pf_from_code(cval)
+        if not cap:
+            return None
+        tol = _TOL_CG.get(tch.upper(), "")
+        vol = walsin_vol_code_to_v(vraw)
+        return "_".join(p for p in (_SIZE[pz], cap, "C0G", tol, vol) if p)
 
     mb = _RE_BCT.match(pn2)
     if mb:
@@ -104,7 +140,9 @@ def parse(pn: str, component_type: str) -> str | None:
         return "_".join(p for p in (_SIZE[pz], cap, film, "6.3V", tol) if p)
 
     mxk = _RE_XKV.match(pn2)
-    if mxk and not search(r"[0-9]R[0-9]CT$", pn2, I):
+    # Guard: the dRd voltage encoding (…6R3CT / …6R3NT) belongs to _RE_X6R3, so
+    # the optional packaging letters after it must be tolerated here as well.
+    if mxk and not search(r"[0-9]R[0-9][A-Z]{0,2}$", pn2, I):
         pz, cblock, tch, vraw = mxk.groups()
         if pz not in _SIZE:
             return None

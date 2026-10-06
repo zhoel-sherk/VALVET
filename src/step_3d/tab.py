@@ -178,7 +178,7 @@ class Step3DTabWidget(QtWidgets.QWidget):
             self._view.set_background_rgb(self._bg_rgb())
             self._view.part_picked.connect(self._on_part_picked)
         except Exception as e:
-            logger.error("step_3d: failed to create VTK view: %s", e)
+            logger.exception("step_3d: failed to create VTK view: %s", e)
             err_s = str(e)[:800]
             self._placeholder.setText(
                 self._ui_tr("step_3d.msg_vtk_init_failed", err=err_s)
@@ -383,7 +383,7 @@ class Step3DTabWidget(QtWidgets.QWidget):
         try:
             self._view.load_parts(self._parts, show_edges=False)
         except Exception as e:
-            logger.error("step_3d: pyvista parts load failed: %s", e)
+            logger.exception("step_3d: pyvista parts load failed: %s", e)
             QtWidgets.QMessageBox.critical(
                 self,
                 self._ui_tr("step_3d.msg_title_error"),
@@ -511,7 +511,7 @@ class Step3DTabWidget(QtWidgets.QWidget):
                 os.unlink(tmp_path)
             except OSError:
                 pass
-            logger.error("step_3d: conversion raised: %s", e)
+            logger.exception("step_3d: conversion raised: %s", e)
             QtWidgets.QMessageBox.critical(
                 self,
                 self._ui_tr("step_3d.msg_title_error"),
@@ -524,15 +524,17 @@ class Step3DTabWidget(QtWidgets.QWidget):
                 os.unlink(tmp_path)
             except OSError:
                 pass
+            detail = res.combined_log.strip()
+            if len(detail) > 4000:
+                detail = detail[:4000] + "\n…"
+            # detail, not res.combined_log: the whole converter output must not
+            # land in the log file.
             logger.error(
                 "step_3d: converter failed rc=%s cmd=%s log=%s",
                 res.returncode,
                 res.command_display,
-                res.combined_log,
+                detail,
             )
-            detail = res.combined_log.strip()
-            if len(detail) > 4000:
-                detail = detail[:4000] + "\n…"
             body = self._ui_tr("step_3d.msg_conversion_failed", rc=res.returncode)
             if detail:
                 body = f"{body}\n\n{detail}"
@@ -549,7 +551,7 @@ class Step3DTabWidget(QtWidgets.QWidget):
             assert self._view is not None
             self._view.load_mesh_path(tmp_path, show_edges=False)
         except Exception as e:
-            logger.error("step_3d: pyvista load failed: %s", e)
+            logger.exception("step_3d: pyvista load failed: %s", e)
             self._cleanup_temp_mesh()
             QtWidgets.QMessageBox.critical(
                 self,

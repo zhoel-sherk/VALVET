@@ -2,7 +2,7 @@
 Samsung Capacitor PN Parser
 
 Samsung MLCC Part Number Format:
-CL + Size(2) + Temp(1) + Capacitance EIA(3) + Rated voltage(1) + Internal(1) + Tolerance(1) + control + packaging
+CL + Size(2) + Temp(1) + Capacitance EIA(3) + Tolerance(1) + Rated voltage(1) + Thickness(1) + control + packaging
 
 Examples:
 - CL05A105MQ5NNNC → CAP_0402_1uF_6.3V_X5R_20%
@@ -15,14 +15,25 @@ Size codes:
 Temp codes:
 A=X5R, B=X7R, C=X6S, D=X8R, E=COG(C0G), F=Y5V, G=Y5U, L=X7R(Automotive), R=NP0
 
-Voltage codes (rated voltage, one letter):
-R=4V, Q=6.3V, P=10V, L=16V, J=6.3V/25V (series), H=50V, E=100V, A=250V, K=10V, M=6.3V, …
+Tolerance (index 8, directly after the 3-digit EIA code):
+F=±1%, G=±2%, J=±5%, K=±10%, M=±20%; C0G pF grades (B/C/D) are not decoded yet.
 
-Tolerance:
-F=±1%, G=±2%, J=±5%, K=±10%, M=±20%; digits and extra letters (P,Q,R,S,T) supported — see code.
+Rated voltage (index 9, right after the tolerance letter), verified against the
+CO1271 order BOM descriptions:
+A=25V, B=50V, O=16V, P=10V, Q=6.3V; R=4V, L=16V, J=6.3V, H=50V, E=100V are kept
+from the previous table (unverified).
+
+Thickness (index 10) is a millimetre digit, *not* a tolerance: 5=0.5mm,
+7=0.7mm, 8=0.8mm, Y=1.25mm (0805). Reading it as the tolerance was the bug:
+``CL10A106MO8NQNC`` (thickness 8) came out as ±10% although the M at index 8 is
+±20%, and ``CL21A226MAYNNNE`` (thickness Y) lost the tolerance entirely.
+
+Note:
+``parse()`` does not swallow exceptions. "Not my format" is reported by an explicit
+``return None``; a raise means a genuine parser bug and is meant to reach the
+``pn_original.parse_pn`` arbiter, which logs it with a traceback and names the vendor.
 """
 
-import logger
 from parsers.regex_api import I, search, sub
 
 from ._cap_decode import pf_eia_3_to_str
@@ -36,15 +47,15 @@ def parse(pn: str, component_type: str) -> str | None:
     """
     Parse Samsung capacitor PN
 
-    Format: CL + Size(2) + Temp(1) + Value(3) + Voltage(1) + Thickness(1) + Tolerance(1) + Series(2) + Packaging(2)
+    Format: CL + Size(2) + Temp(1) + Value(3) + Tolerance(1) + Voltage(1) + Thickness(1) + Series(2) + Packaging(2)
     Example: CL05A105MQ5NNNC
       CL = Multi-layer Ceramic Capacitor
       05 = Size code: 05 -> 0402
       A = Temp code: A -> X5R
       105 = Capacitance: 105 = 1uF (10^5 pF)
-      M = Voltage code: M -> 6.3V
-      Q = Thickness/Plating
-      5 = Tolerance: 5 -> ±20%
+      M = Tolerance: M -> ±20%
+      Q = Rated voltage: Q -> 6.3V
+      5 = Thickness: 5 -> 0.5mm
       NN = Control code
       NC = Packaging
 
@@ -86,6 +97,9 @@ def parse(pn: str, component_type: str) -> str | None:
         "R": "NP0",
     }
 
+    # Rated voltage letter, index 9 (the character after the tolerance letter).
+    # A/B/O/P/Q are the values the CO1271 BOM descriptions were checked against;
+    # the remaining entries are kept from the previous table and are unverified.
     voltage_map = {
         "R": "4V",
         "Q": "6.3V",
@@ -94,8 +108,8 @@ def parse(pn: str, component_type: str) -> str | None:
         "J": "6.3V",
         "H": "50V",
         "E": "100V",
-        "A": "250V",
-        "B": "500V",
+        "A": "25V",
+        "B": "50V",
         "C": "630V",
         "M": "6.3V",
         "K": "10V",
@@ -103,7 +117,9 @@ def parse(pn: str, component_type: str) -> str | None:
         "O": "16V",
     }
 
-    # Letters + common numeric tolerance codes used after thickness/plating (position 11, 1-based).
+    # Capacitance tolerance letter, index 8 — right after the EIA value code.
+    # Digits never occur here: position 10 carries the thickness in mm (5, 7, 8)
+    # and used to be misread as a tolerance (5 -> 20%, 8 -> 10%).
     tol_map = {
         "F": "1%",
         "G": "2%",
@@ -115,65 +131,52 @@ def parse(pn: str, component_type: str) -> str | None:
         "R": "20%",
         "S": "5%",
         "T": "10%",
-        # Digits (Samsung CL series — ordering tables map several numerals to % bins)
-        "1": "1%",
-        "2": "2%",
-        "5": "20%",
-        "6": "5%",
-        "8": "10%",
-        "9": "10%",
-        "0": "20%",
     }
 
-    try:
-        if len(pn) < 10:
-            return None
-
-        # Size: positions 2-3 (CL05 -> 05 = 0402)
-        size_code = pn[2:4]
-        size = size_map.get(size_code, "")
-
-        # Temp: position 4
-        temp = temp_map.get(pn[4], "")
-
-        # Value: positions 5-7 (EIA 3 digits, pF base)
-        value_code = pn[5:8]
-        value_str = ""
-        if value_code.isdigit() and len(value_code) == 3:
-            value_str = pf_eia_3_to_str(value_code) or ""
-
-        # Voltage: position 8 (M in CL05A105M...)
-        voltage_char = pn[8] if len(pn) > 8 else ""
-        voltage = voltage_map.get(voltage_char, "")
-
-        # Thickness/Plating: position 9 (not used)
-
-        # Tolerance: position 10 (0-based) after rated voltage + one internal char (e.g. …KB5…).
-        tol_char = pn[10] if len(pn) > 10 else ""
-        tol = tol_map.get(tol_char, "")
-        if not tol:
-            # Alternate layouts / packaging: last tolerance letter before NNN… suffix
-            mm = search(r"([FGJKM])(?:NN|NC|NE|NR|NQ)", pn, I)
-            if mm:
-                tol = tol_map.get(mm.group(1).upper(), "")
-
-        parts = []
-        if size:
-            parts.append(size)
-        if value_str:
-            parts.append(value_str)
-        if voltage:
-            parts.append(voltage)
-        if temp:
-            parts.append(temp)
-        if tol:
-            parts.append(tol)
-
-        return "_".join(parts) if parts else None
-
-    except Exception as exc:
-        logger.warning("Samsung parse failed for %r: %s", pn, exc)
+    if len(pn) < 10:
         return None
+
+    # Size: positions 2-3 (CL05 -> 05 = 0402)
+    size_code = pn[2:4]
+    size = size_map.get(size_code, "")
+
+    # Temp: position 4
+    temp = temp_map.get(pn[4], "")
+
+    # Value: positions 5-7 (EIA 3 digits, pF base)
+    value_code = pn[5:8]
+    value_str = ""
+    if value_code.isdigit() and len(value_code) == 3:
+        value_str = pf_eia_3_to_str(value_code) or ""
+
+    # Voltage: position 9, the letter right after the tolerance letter.
+    voltage_char = pn[9] if len(pn) > 9 else ""
+    voltage = voltage_map.get(voltage_char, "")
+
+    # Thickness/plating: position 10 (mm digit, not used)
+
+    # Tolerance: position 8, the letter right after the 3-digit EIA code.
+    tol_char = pn[8] if len(pn) > 8 else ""
+    tol = tol_map.get(tol_char, "")
+    if not tol:
+        # Alternate layouts / packaging: last tolerance letter before NNN… suffix
+        mm = search(r"([FGJKM])(?:NN|NC|NE|NR|NQ)", pn, I)
+        if mm:
+            tol = tol_map.get(mm.group(1).upper(), "")
+
+    parts = []
+    if size:
+        parts.append(size)
+    if value_str:
+        parts.append(value_str)
+    if voltage:
+        parts.append(voltage)
+    if temp:
+        parts.append(temp)
+    if tol:
+        parts.append(tol)
+
+    return "_".join(parts) if parts else None
 
 
 def format_example(pn: str) -> str:

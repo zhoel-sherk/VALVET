@@ -41,7 +41,7 @@ class StepLoadThread(QtCore.QThread):
                 progress=progress,
             )
         except Exception as e:
-            logger.error("STEP load failed for %s: %s", self._path, e)
+            logger.exception("STEP load failed for %s: %s", self._path, e)
             result = StepLoadResult(
                 parts=[],
                 source_path=self._path,

@@ -46,9 +46,11 @@ exclude = ["**/yedytor/**"]
 
 [tool.coverage.run]
 source = ["src"]
+# src/ui/* was previously omitted, which hid roughly 30% of the codebase from
+# coverage entirely - including the largest file in src/. There is no fail_under
+# threshold, so including it only makes the gap visible; it cannot fail a build.
 omit = [
     "src/app/*",
-    "src/ui/*",
     "src/hanwha_mdb_edit/gui/*",
 ]
 

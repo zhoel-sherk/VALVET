@@ -2,21 +2,26 @@ import logging
 import os
 import time
 
-# -----------------------------------------------------------------------------
+# Marker for handlers created here. Only marked handlers are ever closed or
+# removed, so foreign handlers on root (pytest's caplog, an embedding host)
+# survive a config()/_disable_file_logging() round trip.
+_OWNED = "_valvet_owned"
 
-# Create a default logger if not initialized
-try:
-    __logger = logging.getLogger("__logger")
-    __logger.setLevel(logging.DEBUG)
-    # Add default handler if none exists
-    if not __logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-        __logger.addHandler(handler)
-except Exception:
-    __logger = None
+# Root now carries the app handlers, so it also carries these chatty
+# third-party loggers unless they are pinned back to WARNING.
+_QUIET_LOGGERS = (
+    "PIL",
+    "PySide6",
+    "asyncio",
+    "matplotlib",
+    "numba",
+    "trimesh",
+    "urllib3",
+    "vtkmodules",
+)
 
-# -----------------------------------------------------------------------------
+_FILE_FORMAT = "%(asctime)s %(levelname)s: %(message)s"
+_DATE_FORMAT = "%H:%M:%S"
 
 
 def __get_logs_directory() -> str:
@@ -27,75 +32,138 @@ def __get_logs_directory() -> str:
     return logs_path
 
 
-def config(use_color_logs: bool):
-    loger_fname = __get_logs_directory()
-    if not os.path.isdir(loger_fname):
-        os.mkdir(loger_fname)
-    loger_fname = os.path.join(loger_fname, time.strftime("%Y-%m-%d.log"))
+def _fallback_logger():
+    """Console-only logger for the window between import and config().
 
-    # https://betterstack.com/community/questions/how-to-log-to-file-and-console-in-python/
-    # Create a logger
-    global __logger
-    __logger = logging.getLogger("__logger")
-    __logger.setLevel(logging.DEBUG)
-    __logger.handlers.clear()
+    Never raises: a broken logging setup must not stop the app from starting.
+    """
+    try:
+        log = logging.getLogger(__name__)
+        log.setLevel(logging.DEBUG)
+        if not log.handlers:
+            handler = logging.StreamHandler()
+            handler.setLevel(logging.DEBUG)
+            handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+            setattr(handler, _OWNED, True)
+            log.addHandler(handler)
+        return log
+    except Exception:  # pragma: no cover - logging must never break import
+        return None
 
-    # Create a file handler to write logs to a file
-    file_formatter = logging.Formatter(
-        fmt="%(asctime)s %(levelname)s: %(message)s", datefmt="%H:%M:%S"
-    )
-    file_handler = logging.FileHandler(loger_fname, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(file_formatter)
 
-    # Create a stream handler to print logs to the console
-    color_formatter = logging.Formatter(
-        fmt="\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s", datefmt="%H:%M:%S"
-    )
-    console_formatter = color_formatter if use_color_logs else file_formatter
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(
-        logging.DEBUG
-    )  # You can set the desired log level for console output
-    console_handler.setFormatter(console_formatter)
+# -----------------------------------------------------------------------------
 
-    # Add the handlers to the logger
-    __logger.addHandler(file_handler)
-    __logger.addHandler(console_handler)
+_facade = _fallback_logger()
 
+
+def _detach_owned_handlers(log: logging.Logger) -> None:
+    """Close then remove the handlers we added; leave foreign ones alone.
+
+    ``close()`` matters on Windows: without it the dated log file stays locked
+    and a later run cannot recreate it.
+    """
+    for handler in list(log.handlers):
+        if not getattr(handler, _OWNED, False):
+            continue
+        log.removeHandler(handler)
+        try:
+            handler.close()
+        except Exception:  # pragma: no cover - close() is best effort
+            pass
+
+
+def _own(handler: logging.Handler) -> logging.Handler:
+    setattr(handler, _OWNED, True)
+    return handler
+
+
+def _adopt_root_facade() -> None:
+    """Point the facade at root, so getLogger(__name__) records are captured too."""
+    global _facade
+    log = logging.getLogger(__name__)
+    _detach_owned_handlers(log)
+    log.setLevel(logging.NOTSET)
+    log.propagate = True
+    _facade = log
+
+
+def _quiet_third_party() -> None:
+    for name in _QUIET_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+
+def _apply_level_names(use_color_logs: bool) -> None:
     if use_color_logs:
         # logger config with dimmed time
         # https://docs.python.org/3/howto/logging.html
-        # logging.basicConfig(filename=loger_fname,
-        #                     format='\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s',
-        #                     datefmt='%H:%M:%S',
-        #                     level=logging.DEBUG)
         # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output
-
         ANSI_FG_WHITE = "\033[1;37m"
         ANSI_FG_YELLOW = "\033[1;33m"
         ANSI_FG_RED = "\033[1;31m"
         ANSI_FG_DEFAULT = "\033[1;0m"
 
-        # logging.addLevelName(logging.INFO,    "\033[1;37m%s\033[1;0m" % logging.getLevelName(logging.INFO))
         logging.addLevelName(logging.DEBUG, "DEBUG")
         logging.addLevelName(logging.INFO, f"{ANSI_FG_WHITE}INFO {ANSI_FG_DEFAULT}")
         logging.addLevelName(logging.WARNING, f"{ANSI_FG_YELLOW}WARN {ANSI_FG_DEFAULT}")
         logging.addLevelName(logging.ERROR, f"{ANSI_FG_RED}ERROR{ANSI_FG_DEFAULT}")
         logging.addLevelName(logging.FATAL, f"{ANSI_FG_RED}FATAL{ANSI_FG_DEFAULT}")
     else:
-        # logging.basicConfig(filename=loger_fname,
-        #                     format='%(asctime)s %(levelname)s: %(message)s',
-        #                     datefmt='%H:%M:%S',
-        #                     level=logging.DEBUG)
-
         logging.addLevelName(logging.DEBUG, "DEBUG")
         logging.addLevelName(logging.INFO, "INFO ")
         logging.addLevelName(logging.WARNING, "WARN ")
         logging.addLevelName(logging.ERROR, "ERROR")
         logging.addLevelName(logging.FATAL, "FATAL")
 
-    __logger.debug("----------------- STARTING -----------------")
+
+def _open_log_file():
+    """Dated log file handler, or None when the directory/file is unusable.
+
+    ``delay=True`` keeps the file uncreated until something is really logged,
+    and every OS error (read-only install, full disk, no permission) degrades
+    to console-only logging instead of raising during startup.
+    """
+    try:
+        os.makedirs(__get_logs_directory(), exist_ok=True)
+        path = os.path.join(__get_logs_directory(), time.strftime("%Y-%m-%d.log"))
+        handler = logging.FileHandler(path, encoding="utf-8", delay=True)
+    except OSError as exc:
+        _log(logging.WARNING, "file logging disabled (%s): %s", type(exc).__name__, exc)
+        return None
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter(fmt=_FILE_FORMAT, datefmt=_DATE_FORMAT))
+    return _own(handler)
+
+
+def config(use_color_logs: bool):
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    _detach_owned_handlers(root)
+    # Before any handler is attached, so a warning raised while opening the log
+    # file is not printed twice (own handler + root's).
+    _adopt_root_facade()
+
+    # https://betterstack.com/community/questions/how-to-log-to-file-and-console-in-python/
+    console_formatter = (
+        logging.Formatter(
+            fmt="\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s",
+            datefmt=_DATE_FORMAT,
+        )
+        if use_color_logs
+        else logging.Formatter(fmt=_FILE_FORMAT, datefmt=_DATE_FORMAT)
+    )
+    console_handler = _own(logging.StreamHandler())
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(console_formatter)
+    root.addHandler(console_handler)
+
+    file_handler = _open_log_file()
+    if file_handler is not None:
+        root.addHandler(file_handler)
+
+    _quiet_third_party()
+    _apply_level_names(use_color_logs)
+
+    root.debug("----------------- STARTING -----------------")
     global _debug_mode
     _debug_mode = True
 
@@ -113,13 +181,14 @@ def debug_mode_enabled() -> bool:
 
 def _disable_file_logging() -> None:
     """Keep a quiet stderr handler; no dated log file."""
-    global __logger, _debug_mode
-    __logger = logging.getLogger("__logger")
-    __logger.handlers.clear()
+    global _debug_mode
+    root = logging.getLogger()
+    _detach_owned_handlers(root)
+    _adopt_root_facade()
     handler = logging.StreamHandler()
     handler.setLevel(logging.WARNING)
-    __logger.addHandler(handler)
-    __logger.setLevel(logging.WARNING)
+    root.addHandler(_own(handler))
+    root.setLevel(logging.WARNING)
     _debug_mode = False
 
 
@@ -147,41 +216,51 @@ def configure_if_debug(
 # -----------------------------------------------------------------------------
 
 
+def _log(level: int, msg, *args, **kwargs) -> None:
+    """Shared emit path.
+
+    ``stacklevel=3`` makes ``pathname``/``lineno`` point at the module that
+    called ``logger.debug(...)`` instead of this file, which is the only reason
+    a log file is worth having. Loggers that only had a private handler used to
+    report ``src/logger.py`` for every single record.
+    """
+    log = _facade
+    if log is None or not log.isEnabledFor(level):
+        return
+    kwargs.setdefault("stacklevel", 3)
+    log.log(level, msg, *args, **kwargs)
+
+
 def debug(msg, *args, **kwargs):
     """Log 'msg % args' with severity 'DEBUG'."""
-    if __logger is None:
-        return
-    if __logger.isEnabledFor(logging.DEBUG):
-        __logger._log(logging.DEBUG, msg, args, **kwargs)
+    _log(logging.DEBUG, msg, *args, **kwargs)
 
 
 def info(msg, *args, **kwargs):
     """Log 'msg % args' with severity 'INFO'."""
-    if __logger is None:
-        return
-    if __logger.isEnabledFor(logging.INFO):
-        __logger._log(logging.INFO, msg, args, **kwargs)
+    _log(logging.INFO, msg, *args, **kwargs)
 
 
 def warning(msg, *args, **kwargs):
     """Log 'msg % args' with severity 'WARNING'."""
-    if __logger is None:
-        return
-    if __logger.isEnabledFor(logging.WARNING):
-        __logger._log(logging.WARNING, msg, args, **kwargs)
+    _log(logging.WARNING, msg, *args, **kwargs)
 
 
 def error(msg, *args, **kwargs):
     """Log 'msg % args' with severity 'ERROR'."""
-    if __logger is None:
-        return
-    if __logger.isEnabledFor(logging.ERROR):
-        __logger._log(logging.ERROR, msg, args, **kwargs)
+    _log(logging.ERROR, msg, *args, **kwargs)
+
+
+def exception(msg, *args, **kwargs):
+    """Log 'msg % args' with severity 'ERROR' plus the active traceback.
+
+    Prefer this over ``error(str(e))`` inside ``except``: it keeps the stack,
+    which is the only thing that says where the failure came from.
+    """
+    kwargs.setdefault("exc_info", True)
+    _log(logging.ERROR, msg, *args, **kwargs)
 
 
 def fatal(msg, *args, **kwargs):
     """Don't use this method, use critical() instead."""
-    if __logger is None:
-        return
-    if __logger.isEnabledFor(logging.FATAL):
-        __logger._log(logging.FATAL, msg, args, **kwargs)
+    _log(logging.FATAL, msg, *args, **kwargs)

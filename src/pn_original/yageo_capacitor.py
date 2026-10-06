@@ -21,9 +21,13 @@ Digit (or letter) immediately before ``BB`` in …X7R9BB… pattern; table volta
 
 Tolerance:
 F=±1%, G=±2%, J=±5%, K=±10%, M=±20% (position after size + fallback scan)
+
+Note:
+``parse()`` does not swallow exceptions. "Not my format" is reported by an explicit
+``return None``; a raise means a genuine parser bug and is meant to reach the
+``pn_original.parse_pn`` arbiter, which logs it with a traceback and names the vendor.
 """
 
-import logger
 from parsers.regex_api import I, match, search, sub
 
 from ._cap_decode import pf_eia_3_to_str
@@ -91,78 +95,69 @@ def parse(pn: str, component_type: str) -> str | None:
 
     tol_map = {"F": "1%", "G": "2%", "J": "5%", "K": "10%", "M": "20%"}
 
-    try:
-        size = size_map.get(pn[2:6], "")
-        if not size:
-            return None
-
-        temp_match = search(r"(X[57][RU]|Y[5U]|COG|NPO|X5R|X6S)", pn)
-        temp = temp_map.get(temp_match.group(1), "") if temp_match else ""
-        if not temp and "X5R" in pn:
-            temp = "X5R"
-
-        value_str = ""
-        voltage = ""
-
-        npo_bn = search(r"NPO(\d)BN(\d{3})", pn, I) or search(
-            r"NP0(\d)BN(\d{3})", pn, I
-        )
-        npo_br0 = search(r"NPO(\d)BN(5R\d)", pn, I) or search(r"NP0(\d)BN(5R\d)", pn, I)
-        if npo_br0:
-            vdig, rval = npo_br0.groups()
-            voltage = voltage_before_bb.get(vdig, "") or voltage_letter.get(vdig, "")
-            mr0 = match(r"^5R([0-9])$", rval, I)
-            if mr0:
-                value_str = f"5.{mr0.group(1)}pF"
-            temp = temp or "C0G"
-        elif npo_bn:
-            vdig, eia3 = npo_bn.groups()
-            voltage = voltage_before_bb.get(vdig, "") or voltage_letter.get(vdig, "")
-            value_str = pf_eia_3_to_str(eia3) or ""
-            temp = temp or "C0G"
-        else:
-            bbm = search(r"([0-9A-Z])BB([0-9]{2,4})", pn, I)
-            if bbm:
-                vcode = bbm.group(1).upper()
-                voltage = voltage_before_bb.get(vcode, "") or voltage_letter.get(
-                    vcode, ""
-                )
-
-            value_match = search(r"BB(\d+)", pn)
-            if value_match:
-                raw = value_match.group(1)
-                if len(raw) == 3 and raw.isdigit():
-                    value_str = pf_eia_3_to_str(raw) or ""
-                else:
-                    value = int(raw)
-                    if value >= 1000:
-                        value_str = f"{value // 1000}uF"
-                    else:
-                        value_str = f"{value}pF"
-
-        # Tolerance: first spec letter after size (CC + 4-char package) → index 6
-        tol = tol_map.get(pn[6], "") if len(pn) > 6 else ""
-        if not tol:
-            tlm = search(r"([FGJKM])(?:[0-9A-Z]*)$", pn, I)
-            tol = tol_map.get(tlm.group(1), "") if tlm else ""
-
-        parts = []
-        if size:
-            parts.append(size)
-        if value_str:
-            parts.append(value_str)
-        if voltage:
-            parts.append(voltage)
-        if temp:
-            parts.append(temp)
-        if tol:
-            parts.append(tol)
-
-        return "_".join(parts) if parts else None
-
-    except Exception as exc:
-        logger.warning("Yageo_CAP parse failed for %r: %s", pn, exc)
+    size = size_map.get(pn[2:6], "")
+    if not size:
         return None
+
+    temp_match = search(r"(X[57][RU]|Y[5U]|COG|NPO|X5R|X6S)", pn)
+    temp = temp_map.get(temp_match.group(1), "") if temp_match else ""
+    if not temp and "X5R" in pn:
+        temp = "X5R"
+
+    value_str = ""
+    voltage = ""
+
+    npo_bn = search(r"NPO(\d)BN(\d{3})", pn, I) or search(r"NP0(\d)BN(\d{3})", pn, I)
+    npo_br0 = search(r"NPO(\d)BN(5R\d)", pn, I) or search(r"NP0(\d)BN(5R\d)", pn, I)
+    if npo_br0:
+        vdig, rval = npo_br0.groups()
+        voltage = voltage_before_bb.get(vdig, "") or voltage_letter.get(vdig, "")
+        mr0 = match(r"^5R([0-9])$", rval, I)
+        if mr0:
+            value_str = f"5.{mr0.group(1)}pF"
+        temp = temp or "C0G"
+    elif npo_bn:
+        vdig, eia3 = npo_bn.groups()
+        voltage = voltage_before_bb.get(vdig, "") or voltage_letter.get(vdig, "")
+        value_str = pf_eia_3_to_str(eia3) or ""
+        temp = temp or "C0G"
+    else:
+        bbm = search(r"([0-9A-Z])BB([0-9]{2,4})", pn, I)
+        if bbm:
+            vcode = bbm.group(1).upper()
+            voltage = voltage_before_bb.get(vcode, "") or voltage_letter.get(vcode, "")
+
+        value_match = search(r"BB(\d+)", pn)
+        if value_match:
+            raw = value_match.group(1)
+            if len(raw) == 3 and raw.isdigit():
+                value_str = pf_eia_3_to_str(raw) or ""
+            else:
+                value = int(raw)
+                if value >= 1000:
+                    value_str = f"{value // 1000}uF"
+                else:
+                    value_str = f"{value}pF"
+
+    # Tolerance: first spec letter after size (CC + 4-char package) → index 6
+    tol = tol_map.get(pn[6], "") if len(pn) > 6 else ""
+    if not tol:
+        tlm = search(r"([FGJKM])(?:[0-9A-Z]*)$", pn, I)
+        tol = tol_map.get(tlm.group(1), "") if tlm else ""
+
+    parts = []
+    if size:
+        parts.append(size)
+    if value_str:
+        parts.append(value_str)
+    if voltage:
+        parts.append(voltage)
+    if temp:
+        parts.append(temp)
+    if tol:
+        parts.append(tol)
+
+    return "_".join(parts) if parts else None
 
 
 def format_example(pn: str) -> str:
