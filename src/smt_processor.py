@@ -809,10 +809,14 @@ def _read_csv_frame(
     (rows with fewer are padded with NaN), so the count matches exactly what was
     lost. Returning ``None`` from the callable is the documented way to drop a
     row; returning a non-list is appended verbatim and breaks the read.
+
+    The offending row is accepted and ignored (leading underscore) because pandas
+    passes it positionally and the count is what matters here; naming it plainly
+    tripped the blocking vulture gate.
     """
     skipped: list[int] = []
 
-    def _count_and_drop(bad_row: list) -> None:
+    def _count_and_drop(_bad_row: list) -> None:
         skipped.append(1)
         return None
 
