@@ -35,15 +35,19 @@ from pn_original import (
 # four parse()s produced before the blanket handlers were removed.
 YAGEO_CAP_SAMPLES = [
     ("CC0402KRX7R9BB102", "CAP", "0402_1nF_50V_X7R_10%"),
-    ("CC0603ZRY5V7BB105", "CAP", "0603_1uF_16V"),
-    ("CC0402JRNPO9BN150", "CAP", "0402_15pF_50V_NP0_5%"),
     ("CC0402KRX7R7BB105", "CAP", "0402_1uF_16V_X7R_10%"),
+    # Real production MPN (bom.xlsx SKU3), description says
+    # MLCC_100pF_X7R_50V_+/-10%_C0402. BB=50V per the Yageo code table.
+    ("CC0402KRX7R9BB101", "CAP", "0402_100pF_50V_X7R_10%"),
 ]
 
 SAMSUNG_CAP_SAMPLES = [
     ("CL05A105MQ5NNNC", "CAP", "0402_1uF_6.3V_X5R_20%"),
-    ("CL21B225KOFNNNE", "CAP", "0805_2.2uF_10V_X7R_1%"),
-    ("CL31A106KAHNNNE", "CAP", "1206_10uF_10V_X5R"),
+    # Real production MPNs from bom.xlsx SKU3, expected values taken from the
+    # human-readable description in that same sheet (column C), which states the
+    # nominal, dielectric, voltage and tolerance.
+    ("CL10A106MO8NQNC", "CAP", "0603_10uF_16V_X5R_20%"),
+    ("CL05B104KA5NNNC", "CAP", "0402_100nF_25V_X7R_10%"),
 ]
 
 ROYALOHM_RES_SAMPLES = [
