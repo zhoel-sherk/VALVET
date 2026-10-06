@@ -2,7 +2,11 @@
 
 Templates for the [Windows Package Manager community repo](https://github.com/microsoft/winget-pkgs). Inno Setup and NSIS are **not** used for v1: the asset is the PyInstaller **onedir zip**.
 
-The last published package folder is **0.2.0** (ALPHA zip). This repo is **0.5.0 BETA**; do not invent a 0.5.0 installer URL until a matching GitHub Release zip exists.
+The last published package folder is **0.2.0** (ALPHA zip). This repo is at
+**0.5.1.1 BETA**; do not invent an installer URL until a matching GitHub Release
+zip exists. The winget manifest for 0.5.1.1 is intentionally **not** part of this
+release — it is a separate step after the release is published and manually
+tested, because `InstallerSha256` cannot be computed until the zip exists.
 
 ## After a public GitHub Release
 
