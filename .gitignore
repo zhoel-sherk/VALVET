@@ -14,6 +14,12 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
+# Coverage output (produced by `pytest --cov`, now part of the CI step)
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
 # Runtime output
 logs/
 *.log
