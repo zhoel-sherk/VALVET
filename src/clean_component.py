@@ -295,7 +295,10 @@ def classify_component_type(orig: str) -> str:
         return "CAP"
     if re.search(r"(?:/|^)C1005NP", t, re.I) or re.match(r"^C1005NP", t, re.I):
         return "CAP"
-    if re.search(r"(?:/|^)\d{4}(?:CG|B)\d{3}[A-Z]\d{3}NT", t, re.I):
+    # CG line: 0402CG100J500NT carries the 3-digit EIA value, 0402CG0R5C500NT the
+    # decimal "0R5" one (R = decimal point); the letter before the 3 voltage digits
+    # also covers C = ±0.25pF. The B branch is left byte-identical to before.
+    if re.search(r"(?:/|^)\d{4}(?:CG(?:\d{3}|\dR\d)|B\d{3})[A-Z]\d{3}NT", t, re.I):
         return "CAP"
     if re.search(r"(?:/|^)GRM[0-9A-Z]+", t, re.I):
         return "CAP"
