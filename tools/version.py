@@ -40,6 +40,7 @@ LANG_DIR = _REPO_ROOT / "lang"
 README_MD = _REPO_ROOT / "README.md"
 README_RU = _REPO_ROOT / "README.ru.md"
 TODO_MD = _REPO_ROOT / "doc" / "TODO.md"
+WINGET_README = _REPO_ROOT / "winget" / "README.md"
 
 #: Files that must not carry a hand-written version literal. ``src/__version__.py``
 #: itself is deliberately absent (it is the source, not a copy).
@@ -48,12 +49,14 @@ STALE_FILES = (
     README_RU,
     TODO_MD,
     WORKFLOW,
+    WINGET_README,
     *sorted(LANG_DIR.glob("*.json")),
 )
 
 #: Historical/foreign version numbers that are legitimate inside tracked files
-#: (the newest published download predates this tree). ``check`` ignores these.
-ALLOWED_OTHER_VERSIONS = frozenset({"0.2.0"})
+#: (``0.2.0`` is the newest published download and predates this tree; ``1.12.0``
+#: is the winget manifest schema, not an app release). ``check`` ignores these.
+ALLOWED_OTHER_VERSIONS = frozenset({"0.2.0", "1.12.0"})
 
 #: A version literal is three or four numeric segments (``0.5.1`` / ``0.5.1.1``).
 VERSION_LITERAL_RE = re.compile(r"\d+\.\d+\.\d+(?:\.\d+)?")
@@ -162,7 +165,7 @@ def _sync_readmes(version: str) -> list[str]:
 
 
 def _sync_todo(version: str) -> list[str]:
-    pattern = re.compile(r"BETA \*\*v\d+\.\d+\.\d+(?:\.\d+)?\*\*")
+    pattern = re.compile(r"BETA \*\*v?\d+\.\d+\.\d+(?:\.\d+)?\*\*")
     return (
         [_rel(TODO_MD)] if _sub(TODO_MD, pattern, "BETA **{version}**", version) else []
     )
@@ -192,11 +195,36 @@ def _sync_lang(version: str) -> list[str]:
     return touched
 
 
+def _sync_winget(version: str) -> list[str]:
+    """Rewrite the two hand-written version mentions in ``winget/README.md``.
+
+    Targeted rather than a blanket literal swap: the same file also carries
+    ``0.2.0`` (the newest published package folder) and ``ManifestVersion:
+    1.12.0`` (the manifest schema), neither of which is this project's version.
+    """
+    rules = [
+        # ``This repo is at **0.5.1.1 BETA**``
+        (
+            re.compile(r"\*\*\d+\.\d+\.\d+(?:\.\d+)? BETA\*\*"),
+            "**{version} BETA**",
+        ),
+        # ``The winget manifest for 0.5.1.1 is intentionally``
+        (
+            re.compile(r"(?<=manifest for )\d+\.\d+\.\d+(?:\.\d+)?"),
+            "{version}",
+        ),
+    ]
+    touched = False
+    for pattern, replacement in rules:
+        touched |= _sub(WINGET_README, pattern, replacement, version)
+    return [_rel(WINGET_README)] if touched else []
+
+
 def do_sync(version: str | None = None) -> list[str]:
     """Rewrite every derived copy so it carries *version*. Returns touched files."""
     version = validate_version(version or current_version())
     touched: list[str] = []
-    for step in (_sync_readmes, _sync_todo, _sync_workflow, _sync_lang):
+    for step in (_sync_readmes, _sync_todo, _sync_workflow, _sync_winget, _sync_lang):
         touched.extend(step(version))
     return touched
 
