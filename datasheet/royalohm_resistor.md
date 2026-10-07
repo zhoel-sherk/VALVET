@@ -4,12 +4,26 @@ RoyalOhm is one of the two brands of **Uniroyal Electronics Global Co., Ltd.**
 (Kunshan, Jiangsu) - the other is UniOhm - and both use the same 14-code
 ordering procedure, so both codecs mirror this one datasheet.
 
-Source: [`src/pn_original/royalohm_resistor.py`](../src/pn_original/royalohm_resistor.py)
+Sources: the Uniroyal thick-film chip resistor data sheet (retrieved 2026-10-04,
+local copy under the gitignored `datasheet/pdf/`), which prints
+"Brands RoyalOhm UniOhm" on page 1 and carries the "Explanation of Part No.
+System" section used below. The Royal Ohm catalogue
+(`royalohm.com/assets/pdf/products/smd/1.pdf`, same retrieval) is a 5-page
+specification sheet: it documents dimensions, the power rating per size and the
+body marking, but **not** the part-number ordering procedure, so the Uniroyal
+sheet is the ordering source and the Royal Ohm sheet is the cross-check.
+
+That cross-check confirms every wattage code: the catalogue's "Power Rating" by
+size is 01005=1/32W, 0201=1/20W, 0402=1/16W, 0603=1/10W, 0805=1/8W,
+1206=1/4W, 1210=1/4W, 2010=1/2W, 2512=3/4W|1W, which matches `WH`/`WM`/`WG`/`WA`/
+`W8`/`W4`/`W2` in `_POWER_CODES` one for one.
 
 Datasheet layout (codes 1-14): size(4) + power(2) + tolerance(1) + resistance(4)
 + packaging(3). Power and tolerance are **independent** fields, and the 11th
 code of the resistance field is the power of ten: digits 0-6 mean 10^0..10^6 and
-`J`=10^-1 `K`=10^-2 `L`=10^-3 `M`=10^-4 `N`=10^-5 `P`=10^-6.
+`J`=10^-1 `K`=10^-2 `L`=10^-3 `M`=10^-4 `N`=10^-5 `P`=10^-6. The Royal Ohm
+catalogue also lists resistance ranges down to 0.01 Ω for several sizes, so those
+negative exponents are reachable in real parts rather than theoretical.
 
 ## samples
 
