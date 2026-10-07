@@ -5,7 +5,7 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.5.1.1] — BETA - 2026-10-06
+## [0.5.1.2] — BETA - 2026-10-07
 
 Audit release: the version now has one source of truth, the release zip no
 longer ships user data, and the part-number parsers were re-checked against the
@@ -174,9 +174,54 @@ real TechOne 27 (CO1271) order and against vendor datasheets.
   description, preventing fragments such as `H3.2` or `AL6063-T5_PAD` from
   leaking into `Cleaned`. The arbiter and legacy regex paths now both read the
   prose segment, so the two pipelines no longer disagree.
+- **Royal Ohm / Uniohm 3-digit resistance values with a trailing `K` were off by
+  a factor of ten.** The datasheet uses `J`/`K`/`L` as decimal multipliers
+  (`J` = ×0.1, `K` = ×0.01, `L` = ×0.001) for the 3-digit value field, but the
+  parser always divided by 10. `0402WGF330KTCE` is 3.3 Ω, not 33 Ω;
+  `0402WGF511KTCE` is 5.11 Ω, not 51.1 Ω; `0603WAF220KT5E` is 2.2 Ω, not 22 Ω.
+  Verified against the Royal Ohm thick-film chip resistor ordering guide and
+  against LCSC product data.
+- **Walsin MLCC 3-digit voltage codes were decoded as ÷10 instead of
+  mantissa-exponent.** Codes such as `202` mean `20 × 10²` = 2000 V, `201` =
+  200 V and `302` = 3000 V, matching the EIA-style capacitance convention used
+  in the Walsin MLCC "How to order" tables. The parser now applies `XY × 10^Z`
+  for 3-digit voltage codes while keeping direct values for two-digit codes.
+  Sizes `1808` and `1812` were also added to the Walsin size table so
+  high-voltage B-line parts are accepted.
+- **`tools/version.py sync` never updated `doc/TODO.md`.** The rewrite pattern
+  required a `v` before the number (`BETA **v0.5.1.1**`) while the file has never
+  carried one (`BETA **0.5.1.1**`), so the pattern matched nothing and `sync`
+  reported success. It reports the file as untouched while leaving the stale
+  number in place, so the one-entry-point guarantee held only because the drift
+  happened not to matter. The `v` is now optional.
+- **`winget/README.md` was outside the version check entirely.** The same file
+  is the one that previously advertised `0.5.0` while the app reported `0.5.1`,
+  and `STALE_FILES` still did not list it, so it drifted again unnoticed. It is
+  now checked and rewritten. The rewrite is deliberately not a blanket literal
+  swap: the file also carries `0.2.0` (the newest published package folder) and
+  `ManifestVersion: 1.12.0` (the winget manifest schema), neither of which is
+  this project's version, so only the two hand-written mentions are rewritten and
+  both foreign literals are allow-listed.
 
 ### Changed
 
+- **CI ran the whole suite in one step.** A single ~9-minute `pytest tests` job
+  is one point of failure: any flake failed the run and a timeout discarded every
+  other signal. Static checks, the smoke test and the pip-audit/Vulture gates now
+  live in a `lint` job, and the suite is split into four shards by the timings in
+  the committed `.test_durations` (`pytest-split`) across two operating systems.
+  Coverage is sharded the same way and the four data files are combined before the
+  report, so the report still covers every test including the Gerber ones rather
+  than whatever one shard happened to execute. `concurrency` cancels superseded
+  runs on the same ref.
+- **The release zip is now gated on its contents, not just on `logs/`.**
+  `valvet.spec` calls `collect_all()` on whole packages (PySide6, qdarkstyle,
+  pyvista, …), so bytecode caches, test files and build leftovers can reach the
+  onedir folder unnoticed — and the zip is what every user unpacks. The build now
+  writes the full entry list to `zip-manifest.txt`, publishes it as a 90-day
+  artifact, and fails on `__pycache__`, `*.py[co]`, `.pytest_cache`, `tests/`,
+  `examples/`, coverage output, `*.log`, `*.spec`, `dist/` and similar before the
+  smoke step runs.
 - **The release workflow zips before the smoke test.** A frozen run creates
   `dist/VALVET/logs/`, which the zip built afterwards would capture — shipping
   the user's absolute paths. The workflow now builds the archive first, fails
@@ -339,7 +384,7 @@ real TechOne 27 (CO1271) order and against vendor datasheets.
 Initial public BETA line: Project, BOM/PnP, Clean BOM, Merge/Export, Report,
 PCB Preview, Step 3D, and Machine lib tabs.
 
-[Unreleased]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.1.1...HEAD
-[0.5.1.1]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.1...v0.5.1.1
+[Unreleased]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.1.2...HEAD
+[0.5.1.2]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.1...v0.5.1.2
 [0.5.1]: https://github.com/zhoel-sherk/VALVET/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.0
