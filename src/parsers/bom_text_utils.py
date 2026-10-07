@@ -215,7 +215,15 @@ def split_joined_clean_comment(
     Split «prose | vendor label | MPN» join rows (Double Comment import).
 
     Returns ``(bom_prose, vendor_label, mpn_tail)``; empty strings when absent.
+
+    An empty ``sep`` would make ``str.split`` raise, and it never matches anything
+    that was joined, so it is resolved to :data:`DEFAULT_DOUBLE_COMMENT_JOIN` here -
+    the same way `merge_clean_comment_cell_parts` resolves it on the way in. Join and
+    split must agree, otherwise the whole cell stays glued and every downstream
+    step sees one unparseable part number.
     """
+    if not sep:
+        sep = DEFAULT_DOUBLE_COMMENT_JOIN
     parts = [p.strip() for p in str(spec).split(sep) if str(p).strip()]
     if len(parts) >= 3:
         return parts[0], parts[1], parts[-1]

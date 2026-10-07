@@ -407,7 +407,7 @@ def _try_parse_vendor_pn(
         from parsers.bom_text_utils import joined_clean_comment_mpn
         from pn_original import parse_pn
 
-        mpn = joined_clean_comment_mpn(orig)
+        mpn = joined_clean_comment_mpn(orig, config.double_comment_separator)
         return parse_pn(mpn.strip(), ct, config)
     except Exception:
         logger.error(
@@ -492,7 +492,7 @@ def _clean_one_regex_phase(
 ) -> Tuple[str, str, str, str]:
     from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
-    bom = joined_clean_comment_bom_prose(s)
+    bom = joined_clean_comment_bom_prose(s, cfg.double_comment_separator)
     parse_target = bom or s
     if ctype == "RESISTOR" and not cfg.parse_resistors:
         return s, "RESISTOR", "RES", "off"
@@ -602,14 +602,18 @@ def _try_ferrite_bead_clean(s: str) -> Optional[Tuple[str, str, str, str]]:
     return (mpn, "FERRITE_BEAD", "FB", "ferrite_bead")
 
 
-def _ferrite_bead_passthrough(s: str) -> Tuple[str, str, str, str]:
-    """Keep FERRITE_BEAD type even when series MPN is unknown (no RES/IND fallthrough)."""
+def _ferrite_bead_passthrough(s: str, sep: str = "") -> Tuple[str, str, str, str]:
+    """Keep FERRITE_BEAD type even when series MPN is unknown (no RES/IND fallthrough).
+
+    ``sep`` empty means "not configured"; ``split_joined_clean_comment`` resolves it
+    to the default join, same as the other call sites.
+    """
     hit = _try_ferrite_bead_clean(s)
     if hit:
         return hit
     from parsers.bom_text_utils import joined_clean_comment_mpn
 
-    tail = joined_clean_comment_mpn(s).strip()
+    tail = joined_clean_comment_mpn(s, sep).strip()
     cleaned = tail or str(s).strip()
     return (cleaned, "FERRITE_BEAD", "FB", "other")
 
@@ -871,7 +875,7 @@ def _clean_one_pipeline_legacy(
     """First-match wins over pipeline steps (no regex_master)."""
     from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
-    bom = joined_clean_comment_bom_prose(s)
+    bom = joined_clean_comment_bom_prose(s, cfg.double_comment_separator)
     order = canonical_pipeline_order(cfg.clean_pipeline_order)
     disabled = frozenset(x.strip().lower() for x in cfg.clean_pipeline_disabled if x)
     inferit_executed = False
@@ -965,10 +969,10 @@ def clean_one(
     s = str(orig).strip()
     from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
-    bom_prose = joined_clean_comment_bom_prose(s)
+    bom_prose = joined_clean_comment_bom_prose(s, cfg.double_comment_separator)
     ctype = classify_component_type(bom_prose or s)
     if ctype == "FERRITE_BEAD":
-        return _ferrite_bead_passthrough(s)
+        return _ferrite_bead_passthrough(s, cfg.double_comment_separator)
     eff_vendor = ctype
     if ctype == "INDUCTOR" and not cfg.parse_inductors:
         eff_vendor = "OTHER"
@@ -1032,10 +1036,10 @@ def clean_preview(
         raw = str(orig).strip()
         from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
-        bom_prose = joined_clean_comment_bom_prose(raw)
+        bom_prose = joined_clean_comment_bom_prose(raw, cfg.double_comment_separator)
         ctype = classify_component_type(bom_prose or raw)
         if ctype == "FERRITE_BEAD":
-            a, b, _pc, d = _ferrite_bead_passthrough(raw)
+            a, b, _pc, d = _ferrite_bead_passthrough(raw, cfg.double_comment_separator)
             alert = analyze_token_alert(a, b, separator=cfg.output_separator).as_text()
             if alert:
                 append_missing_tokens_log(

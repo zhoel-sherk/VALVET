@@ -1138,6 +1138,11 @@ class CleanTabMixin:
             parse_capacitors=self.chk_clean_cap.isChecked(),
             parse_inductors=self.chk_clean_ind.isChecked(),
             output_separator=self._clean_output_separator(),
+            double_comment_separator=(
+                self.clean_double_comment_sep.text()
+                if hasattr(self, "clean_double_comment_sep")
+                else " | "
+            ),
             res_prefix=self.clean_res_prefix.text().strip(),
             cap_prefix=self.clean_cap_prefix.text().strip(),
             ind_prefix=self.clean_ind_prefix.text().strip(),

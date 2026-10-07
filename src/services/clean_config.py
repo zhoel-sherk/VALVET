@@ -26,6 +26,7 @@ def build_clean_config(
     parse_capacitors: bool = True,
     parse_inductors: bool = True,
     output_separator: str = "",
+    double_comment_separator: str = " | ",
     res_prefix: str = "",
     cap_prefix: str = "",
     ind_prefix: str = "",
@@ -74,6 +75,7 @@ def build_clean_config(
         parse_capacitors=parse_capacitors,
         parse_inductors=parse_inductors,
         output_separator=output_separator,
+        double_comment_separator=double_comment_separator,
         resistor_template=res_template,
         cap_template=cap_template,
         inductor_template=ind_template
