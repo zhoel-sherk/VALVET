@@ -94,6 +94,63 @@ def test_too_long_is_not_a_part_number():
     assert not looks_like_part_number("A" * 65)
 
 
+def test_part_numbers_with_slashes_and_parentheses_are_recognised():
+    """Real MPNs contain ``/`` (package/reel codes) and ``()`` (variants)."""
+    for mpn in (
+        "IT8856FN/CX",
+        "IT8851FN-128/HX",
+        "SP3243EUEY-L/TR",
+        "MCP23017-E/SS",
+        "JHL8040R(SLMN6/7)",
+    ):
+        assert looks_like_part_number(mpn), mpn
+
+
+def test_part_numbers_with_spaces_are_rejected():
+    """A space makes a token indistinguishable from prose.
+
+    This is a known limitation, not a bug: ``CR2032 3V/230mAh`` and similar
+    part numbers fall back to the positional rule in ``split_joined_clean_comment``.
+    """
+    for mpn in (
+        "CR2032 3V/230mAh",
+        "WR04X620 JTL",
+        "SLB 9672VU2.0 FW15.23",
+    ):
+        assert not looks_like_part_number(mpn), repr(mpn)
+
+
+def test_multi_bom_descriptions_are_not_recognised():
+    """Descriptions from CO1271 and MERCURY contain prose markers."""
+    for descr in (
+        # CO1271
+        "CKD_PCBA(MB)_DXB101_MainBoard_KG i5 13500HX_For APD AIO_DDR4",
+        "APD_KG_CPU_13500HX_Intel_Raptor Lake HX_4.7/3.5GHz_1.50GHz_14(6+8)Core/20T_55W_C0_FCBGA1964_45x37.5mmx2.0mm_SMD_13500HX_SRME7_Intel",
+        "Thermal Module_PCH_SINK_Plate AL6063-T5_PAD k=3 t=0.2_W/O Heat pipe_L46.38*W32.15*H13.5<mm>_JRH-LL0-0016_JRH",
+        # MERCURY
+        "PCBA_DA1050Z_M156_BY",
+        "MLCC_18pF_C0G_50V_+/-5%_C0402_1.0x0.5mm_SMD",
+    ):
+        assert not looks_like_part_number(descr), repr(descr)
+
+
+def test_multi_bom_part_numbers_are_recognised():
+    """Real MPNs from multiple orders pass the predicate."""
+    for mpn in (
+        # CO1271
+        "MDXB101003",
+        "13500HX_SRME7",
+        "JRH-LL0-0016",
+        "RTL8111H-CG",
+        # MERCURY
+        "A.F.M.2402073",
+        "E.P.P.0005325",
+        "C0402C0G180J500NTB",
+        "DA1050Z-M156-BY-R02_MB_V10",
+    ):
+        assert looks_like_part_number(mpn), repr(mpn)
+
+
 # --------------------------------------------------------------------------
 # role detection
 # --------------------------------------------------------------------------

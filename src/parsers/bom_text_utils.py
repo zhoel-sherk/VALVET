@@ -227,6 +227,7 @@ _PROSE_MARKERS = (
     "CAP_",
     "IND_",
     "PCB_",
+    "PCBA_",
     "SMD",
     "DIP",
     "UF",
