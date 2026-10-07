@@ -149,6 +149,31 @@ real TechOne 27 (CO1271) order and against vendor datasheets.
   the boundary between the two real codes, drawing a 0.6 × 0.3 mm body for a
   1210 part. It now picks the earliest position, ties broken by longest, which
   matches the imperial-first convention of KiCad names (`C_0402_1005Metric`).
+- **Clean BOM split a joined comment with a hardcoded separator.** The Clean
+  options let you choose how PN columns are joined (`clean/double_comment_sep`),
+  but five call sites split the joined cell back apart with a hardcoded
+  `" | "`. With a non-default separator nothing was split, so the regex phase
+  parsed the joined text and read the resistance out of the description. Joined
+  with a space this turned `RES_100K… 0402WGF1004TCE` into `0402_100K_1%`
+  instead of `0402_1M_1%`. `CleanConfig` now carries `double_comment_separator`
+  and every split uses it; an unset separator resolves to the same default the
+  join uses, so the two agree by construction. `import_bom_comments_for_clean`
+  logs a warning when the chosen separator occurs inside a comment cell, making
+  separators such as `"2"` (which appears inside `25V`) visible instead of
+  silently corrupting the result.
+- **Clean BOM inverted description and MPN when the columns were written
+  backwards.** A joined cell was split positionally: first segment = prose,
+  last segment = MPN. Joining the columns the other way round (`MPN |
+  description`) fed the MPN to the classifier as if it were prose, so anchored
+  rules such as `^RES[_ ]` missed and a reversed order collapsed vendor matches
+  from 180 to 0 and RESISTOR classifications from 125 to 9. Role detection now
+  examines the segments: a segment is treated as the MPN when it is shaped like
+  a part number and is the only such segment in the first position; otherwise
+  the positional rule is kept, so a normal `description | MPN` row is unchanged.
+  For rows whose type has no decoder, the part number is used instead of the
+  description, preventing fragments such as `H3.2` or `AL6063-T5_PAD` from
+  leaking into `Cleaned`. The arbiter and legacy regex paths now both read the
+  prose segment, so the two pipelines no longer disagree.
 
 ### Changed
 
