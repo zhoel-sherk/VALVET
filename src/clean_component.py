@@ -490,10 +490,21 @@ def _clean_one_regex_phase(
     cfg: CleanConfig,
     inferit_executed: bool,
 ) -> Tuple[str, str, str, str]:
-    from parsers.bom_text_utils import joined_clean_comment_bom_prose
+    from parsers.bom_text_utils import (
+        joined_clean_comment_bom_prose,
+        joined_clean_comment_mpn,
+    )
 
     bom = joined_clean_comment_bom_prose(s, cfg.double_comment_separator)
     parse_target = bom or s
+    # A joined row carries a description and a part number. Where nothing can
+    # decode the type the description only yields fragments (H3.2, AL6063-T5_PAD),
+    # so the part number - the actual identity - wins instead. Single-segment input
+    # makes both helpers return the same string, which keeps today's behaviour.
+    if ctype == "OTHER":
+        tail = joined_clean_comment_mpn(s, cfg.double_comment_separator)
+        if tail and tail != s:
+            parse_target = tail
     if ctype == "RESISTOR" and not cfg.parse_resistors:
         return s, "RESISTOR", "RES", "off"
     if ctype == "CAP" and not cfg.parse_capacitors:
@@ -721,9 +732,23 @@ def _collect_vendor_arbiter_candidate(
 def _collect_regex_arbiter_candidates(
     s: str, ctype: str, cfg: CleanConfig
 ) -> List[ParserCandidate]:
+    from parsers.bom_text_utils import (
+        joined_clean_comment_bom_prose,
+        joined_clean_comment_mpn,
+    )
+
+    # Mirror _clean_one_regex_phase: the regex parsers read values out of the
+    # description, so feed them the prose rather than the raw joined cell - and let
+    # an unrecognised type fall back to the part number instead of the prose, where
+    # it would only produce fragments.
+    target = joined_clean_comment_bom_prose(s, cfg.double_comment_separator) or s
+    if ctype == "OTHER":
+        tail = joined_clean_comment_mpn(s, cfg.double_comment_separator)
+        if tail and tail != s:
+            target = tail
     cands: List[ParserCandidate] = []
     if ctype == "RESISTOR" and cfg.parse_resistors:
-        sl, cleaned = parse_resistor_token_fields(s, cfg)
+        sl, cleaned = parse_resistor_token_fields(target, cfg)
         if str(cleaned).strip():
             cands.append(
                 ParserCandidate(
@@ -737,7 +762,7 @@ def _collect_regex_arbiter_candidates(
                 )
             )
     elif ctype == "CAP" and cfg.parse_capacitors:
-        sl, cleaned = parse_capacitor_token_fields(s, cfg)
+        sl, cleaned = parse_capacitor_token_fields(target, cfg)
         if str(cleaned).strip():
             cands.append(
                 ParserCandidate(
@@ -751,7 +776,7 @@ def _collect_regex_arbiter_candidates(
                 )
             )
     elif ctype == "INDUCTOR" and cfg.parse_inductors:
-        sl, cleaned = parse_inductor_token_fields(s, cfg)
+        sl, cleaned = parse_inductor_token_fields(target, cfg)
         if str(cleaned).strip():
             cands.append(
                 ParserCandidate(
@@ -765,7 +790,7 @@ def _collect_regex_arbiter_candidates(
                 )
             )
     else:
-        co = clean_other(s)
+        co = clean_other(target)
         if str(co).strip():
             cands.append(
                 ParserCandidate(
