@@ -41,6 +41,7 @@ README_MD = _REPO_ROOT / "README.md"
 README_RU = _REPO_ROOT / "README.ru.md"
 TODO_MD = _REPO_ROOT / "doc" / "TODO.md"
 WINGET_README = _REPO_ROOT / "winget" / "README.md"
+README_SVG = _REPO_ROOT / "img" / "readme.svg"
 
 #: Files that must not carry a hand-written version literal. ``src/__version__.py``
 #: itself is deliberately absent (it is the source, not a copy).
@@ -50,6 +51,7 @@ STALE_FILES = (
     TODO_MD,
     WORKFLOW,
     WINGET_README,
+    README_SVG,
     *sorted(LANG_DIR.glob("*.json")),
 )
 
@@ -220,11 +222,30 @@ def _sync_winget(version: str) -> list[str]:
     return [_rel(WINGET_README)] if touched else []
 
 
+def _sync_readme_svg(version: str) -> list[str]:
+    """Rewrite the banner line in ``img/readme.svg``.
+
+    ``<text ...>BETA v0.5.1.1 · BOM · PnP · Clean · Merge</text>``. The SVG was
+    missing from ``STALE_FILES``, so the 0.5.1.1 -> 0.5.1.2 bump left the README
+    banner advertising the previous release - the exact drift this module exists
+    to prevent, in the one place ``check`` could not see it.
+    """
+    pattern = re.compile(r"(?<=BETA )v?\d+\.\d+\.\d+(?:\.\d+)?")
+    return [_rel(README_SVG)] if _sub(README_SVG, pattern, "v{version}", version) else []
+
+
 def do_sync(version: str | None = None) -> list[str]:
     """Rewrite every derived copy so it carries *version*. Returns touched files."""
     version = validate_version(version or current_version())
     touched: list[str] = []
-    for step in (_sync_readmes, _sync_todo, _sync_workflow, _sync_winget, _sync_lang):
+    for step in (
+        _sync_readmes,
+        _sync_todo,
+        _sync_workflow,
+        _sync_winget,
+        _sync_lang,
+        _sync_readme_svg,
+    ):
         touched.extend(step(version))
     return touched
 

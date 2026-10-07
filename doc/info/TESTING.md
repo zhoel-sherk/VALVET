@@ -26,7 +26,7 @@ python -m ruff check src tests
 python -m vulture
 ```
 
-CI runs `ruff check` (rules `E`/`F`/`I`/`ICN`, ignoring E501/E402/E741) and `ruff format --check` (Black-compatible: 88 columns, double quotes). Import aliases and block order: [IMPORTS.md](IMPORTS.md). **Vulture is non-blocking** in GitHub Actions (`continue-on-error`); Qt slots and dynamic calls produce false positives at `min_confidence = 80`.
+CI runs `ruff check` (rules `E`/`F`/`I`/`ICN`, ignoring E501/E402/E741) and `ruff format --check` (Black-compatible: 88 columns, double quotes), plus `python tools/version.py check` which fails the build when a tracked file still hardcodes a stale version. Import aliases and block order: [IMPORTS.md](IMPORTS.md). **Vulture is blocking** in GitHub Actions since 0.5.1.1 (Qt slots and dynamic calls still produce false positives at `min_confidence = 80`, so expect to whitelist rather than ignore).
 
 Hypothesis and mutmut are **not** part of the default stack.
 
@@ -123,18 +123,39 @@ Expect **0 failed**. Record `passed` / `skipped` / OS / Python version when upda
 
 ```bash
 python -m compileall -q src
-python -m pytest tests -q --ignore=tests/test_pcb_preview_gerber.py
+python -m ruff check src tests
+python -m ruff format --check src tests
+python tools/version.py check
+python -m pytest tests -q
 ```
 
-Coverage locally (no fail-under; omit GUI paths via `[tool.coverage.run]`). `[tool.coverage.report] skip_covered = true` is in pyproject. CI Ubuntu uses `--cov-report=term` only:
+CI no longer runs one monolithic `pytest tests`. `lint` covers compileall, both
+Ruff steps, `tools/version.py check`, the core-has-no-PySide6 tests, the smoke
+run, Vulture (blocking) and pip-audit (advisory). The suite is split into four
+shards per operating system by the timings committed in `.test_durations`, and
+coverage is sharded the same way and combined before the report. Locally the
+single-command form above is still the fastest way to see everything at once.
+
+**Regenerate `.test_durations`** after adding or renaming test files, otherwise
+shard balance drifts silently (a slow test lands in a shard that was short when
+the timings were recorded):
 
 ```bash
-python -m pytest tests -q --ignore=tests/test_pcb_preview_gerber.py --cov=src --cov-report=term-missing:skip-covered
+python -m pytest tests -q --ignore=tests/test_pcb_preview_gerber.py \
+  --splits 4 --group 1 --durations-path .test_durations --durations-min 0.01
+```
+
+`--group 1` runs one shard but records timings for **every** test.
+
+Coverage locally (no fail-under; omit GUI paths via `[tool.coverage.run]`). `[tool.coverage.report] skip_covered = true` is in pyproject. CI uses `--cov-report=term` only, and — unlike earlier revisions — includes the Gerber tests, because excluding them left that pipeline permanently uncovered while the report still looked complete:
+
+```bash
+python -m pytest tests -q --cov=src --cov-report=term-missing:skip-covered
 ```
 
 **`--debug` vs the Debug dialog:** `python src/main.py --debug`, `VALVET_DEBUG=1`, and the Project tab **Debug logs** checkbox all call `logger.set_debug_mode` (dated file under `logs/` plus stderr). Unchecking the box turns file logging off. **Debug / advanced…** is a separate dialog (snapshots, fonts, experimental tabs). CLI: `python -m cli --debug …`.
 
-Last recorded baseline (re-run after changes): **~450+ passed** on GitHub Actions Ubuntu Level 1 (`pytest tests -q --ignore=tests/test_pcb_preview_gerber.py`), with skips for missing optional fixtures. Counts depend on live `UPD.MDB` / example6 — see Level 3. Re-record `passed` / `skipped` after a local Level 1 run when updating this file.
+Last recorded baseline (re-run after changes): **1265 passed, 7 skipped** on Windows 11 / Python 3.12 / PySide6 6.11.2 for the full `pytest tests -q` run (Gerber included). The skips are the documented optional fixtures in Level 3 — live `UPD.MDB`, `example6`, `textual`. Re-record `passed` / `skipped` after a local run when updating this file.
 
 Registered pytest marker (only this one): `slow` — live Hanwha `UPD.MDB` import ([`pyproject.toml`](../../pyproject.toml) `[tool.pytest.ini_options] markers`). CI **does not** pass `-m "not slow"`; it runs the same Level 1 command as above (slow tests skip unless a sample `.mdb` is present). Locally, to skip live MDB import:
 
@@ -165,18 +186,16 @@ python -m pytest tests/test_clean_alerts.py tests/test_pn_vendor_verified_rules.
 
 ---
 
-## Level 2 — include Gerber core test
+## Level 2 — Gerber core in isolation
 
-Run before release or after edits under `src/pcb_preview/`:
+Since the coverage job dropped the `--ignore` (and Level 1 no longer excludes
+Gerber either), a plain `pytest tests -q` already runs everything Level 2 used to
+add. It is kept as a named target because the Gerber suite is the only thing that
+exercises the `src/pcb_preview/` raster pipeline, so run it on its own after any
+edit there:
 
 ```bash
 export PYTHONPATH=src   # or $env:PYTHONPATH="src" on Windows
-python -m pytest tests -q
-```
-
-Or explicitly:
-
-```bash
 python -m pytest tests/test_pcb_preview_gerber.py -q
 ```
 
@@ -242,6 +261,10 @@ When you touch an area in the table below, run the matching tests first.
 | Worksheet visibility / sheet picker  | `tests/test_read_file_sheets.py`, `tests/test_sheet_picker.py`                                                   |
 | BOM row highlight (visual tint)      | `tests/test_bom_highlight.py`                                                                                    |
 | `valvet.spec` bundled data files     | `tests/test_frozen_bundle_data.py`                                                                               |
+| Clean comment-join separator         | `tests/test_comment_join_separator.py`                                                                          |
+| Clean comment role detection         | `tests/test_comment_roles.py`                                                                                   |
+| Version single source of truth       | `tests/test_version.py`                                                                                         |
+| Vendor codecs vs datasheet           | `tests/test_pn_vendor_walsin_murata.py`, `tests/test_pn_vendor_verified_rules.py`, `tests/test_parser_generated.py` |
 
 
 **Clean BOM golden corpus** (`tests/fixtures/clean_corpus/`):
@@ -308,4 +331,26 @@ After **large** changes (paths, `app_paths`, `pcb_preview`, `step_3d`, `machine_
 
 ## GitHub Actions
 
-Workflow [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on **windows-latest** and **ubuntu-latest** for pushes/PRs to `main`/`master`: `ruff check`, `ruff format --check`, `compileall`, then **Core has no PySide6** (`tests/test_no_pyside6_core.py`, `tests/test_cli_no_qt.py`). Level 1 pytest ignores the Gerber file: **Windows** without coverage, **Ubuntu** with `--cov=src --cov-report=term` (no fail-under). Then `src/main.py --smoke`, Gerber pytest, `requirements.txt` + `requirements-dev.txt`, `PYTHONPATH=src`. Vulture and `pip-audit -r requirements.txt` (not requirements-dev) run on Ubuntu and do not fail the job.
+Workflow [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on push/PR to `main`/`master` as three jobs plus a `concurrency` group that cancels superseded runs on the same ref.
+
+**`lint`** (ubuntu-latest, gates everything else): `compileall`, `ruff check`, `ruff format --check`, `tools/version.py check`, **Core has no PySide6** (`tests/test_no_pyside6_core.py`, `tests/test_cli_no_qt.py`), `src/main.py --smoke`, **Vulture (blocking)**, and `pip-audit -r requirements.txt` (advisory, `continue-on-error`).
+
+**`test`** (matrix `os` × 4 shards, `needs: lint`): each shard runs the whole suite through `pytest-split`:
+
+```bash
+python -m pytest tests -q \
+  --ignore=tests/test_pcb_preview_gerber.py \
+  --splits 4 --group $N --durations-path .test_durations
+```
+
+**`coverage`** (4 ubuntu shards) runs the same sharding **without** the Gerber ignore and with `--cov=src --cov-append --cov-report=`, writing `coverage-shardN` (deliberately not dot-prefixed — `actions/upload-artifact@v4` skips dotfiles and an empty artifact trips `if-no-files-found` instead of merging). **`coverage-report`** needs it, runs `coverage combine` over the four files and prints the report.
+
+Regenerate `.test_durations` after adding or renaming tests — see Level 1.
+
+### Release Windows
+
+[`.github/workflows/release-windows.yml`](../../.github/workflows/release-windows.yml) is `workflow_dispatch` only. It takes the version from `src/__version__.py` (the dispatch input is a consistency check, never the shipped value), builds the onedir folder, **zips before smoke**, gates the archive contents against 22 forbidden patterns, smoke-tests the *unpacked* zip, attests provenance, uploads the zip plus a 90-day `zip-manifest.txt`, and attaches the zip to a GitHub Release (draft by default).
+
+The zip-before-smoke ordering is deliberate: a frozen run recreates `logs/` next to the exe, and a zip built afterwards would ship the user's absolute paths.
+
+`tests/test_frozen_bundle_data.py` asserts the spec's `datas` entries and reads the forbidden-pattern list out of the workflow, so a gate that silently stops matching fails the suite.
