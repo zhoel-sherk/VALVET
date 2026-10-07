@@ -129,7 +129,67 @@ def test_zip_is_built_before_the_smoke_test() -> None:
     workflow_src = WORKFLOW_PATH.read_text(encoding="utf-8")
     assert "unzip -q" in workflow_src, "smoke must run on the unpacked zip"
     assert "./smoke/VALVET/VALVET.exe --smoke" in workflow_src
-    assert "VALVET/logs/" in workflow_src, "the zip step must reject a logs/ entry"
+
+
+def _workflow_forbidden_patterns() -> list[str]:
+    """The entry-name patterns the release workflow refuses to ship.
+
+    Read out of the workflow rather than restated here, so widening or narrowing
+    the gate in YAML cannot leave this file asserting a rule that is no longer
+    enforced (and vice versa).
+    """
+    src = WORKFLOW_PATH.read_text(encoding="utf-8")
+    match = re.search(r"forbidden=\((.*?)\n\s*\)", src, re.DOTALL)
+    assert match, "the release workflow must declare a forbidden=() list"
+    return re.findall(r"'([^']+)'", match.group(1))
+
+
+def test_release_gate_rejects_build_detritus() -> None:
+    """The zip gate must reject the entries that have leaked before.
+
+    Asserted against the patterns the workflow really uses, on realistic archive
+    paths, because a gate that silently stops matching is worse than no gate: it
+    still prints "hygiene gate passed".
+    """
+    patterns = [re.compile(p, re.IGNORECASE) for p in _workflow_forbidden_patterns()]
+
+    def flagged(entry: str) -> bool:
+        return any(p.search(entry) for p in patterns)
+
+    for entry in (
+        "VALVET/logs/",
+        "VALVET/_internal/__pycache__/",
+        "VALVET/_internal/mod.cpython-312.pyc",
+        "VALVET/tests/test_thing.py",
+        "VALVET/_internal/conftest.py",
+        "VALVET/app.spec",
+        "VALVET/VALVET.log",
+        "VALVET/examples/bom.xlsx",
+        "VALVET/htmlcov/index.html",
+    ):
+        assert flagged(entry), f"the release gate would ship {entry}"
+
+    for entry in (
+        "VALVET/VALVET.exe",
+        "VALVET/_internal/python312.dll",
+        "VALVET/_internal/PySide6/QtCore.pyd",
+        "VALVET/lang/en.json",
+        "VALVET/img/icon.ico",
+        "VALVET/themes/design_tokens.json",
+        "VALVET/package_vspd/catalog/tree.json",
+        "VALVET/_internal/logfile.logrotate",  # "log" inside a name, not a .log
+    ):
+        assert not flagged(entry), f"the release gate would block a real file: {entry}"
+
+
+def test_release_gate_normalises_line_endings() -> None:
+    """A CR would defeat every ``$``-anchored pattern and turn the gate into a no-op.
+
+    ``unzip -Z1`` emits LF today, but the gate is the only thing standing between
+    a ``.pyc`` and a user's Downloads folder, so it must not depend on that.
+    """
+    src = WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert "tr -d '\\r'" in src, "the gate must strip CR before matching"
 
 
 def test_release_takes_the_version_from_the_version_file() -> None:
