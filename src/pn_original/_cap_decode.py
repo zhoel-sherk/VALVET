@@ -11,7 +11,7 @@ Examples:
 - pf_eia_3_to_str("105") → "1uF"
 
 Walsin voltage numeric helper:
-- walsin_vol_code_to_v: 3-digit codes use EIA-style mantissa-exponent (500→50V, 202→2000V)
+- eia_vol_code_to_v: 3-digit codes use EIA-style mantissa-exponent (500→50V, 202→2000V)
 
 See vendor modules for full PN structures.
 """
@@ -45,15 +45,21 @@ def pf_eia_3_to_str(abc: str) -> str | None:
     return f"{int(pf)}pF" if float(pf) == int(pf) else f"{pf}pF"
 
 
-def walsin_vol_code_to_v(v: str) -> str:
+def eia_vol_code_to_v(v: str) -> str:
     """
-    Walsin MLCC rated-voltage code.
+    EIA-style rated-voltage code, shared by the vendors that publish it.
 
-    Three-digit codes use the EIA-style mantissa-exponent form:
-    ``XYZ`` → ``XY × 10^Z`` V (e.g. 500 → 50V, 202 → 2000V, 302 → 3000V).
-    Two-digit and one-digit codes are treated as direct voltage values.
+    Three-digit codes are mantissa-exponent: ``XYZ`` -> ``XY x 10^Z`` V
+    (500 -> 50 V, 101 -> 100 V, 202 -> 2000 V, 302 -> 3000 V). This is what
+    the Walsin "How to order" tables and the Fenghua MLCC "Rated Voltage"
+    column both specify. Two- and one-digit codes are direct values.
+
+    Note this is **not** the same convention as the V/10 form used by Eyang,
+    TCC, Darfon and Viiyong - for those see ``china_mlcc_vol_from_digits``. The
+    two agree only on codes ending in 0, which is why the wrong one still
+    produced plausible results on the common 16/25/50/63 V parts.
     """
-    if not v.isdigit() or not v:
+    if not v or not v.isdigit():
         return ""
     n = int(v)
     if len(v) == 3:
@@ -63,3 +69,7 @@ def walsin_vol_code_to_v(v: str) -> str:
     if 1 <= n <= 9999:
         return f"{n}V"
     return f"{n}V"
+
+
+#: Backwards-compatible alias; the helper is not Walsin-specific.
+walsin_vol_code_to_v = eia_vol_code_to_v

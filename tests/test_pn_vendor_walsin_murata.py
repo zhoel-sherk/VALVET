@@ -26,8 +26,9 @@ def test_walsin_nt_suffix_x6r3_line() -> None:
 
 
 def test_walsin_nt_suffix_xkv_line() -> None:
-    assert _parse("0402X224K160NT", "CAP") == "0402_220nF_X5R_16V_10%"
-    assert _parse("0603X226M100NT", "CAP") == "0603_22uF_X5R_10V_20%"
+    """`NT` X-line parts: Walsin keeps priority over the identical Fenghua body."""
+    assert _parse("0402X224K160NT", "CAP") == "0402_220nF_X5R_10%_16V"
+    assert _parse("0603X226M100NT", "CAP") == "0603_22uF_X5R_20%_10V"
 
 
 def test_walsin_nt_and_ct_suffix_give_the_same_value() -> None:
