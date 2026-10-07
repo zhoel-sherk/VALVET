@@ -11,7 +11,7 @@ Examples:
 - pf_eia_3_to_str("105") → "1uF"
 
 Walsin voltage numeric helper:
-- walsin_vol_code_to_v: 3-digit codes often ÷10 for rated voltage (500→50V)
+- walsin_vol_code_to_v: 3-digit codes use EIA-style mantissa-exponent (500→50V, 202→2000V)
 
 See vendor modules for full PN structures.
 """
@@ -47,13 +47,19 @@ def pf_eia_3_to_str(abc: str) -> str | None:
 
 def walsin_vol_code_to_v(v: str) -> str:
     """
-    Walsin MLCC: 3 digits often encode 50V as 500, 10V as 100 (÷10).
+    Walsin MLCC rated-voltage code.
+
+    Three-digit codes use the EIA-style mantissa-exponent form:
+    ``XYZ`` → ``XY × 10^Z`` V (e.g. 500 → 50V, 202 → 2000V, 302 → 3000V).
+    Two-digit and one-digit codes are treated as direct voltage values.
     """
     if not v.isdigit() or not v:
         return ""
     n = int(v)
-    if 100 <= n <= 9990 and n % 10 == 0:
-        return f"{n // 10}V"
-    if 1 <= n <= 500:
+    if len(v) == 3:
+        mantissa = int(v[:2])
+        exponent = int(v[2])
+        return f"{mantissa * (10**exponent)}V"
+    if 1 <= n <= 9999:
         return f"{n}V"
     return f"{n}V"
