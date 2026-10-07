@@ -251,17 +251,21 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - uses: actions/download-artifact@v4
         with:
           pattern: coverage-*
           merge-multiple: true
 
+      # coverage/pytest-cov live in requirements-dev.txt, not requirements.txt;
+      # installing only the latter here fails at `coverage combine`.
       - name: Install dependencies
         run: |
           python -m pip install -U pip
-          python -m pip install -r requirements.txt
+          python -m pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Combine and report
         run: |
