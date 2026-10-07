@@ -116,14 +116,22 @@ jobs:
             '\.rej$'
             '\.tmp$'
           )
+          # Report every violation in one pass rather than dying on the first:
+          # a single build otherwise takes several 5-minute cycles to walk the
+          # list one entry at a time.
+          failed=0
           for pattern in "${forbidden[@]}"; do
             hits="$(echo "$listing" | grep -Ei "$pattern" || true)"
             if [ -n "$hits" ]; then
+              failed=1
               echo "::error::zip contains entries matching ${pattern}:" >&2
               echo "$hits" | head -20 >&2
-              exit 1
             fi
           done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::release zip rejected; see above and zip-manifest.txt" >&2
+            exit 1
+          fi
           echo "zip hygiene gate passed"
 
       # Smoke the shipped artifact, not dist/: exactly what the user unpacks.

@@ -229,6 +229,35 @@ def test_logs_entry_is_detected_in_a_built_zip(tmp_path: Path) -> None:
         assert not [name for name in zf.namelist() if LOGS_ENTRY_RE.search(name)]
 
 
+def test_spec_drops_third_party_test_files() -> None:
+    """``collect_all()`` ships package internals; the gate refuses ``test_*.py``.
+
+    Found the hard way: the first release build with the zip gate enabled failed
+    on ``rapidfuzz/__pyinstaller/test_rapidfuzz_packaging.py``, a packaging test
+    swept in by ``collect_all("rapidfuzz")``. The gate must not be weakened to
+    accommodate it, so the spec has to filter it — on both the static ``datas``
+    list and ``Analysis``, because collect_all results are appended after the
+    literal list is built.
+    """
+    spec_src = SPEC_PATH.read_text(encoding="utf-8")
+    assert "def _not_test_junk" in spec_src, "valvet.spec must define _not_test_junk"
+    for target in ("datas", "binaries"):
+        assert f"[x for x in {target} if _not_test_junk(x)]" in spec_src, (
+            f"the static {target} list is not filtered for test junk"
+        )
+        assert f"[e for e in a.{target} if _not_test_junk(e)]" in spec_src, (
+            f"a.{target} is not filtered for test junk"
+        )
+
+
+def test_spec_test_junk_filter_covers_the_obvious_names() -> None:
+    """The filter must drop the same shapes the release gate rejects."""
+    src = SPEC_PATH.read_text(encoding="utf-8")
+    assert 'startswith("test_")' in src
+    assert '== "conftest.py"' in src
+    assert '"/tests/" in path' in src
+
+
 def test_fonts_are_globbed_not_hardcoded() -> None:
     """Fonts ship via the spec's ``*.ttf`` glob loop, each to ``_MEIPASS/fonts``."""
     spec_src = SPEC_PATH.read_text(encoding="utf-8")
