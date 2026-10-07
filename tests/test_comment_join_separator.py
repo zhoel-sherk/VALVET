@@ -184,3 +184,31 @@ def test_join_separator_does_not_change_the_vendor_count():
     assert results[""] == results[" | "], results
     assert results[" "] == results[" | "], results
     assert results["~"] == results[" | "], results
+
+
+# --------------------------------------------------------------------------
+# separator must not occur inside the data itself
+# --------------------------------------------------------------------------
+
+
+def test_separator_that_occurs_in_data_is_logged_as_a_warning(caplog):
+    """A separator like ``"2"`` occurs inside values such as ``"25V"``.
+
+    The import still proceeds, but it logs a warning so the user sees that the
+    chosen separator is inside the data and may produce false splits.
+    """
+    import pandas as pd
+
+    from services.clean_import import import_bom_comments_for_clean
+
+    df = pd.DataFrame(
+        [["RES_100K_1%_25V_R0402", "0402WGF1004TCE"]],
+        columns=["descr", "mpn"],
+    )
+    result = import_bom_comments_for_clean(
+        df, ["descr", "mpn"], [0], double_comment_separator="2"
+    )
+    assert result == ["RES_100K_1%_25V_R040220402WGF1004TCE"]
+    assert any(
+        "separator" in rec.message and "25V" in rec.message for rec in caplog.records
+    )

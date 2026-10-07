@@ -7,7 +7,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from parsers.bom_text_utils import merge_clean_comment_cell_parts
+import logger
+from parsers.bom_text_utils import (
+    DEFAULT_DOUBLE_COMMENT_JOIN,
+    merge_clean_comment_cell_parts,
+)
 
 
 def import_bom_comments_for_clean(
@@ -21,6 +25,12 @@ def import_bom_comments_for_clean(
     """Join every PN name / PN join column in table order when there are two or more.
 
     ``double_comment_enabled`` is ignored (kept for call-site compatibility).
+
+    Logs a warning when ``double_comment_separator`` appears inside any comment
+    cell, because joining with such a separator can create false splits that
+    ``split_joined_clean_comment`` cannot recover. This makes separators like
+    ``"2"`` (which occurs inside values such as ``"25V"``) visible to the user
+    instead of silently corrupting the result.
     """
     del double_comment_enabled
     if not comment_column_names:
@@ -29,6 +39,23 @@ def import_bom_comments_for_clean(
     for col in comment_cols:
         if col not in bom_df.columns:
             return []
+
+    sep = double_comment_separator or DEFAULT_DOUBLE_COMMENT_JOIN
+    for col in comment_cols:
+        for i in active_row_indices:
+            cell = str(bom_df.iloc[i][col])
+            if sep in cell:
+                preview = cell[:40] + "..." if len(cell) > 40 else cell
+                logger.warning(
+                    "Clean BOM: separator %r occurs inside comment cell "
+                    "(row %s, column %r, value %r). Joined cells may split "
+                    "incorrectly; change the separator in Clean options if the "
+                    "result looks wrong.",
+                    sep,
+                    i,
+                    col,
+                    preview,
+                )
 
     if len(comment_cols) >= 2:
         return [
