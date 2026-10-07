@@ -230,32 +230,39 @@ def test_logs_entry_is_detected_in_a_built_zip(tmp_path: Path) -> None:
 
 
 def test_spec_drops_third_party_test_files() -> None:
-    """``collect_all()`` ships package internals; the gate refuses ``test_*.py``.
+    """``collect_all()`` ships package internals; the gate refuses those shapes.
 
-    Found the hard way: the first release build with the zip gate enabled failed
-    on ``rapidfuzz/__pyinstaller/test_rapidfuzz_packaging.py``, a packaging test
-    swept in by ``collect_all("rapidfuzz")``. The gate must not be weakened to
-    accommodate it, so the spec has to filter it — on both the static ``datas``
-    list and ``Analysis``, because collect_all results are appended after the
-    literal list is built.
+    Found the hard way, one 5-minute build per discovery: the release zip
+    contained ``rapidfuzz/__pyinstaller/test_rapidfuzz_packaging.py``,
+    ``qdarkstyle/example/`` and ``PySide6/scripts/deploy_lib/default.spec``. The
+    gate must not be weakened to accommodate them, so the spec has to filter
+    them — on both the static lists and ``Analysis``, because collect_all
+    results are appended after the literal lists are built.
     """
     spec_src = SPEC_PATH.read_text(encoding="utf-8")
-    assert "def _not_test_junk" in spec_src, "valvet.spec must define _not_test_junk"
+    assert "def _not_package_junk" in spec_src, (
+        "valvet.spec must define _not_package_junk"
+    )
     for target in ("datas", "binaries"):
-        assert f"[x for x in {target} if _not_test_junk(x)]" in spec_src, (
-            f"the static {target} list is not filtered for test junk"
+        assert f"[x for x in {target} if _not_package_junk(x)]" in spec_src, (
+            f"the static {target} list is not filtered for package junk"
         )
-        assert f"[e for e in a.{target} if _not_test_junk(e)]" in spec_src, (
-            f"a.{target} is not filtered for test junk"
+        assert f"[e for e in a.{target} if _not_package_junk(e)]" in spec_src, (
+            f"a.{target} is not filtered for package junk"
         )
 
 
-def test_spec_test_junk_filter_covers_the_obvious_names() -> None:
-    """The filter must drop the same shapes the release gate rejects."""
+def test_spec_package_junk_filter_covers_the_found_shapes() -> None:
+    """The filter must drop the same shapes the release gate rejected in a build."""
     src = SPEC_PATH.read_text(encoding="utf-8")
-    assert 'startswith("test_")' in src
-    assert '== "conftest.py"' in src
-    assert '"/tests/" in path' in src
+    for marker in (
+        'startswith("test_")',
+        '== "conftest.py"',
+        '"/tests/" in path',
+        '"/example/" in path',
+        'name.endswith(".spec")',
+    ):
+        assert marker in src, f"the package-junk filter no longer covers {marker}"
 
 
 def test_fonts_are_globbed_not_hardcoded() -> None:

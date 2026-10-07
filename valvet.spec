@@ -177,14 +177,21 @@ def _not_repo_examples(item) -> bool:
     return "/examples/" not in blob
 
 
-def _not_test_junk(item) -> bool:
-    """Keep third-party test files out of the bundle.
+def _not_package_junk(item) -> bool:
+    """Keep package-internal non-runtime files out of the bundle.
 
-    ``collect_all("rapidfuzz")`` sweeps the whole installed package, including
-    ``rapidfuzz/__pyinstaller/test_rapidfuzz_packaging.py``. That is a packaging
-    test, not runtime code, and the release workflow refuses to ship anything
-    matching ``test_*.py`` — so it has to be dropped here rather than by
-    weakening the gate.
+    ``collect_all()`` returns a whole installed package, not just the modules the
+    app imports. Building the 0.5.1.2 release zip on CI pulled in three shapes
+    that the zip gate rejects:
+
+    * ``rapidfuzz/__pyinstaller/test_rapidfuzz_packaging.py`` — a packaging test
+    * ``qdarkstyle/example/`` (12 files) — the demo application
+    * ``PySide6/scripts/deploy_lib/default.spec`` — pyside6-deploy tooling
+
+    They are dropped here rather than by loosening the gate: a pattern weak
+    enough to admit them would also admit this repo's own ``examples/`` fixtures
+    and test files. Runs on the literal lists and again on ``Analysis``, because
+    collect_all results are appended after those lists are built.
     """
     parts = item if isinstance(item, (tuple, list)) else (item,)
     for part in parts:
@@ -196,13 +203,17 @@ def _not_test_junk(item) -> bool:
             return False
         if "/tests/" in path or "/test/" in path:
             return False
+        if "/examples/" in path or "/example/" in path:
+            return False
+        if name.endswith(".spec"):
+            return False
     return True
 
 
 datas = [x for x in datas if _not_repo_examples(x)]
 binaries = [x for x in binaries if _not_repo_examples(x)]
-datas = [x for x in datas if _not_test_junk(x)]
-binaries = [x for x in binaries if _not_test_junk(x)]
+datas = [x for x in datas if _not_package_junk(x)]
+binaries = [x for x in binaries if _not_package_junk(x)]
 
 a = Analysis(
     ["src/main.py"],
@@ -222,8 +233,8 @@ a = Analysis(
 
 a.datas = [e for e in a.datas if _not_repo_examples(e)]
 a.binaries = [e for e in a.binaries if _not_repo_examples(e)]
-a.datas = [e for e in a.datas if _not_test_junk(e)]
-a.binaries = [e for e in a.binaries if _not_test_junk(e)]
+a.datas = [e for e in a.datas if _not_package_junk(e)]
+a.binaries = [e for e in a.binaries if _not_package_junk(e)]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
