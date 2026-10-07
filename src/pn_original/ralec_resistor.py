@@ -419,37 +419,6 @@ _SERIES = {
 
 # Series deliberately not decoded, with the reason.
 _REFUSED = {
-    "FTA": "array structure: circuit count + terminal type field",
-    "RAA": "array structure: circuit count + terminal type field",
-    "RHW": "p62 prints 06=1206 (high-power low-R), p64 prints 06=0612 (wide terminal)",
-    "RSA": "array structure: circuit count + terminal type field",
-    "RTA": "array structure: circuit count + terminal type field",
-    "RTN": "array structure: circuit count + terminal type field",
-}
-
-# Series deliberately not decoded, with the reason.
-_REFUSED = {
-    "FTA": "array structure: circuit count + terminal type field",
-    "RAA": "array structure: circuit count + terminal type field",
-    "RHW": "p62 prints 06=1206 (high-power low-R), p64 prints 06=0612 (wide terminal)",
-    "RSA": "array structure: circuit count + terminal type field",
-    "RTA": "array structure: circuit count + terminal type field",
-    "RTN": "array structure: circuit count + terminal type field",
-}
-
-# Series deliberately not decoded, with the reason.
-_REFUSED = {
-    "FTA": "array structure: circuit count + terminal type field",
-    "RAA": "array structure: circuit count + terminal type field",
-    "RHW": "p62 prints 06=1206 (high-power low-R), p64 prints 06=0612 (wide terminal)",
-    "RSA": "array structure: circuit count + terminal type field",
-    "RTA": "array structure: circuit count + terminal type field",
-    "RTN": "array structure: circuit count + terminal type field",
-}
-
-# Prefixes that are deliberately not decoded, and why. Kept as data rather than
-# only prose so the reason sits next to the table it qualifies.
-_REFUSED = {
     # Page 62 prints 06=1206 (high-power low-R), page 64 prints 06=0612 (wide
     # terminal) under one prefix, and the part number cannot say which.
     "RHW": "conflicting size tables in the catalogue",

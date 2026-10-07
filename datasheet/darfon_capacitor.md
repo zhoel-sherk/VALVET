@@ -32,17 +32,17 @@ All sample rows are part numbers printed in the catalogue's own tables.
 ## samples
 
 | mpn_or_bom | ctype | expected | path |
-| C0603NP0240JGT | CAP | 0603_24pF_C0G_5%_50V | vendor |
-| C0603NP0201JGT | CAP | 0603_200pF_C0G_5%_50V | vendor |
-| C0603NP0201JFT | CAP | 0603_200pF_C0G_5%_25V | vendor |
-| C0603NP0271JGT | CAP | 0603_270pF_C0G_5%_50V | vendor |
-| C0603NP0430JGT | CAP | 0603_43pF_C0G_5%_50V | vendor |
+| C0603NP0240JGT | CAP | 0201_24pF_C0G_5%_50V | vendor |
+| C0603NP0201JGT | CAP | 0201_200pF_C0G_5%_50V | vendor |
+| C0603NP0201JFT | CAP | 0201_200pF_C0G_5%_25V | vendor |
+| C0603NP0271JGT | CAP | 0201_270pF_C0G_5%_50V | vendor |
+| C0603NP0430JGT | CAP | 0201_43pF_C0G_5%_50V | vendor |
 | C1005NP0508CGTS | CAP | 0402_0.5pF_C0G_0.25pF_50V | vendor |
-| C0603X5R475MTT | CAP | 0603_4.7uF_X5R_20%_2.5V | vendor |
-| C0603X5R155MBT | CAP | 0603_1.5uF_X5R_20%_4V | vendor |
-| C0603X5R101KCT | CAP | 0603_100pF_X5R_10%_6.3V | vendor |
-| C0603X5R182KDT | CAP | 0603_1.8nF_X5R_10%_10V | vendor |
-| C0603X5R105MET | CAP | 0603_1uF_X5R_20%_16V | vendor |
-| C0603X5R101KFT | CAP | 0603_100pF_X5R_10%_25V | vendor |
+| C0603X5R475MTT | CAP | 0201_4.7uF_X5R_20%_2.5V | vendor |
+| C0603X5R155MBT | CAP | 0201_1.5uF_X5R_20%_4V | vendor |
+| C0603X5R101KCT | CAP | 0201_100pF_X5R_10%_6.3V | vendor |
+| C0603X5R182KDT | CAP | 0201_1.8nF_X5R_10%_10V | vendor |
+| C0603X5R105MET | CAP | 0201_1uF_X5R_20%_16V | vendor |
+| C0603X5R101KFT | CAP | 0201_100pF_X5R_10%_25V | vendor |
 | C1005X5R224KNT | CAP | 0402_220nF_X5R_10%_35V | vendor |
-| C0603X5R103KGT | CAP | 0603_10nF_X5R_10%_50V | vendor |
+| C0603X5R103KGT | CAP | 0201_10nF_X5R_10%_50V | vendor |

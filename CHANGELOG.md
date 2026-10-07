@@ -136,6 +136,20 @@ plus release-pipeline hardening.
   states `WW12: 1206`, and the sheets contradict each other, so the part falls
   through instead of being given a guessed imperial size.
 
+- **Darfon reported an oversized package for every `C0603` part.** The size field
+  is L × W in units of 0.1 mm, so `0603` is a 0.6 × 0.3 mm body — EIA **0201** —
+  while `1608` is a 1.6 × 0.8 mm body, EIA 0603. The catalogue's Ordering Code
+  block lists all nine pairs in one run: `0402(01005) 0603(0201) 1005(0402)
+  1608(0603) 2012(0805) 3216(1206) 3225(1210) 4520(1808) 4532(1812)`, and three
+  more places agree (paper-tape column head `PRODUCT SIZE CODE C0603(0201)`, the
+  series heading `C0603NP0 Series (EIA0201)`, and the 0201 tape pocket cannot
+  physically take a 1.6 × 0.8 mm body). The size table was missing the two
+  smallest pairs, and a fallback then treated the EIA column as if it were a size
+  field, so `C0603…` came out as 0603 — a ~2.7× oversize package — on 293 part
+  numbers in the catalogue. All nine pairs now resolve as printed and only the
+  metric spelling is accepted. Cleaned output for `C0603` parts changes from
+  `0603_…` to `0201_…`, so the `darfon_capacitor.md` sample rows move with it.
+
 - **Darfon parsed none of the 632 part numbers in its own catalogue.** The codec
   was written against shapes that do not appear in the manufacturer's catalogue;
   measured against the 632 real part numbers, 0 matched. Rewritten against the

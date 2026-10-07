@@ -39,9 +39,9 @@ Fields, and what the previous pattern got wrong:
   are accepted as an optional tail.
 
 Examples (all taken from the catalogue's own tables):
-- C0603NP0240JGT → 0603_24pF_C0G_5%_50V      (24 × 10^0 pF, G = 50 V)
-- C0603NP0201JGT → 0603_200pF_C0G_5%_50V     (20 × 10^1 pF)
-- C0603NP0201JFT → 0603_200pF_C0G_5%_25V     (same value, F = 25 V)
+- C0603NP0240JGT → 0201_24pF_C0G_5%_50V      (24 × 10^0 pF, G = 50 V)
+- C0603NP0201JGT → 0201_200pF_C0G_5%_50V     (20 × 10^1 pF)
+- C0603NP0201JFT → 0201_200pF_C0G_5%_25V     (same value, F = 25 V)
 - C1005NP0508CGTS → 0402_0.5pF_C0G_0.25pF_50V (508: "8" → 50 × 10^-2 pF, C = ±0.25 pF)
 """
 
@@ -53,8 +53,19 @@ VENDOR_NAME = "Darfon"
 COMPONENT_TYPES = ["CAP"]
 PARSER_PRIORITY = 84
 
-# Datasheet "SIZE in mm (EIA CODE, in inch)" - both spellings appear.
+# Datasheet "Ordering Code" block, complete: "SIZE in mm (EIA CODE, in inch)
+# 0402(01005) 0603(0201) 1005(0402) 1608(0603) 2012(0805) 3216(1206)
+# 3225(1210) 4520(1808) 4532(1812)".
+#
+# The size field is L x W in units of 0.1 mm, so the two halves of each pair are
+# not interchangeable spellings of one size: "0603" is a 0.6 x 0.3 mm body,
+# which is EIA 0201, while "1608" is a 1.6 x 0.8 mm body, which is EIA 0603.
+# "0402" and "0603" were missing from this table, so a C0603 part fell through to
+# the EIA fallback and was reported as 0603 instead of 0201 - a ~2.7x oversize
+# package on every C0603 part in the catalogue.
 _SIZE_METRIC = {
+    "0402": "01005",
+    "0603": "0201",
     "1005": "0402",
     "1608": "0603",
     "2012": "0805",
@@ -63,7 +74,6 @@ _SIZE_METRIC = {
     "4520": "1808",
     "4532": "1812",
 }
-_SIZE_EIA = {"0402", "0603", "0805", "1206", "1210", "1808", "1812"}
 
 _TC = {
     "NP0": "C0G",
@@ -140,13 +150,14 @@ def _decode_capacitance(code: str) -> str:
 
 
 def _resolve_size(code: str) -> str:
-    """Accept both the metric and the EIA spelling of the size field."""
-    raw = str(code or "").strip()
-    if raw in _SIZE_METRIC:
-        return _SIZE_METRIC[raw]
-    if raw in _SIZE_EIA:
-        return raw
-    return ""
+    """Map the metric size field to its EIA code, per the catalogue's 9 pairs.
+
+    Only the metric spelling is accepted. The EIA codes the catalogue prints as
+    the second half of each pair are a *different* set of numbers that happen to
+    overlap - treating them as size codes is what made "0603" resolve to 0603
+    instead of 0201.
+    """
+    return _SIZE_METRIC.get(str(code or "").strip(), "")
 
 
 def parse(pn: str, component_type: str) -> str | None:
