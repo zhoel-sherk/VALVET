@@ -61,8 +61,17 @@ def test_validate_rejects_malformed_versions(version: str) -> None:
 
 
 def test_current_version_is_valid() -> None:
+    """The checked-in version must be four numeric segments that round-trip.
+
+    Derived from ``__version__`` rather than spelled out: a literal pin here
+    fails on every legitimate ``bump``, which trains people to "fix" the test
+    instead of the intent. The single source of truth is asserted separately by
+    ``test_constants_reexports_the_single_source_of_truth``.
+    """
     assert validate_version(__version__) == __version__
-    assert parse_version(__version__) == (0, 5, 1, 1)
+    parts = parse_version(__version__)
+    assert len(parts) == 4
+    assert parts == tuple(int(part) for part in __version__.split("."))
 
 
 def test_constants_reexports_the_single_source_of_truth() -> None:
