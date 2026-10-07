@@ -34,9 +34,20 @@ def test_walsin_b_line_emits_film() -> None:
     assert got == "0402_100pF_X7R_50V_10%"
 
 
-def test_royal_ohm_k_tolerance_is_preserved() -> None:
+def test_walsin_high_voltage_code_is_eia_style() -> None:
+    """3-digit Walsin voltage codes are XY×10^Z V, not ÷10.
+
+    Datasheet examples: 201 = 200 VDC, 202 = 2000 VDC, 302 = 3000 VDC.
+    """
+    assert _parse("1808B102K202CT", "CAP") == "1808_1nF_X7R_2000V_10%"
+    assert _parse("1808B102K201CT", "CAP") == "1808_1nF_X7R_200V_10%"
+    assert _parse("1812B102K302CT", "CAP") == "1812_1nF_X7R_3000V_10%"
+
+
+def test_royal_ohm_k_multiplier_decodes_centiohm_value() -> None:
+    """Trailing K is a decimal multiplier (×0.01), not the tolerance."""
     got = _parse("0603WAF220KT5E", "RES")
-    assert got == "0603_22R_1%_1/10W"
+    assert got == "0603_2.2R_1%_1/10W"
 
 
 def test_uniohm_series_letter_gives_tolerance_not_trailing_letter() -> None:
@@ -50,10 +61,13 @@ def test_uniohm_series_letter_gives_tolerance_not_trailing_letter() -> None:
 
 
 def test_uniohm_f_series_is_1_percent_regardless_of_trailing_letter() -> None:
-    """Verified against LCSC: 200J, 549J, 511K, 220K are all ±1%."""
+    """Verified against LCSC: 200J, 549J, 511K, 220K are all ±1%.
+
+    Trailing J/K are decimal multipliers (J = ×0.1, K = ×0.01), not tolerance.
+    """
     assert _parse("0402WGF200JTCE", "RES") == "0402_20R_1%_1/16W"
     assert _parse("0402WGF549JTCE", "RES") == "0402_54.9R_1%_1/16W"
-    assert _parse("0402WGF511KTCE", "RES") == "0402_51.1R_1%_1/16W"
+    assert _parse("0402WGF511KTCE", "RES") == "0402_5.11R_1%_1/16W"
 
 
 def test_uniohm_j_series_is_5_percent() -> None:

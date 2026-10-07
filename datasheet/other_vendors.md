@@ -12,7 +12,7 @@ Sources: `src/pn_original/*` plus `tests/test_pn_vendor_verified_rules.py`.
 | TAIYO/EMK105B7223KV-F | CAP | 0402_22nF_16V_X7R_10% | vendor |
 | V105K0201X5R160NXT | CAP | 0201_1uF_X5R_10%_16V | vendor |
 | V223K0201X5R160NAT | CAP | 0201_22nF_X5R_10%_16V | vendor |
-| 0603WAF220KT5E | RES | 0603_22R_1%_1/10W | vendor |
+| 0603WAF220KT5E | RES | 0603_2.2R_1%_1/10W | vendor |
 | 0402WGJ0472TCE | RES | 0402_4.7K_5%_1/16W | vendor |
 | 0402WGF499JTCE | RES | 0402_49.9R_1%_1/16W | vendor |
 | 0402WGJ0000TCE | RES | 0402_0R_5%_1/16W | vendor |

@@ -159,24 +159,22 @@ def parse(pn: str, component_type: str) -> str | None:
         resistance = parse_resistance(res_code)
 
     if len(remaining2) >= 4 and not resistance:
-        if remaining2[3] in tol_map:
-            # The letter after the value is NOT the tolerance in this layout.
-            # Verified against LCSC for these exact part numbers:
-            #   0402WGF200JTCE  -> 20R   ±1%   (series letter F, trailing J)
-            #   0402WGF549JTCE  -> 54.9R ±1%   (series letter F, trailing J)
-            #   0402WGF511KTCE  -> 5.11R ±1%   (series letter F, trailing K)
-            #   0603WAF220KT5E  -> 2.2R  ±1%   (series letter F, trailing K)
-            #   0402WGJ0223TCE  -> 22K   ±5%   (series letter J, trailing T)
-            # Tolerance comes from the series letter (WG+W8/W4/... + F or J),
-            # already resolved into default_tolerance above. Reading the
-            # trailing letter through the IEC map reported 5%/10% for parts
-            # that are in fact 1%.
+        # Royal Ohm / Uniohm use J/K/L as decimal multipliers for the 3-digit
+        # value field (datasheet: "J" ~ 0.1, "K" ~ 0.01, "L" ~ 0.001).
+        # Confirmed against LCSC / datasheet:
+        #   0402WGF100JTCE  -> 10R   ±1%   (100 × 0.1)
+        #   0402WGF200JTCE  -> 20R   ±1%   (200 × 0.1)
+        #   0402WGF549JTCE  -> 54.9R ±1%   (549 × 0.1)
+        #   0402WGF511KTCE  -> 5.11R ±1%   (511 × 0.01)
+        #   0603WAF220KT5E  -> 2.2R  ±1%   (220 × 0.01)
+        multiplier_map = {"J": 0.1, "K": 0.01, "L": 0.001}
+        if remaining2[3] in multiplier_map:
             tolerance = default_tolerance or "1%"
             res_code = remaining2[:3]
             if res_code.isdigit():
-                # For legacy Royal/Uni families, "XYZJ" maps to X.YZ? no —
-                # practice corpus uses deci-ohm coding (e.g. 499J -> 49.9R).
-                resistance = _format_ohm(float(int(res_code)) / 10.0)
+                resistance = _format_ohm(
+                    float(int(res_code)) * multiplier_map[remaining2[3]]
+                )
             else:
                 resistance = ""
         else:
