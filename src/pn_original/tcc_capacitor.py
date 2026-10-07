@@ -1,6 +1,25 @@
 """
 TCC MLCC PN parser — ``TCC + size + dielectric + EIA value + tolerance + voltage + tail``.
 
+.. warning::
+
+   **UNVERIFIED — no manufacturer part-number catalogue has been obtained.**
+
+   Everything below is derived from nine production rows of the CO1271 SKU3 BOM
+   whose description column is the ground truth, not from a CCTC publication. The
+   only CCTC file retrieved (2026-10-04) was a "Specification for Approval"
+   template from Chaozhou Three-Circle (Group) Co., Ltd whose tables are images;
+   it has no part-number section. A web search surfaced only the vendor product
+   selector and a third-party article, neither of which is a catalogue.
+
+   Treat the field layout below as a hypothesis that happens to fit nine observed
+   parts. In particular the rated-voltage rule — a 3-digit block divided by ten —
+   is unconfirmed: a real catalogue could turn out to use an EIA
+   mantissa-exponent form, in which case codes not ending in 0 would be wrong,
+   exactly as they were for Fenghua before that was checked. Do not widen this
+   codec further without a catalogue; when one appears, verify the voltage
+   convention first.
+
 Part Number Format:
 ``TCC`` | size (4) | dielectric (3) | capacitance (3) | tolerance (1) | voltage (3 or dRd) | tail
 
