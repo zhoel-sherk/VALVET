@@ -7,7 +7,7 @@ Sources: `src/pn_original/*` plus `tests/test_pn_vendor_verified_rules.py`.
 | mpn_or_bom | ctype | expected | path |
 | TA-I/RM04JTN100 | RES | 0402_10R_5% | vendor |
 | WR08X000PTL | RES | 0805_0R | vendor |
-| WALSIN/0402N100J500CT | CAP | 0402_10pF_50V_5% | vendor |
+| WALSIN/0402N100J500CT | CAP | 0402_10pF_C0G_50V_5% | vendor |
 | 0402B101K500CT | CAP | 0402_100pF_X7R_50V_10% | vendor |
 | TAIYO/EMK105B7223KV-F | CAP | 0402_22nF_16V_X7R_10% | vendor |
 | V105K0201X5R160NXT | CAP | 0201_1uF_X5R_10%_16V | vendor |

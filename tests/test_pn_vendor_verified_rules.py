@@ -24,9 +24,16 @@ def test_viiyong_nat_variant_supported() -> None:
     assert got == "0201_22nF_X5R_10%_16V"
 
 
-def test_walsin_n_line_keeps_tolerance() -> None:
+def test_walsin_n_line_emits_np0_and_keeps_tolerance() -> None:
+    """``N`` is the catalog's class-1 letter (NP0), so the film is emitted too.
+
+    Walsin "MLCC Product Catalog", "How To Order": dielectric ``N`` = NP0. The
+    previous pattern did not read the dielectric on the N line at all, so a part
+    whose letter already said NP0 cleaned to a string indistinguishable from one
+    with no dielectric information.
+    """
     got = _parse("0402N100J500CT", "CAP")
-    assert got == "0402_10pF_50V_5%"
+    assert got == "0402_10pF_C0G_50V_5%"
 
 
 def test_walsin_b_line_emits_film() -> None:
