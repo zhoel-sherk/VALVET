@@ -1,28 +1,34 @@
 """
 Royal Ohm Resistor PN Parser
 
-Royal Ohm Thick Film Chip Resistor Part Number Format:
-Size(4) + Wattage block + Tolerance + Resistance(3|4 digits) + TCR + packaging suffix
+RoyalOhm and UniOhm are the two brands of **Uniroyal Electronics Global Co.,
+Ltd.** (Kunshan, Jiangsu) - one datasheet covers both - so this codec and
+``uniohm_resistor.py`` decode the same layout and must not disagree.
+
+Royal Ohm Thick Film Chip Resistor Part Number Format (14 codes):
+Size(4) + Power(2) + Tolerance(1) + Resistance(4) + Packaging(3)
 
 Examples:
-- 0402WGF100JTCE → RES_0402_10R_1%_1/16W
+- 0805W8J0103T5E → RES_0805_10K_5%_1/8W   (the datasheet's own ordering example)
 - 0402WGF1004TCE → RES_0402_1M_1%_1/16W
 - 0603WAF3001T5E → RES_0603_3K_1%_1/10W
+- 0402WGD1002TCE → RES_0402_10K_0.5%_1/16W
+- 0402WGF100MTCE → RES_0402_0.01R_1%_1/16W
 
 Size codes:
 0201, 0402, 0603, 0805, 1206, 1210, 2010, 2512
 
-Wattage codes (examples):
-WGF=1/16W (0402), WAF=1/10W (0603), W8F=1/8W (0805), W4F=1/4W (1206)
+Power (codes 5-6) and tolerance (code 7) are independent fields, so D=0.5% and
+G=2% resolve; see ``_POWER_CODES``.
 
 Tolerance:
-F=±1%, J=±5%
+D=±0.5%, F=±1%, G=±2%, J=±5%
 
-Resistance coding:
-- 4-digit E96 XXXY = XXX×10^Y Ω
-- 3-digit value with trailing J/K/L: XYZJ = XYZ×0.1 Ω, XYZK = XYZ×0.01 Ω,
-  XYZL = XYZ×0.001 Ω (e.g. 330K = 3.3 Ω, 511K = 5.11 Ω)
-- 3-digit plain XXY = XX×10^Y Ω
+Resistance coding (codes 8-11, three significant figures plus a power-of-ten code):
+- digit exponent: 4-digit XXXY = XXX×10^Y Ω  (e.g. 1004 = 1M)
+- letter exponent: XYZJ = XYZ×10^-1, XYZK = XYZ×10^-2, XYZL = XYZ×10^-3,
+  XYZM = XYZ×10^-4, XYZN = XYZ×10^-5, XYZP = XYZ×10^-6
+  (e.g. 330K = 3.3 Ω, 100M = 0.01 Ω)
 
 Note:
 ``parse()`` does not swallow exceptions. "Not my format" is reported by an explicit
@@ -35,6 +41,31 @@ from parsers.regex_api import match
 VENDOR_NAME = "Royal Ohm"
 COMPONENT_TYPES = ["RES"]
 PARSER_PRIORITY = 25
+
+# Datasheet "Explanation of Part No. System", code 5-6 (power rating), which the
+# manufacturer publishes as independent of the tolerance letter in code 7.
+_POWER_CODES = (
+    ("WH", "1/32W"),
+    ("WM", "1/20W"),
+    ("WG", "1/16W"),
+    ("WA", "1/10W"),
+    ("W8", "1/8W"),
+    ("W4", "1/4W"),
+    ("W2", "1/2W"),
+)
+
+# Datasheet 2.4.3: the 11th code is the power of ten. Digits 0-6 mean 10^0..10^6
+# and the letters are negative exponents: J=10^-1 K=10^-2 L=10^-3 M=10^-4
+# N=10^-5 P=10^-6. Omitting M/N/P made those parts decode 10^3..10^6 too high
+# while also dropping the tolerance (GRM-style fallthrough to the 3-digit rule).
+_EXPONENT_MAP = {
+    "J": 0.1,
+    "K": 0.01,
+    "L": 0.001,
+    "M": 0.0001,
+    "N": 0.00001,
+    "P": 0.000001,
+}
 
 
 def _format_ohm(value: float) -> str:
@@ -116,19 +147,35 @@ def parse(pn: str, component_type: str) -> str | None:
     wattage = ""
     default_tolerance = ""
     res_start = 0
-    for code, label, tol in wattage_rules:
+    # The datasheet makes power (codes 5-6) and tolerance (code 7) independent
+    # fields, so the pair is read as "power code" + "tolerance letter" instead of
+    # as fused tokens. That is what makes D=+/-0.5% and G=+/-2% reachable.
+    tol_map = {"D": "0.5%", "F": "1%", "G": "2%", "J": "5%"}
+    power_code = None
+    for code, label in _POWER_CODES:
         if remaining.startswith(code):
-            wattage = label
-            default_tolerance = tol
-            res_start = len(code)
+            power_code = (code, label)
             break
+
+    if power_code is not None:
+        wattage = power_code[1]
+        res_start = len(power_code[0])
+        tol_char = remaining[res_start : res_start + 1]
+        if tol_char in tol_map:
+            default_tolerance = tol_map[tol_char]
+            res_start += 1
+    else:
+        for code, label, tol in wattage_rules:
+            if remaining.startswith(code):
+                wattage = label
+                default_tolerance = tol
+                res_start = len(code)
+                break
 
     if res_start == 0:
         return None
 
     remaining2 = remaining[res_start:]
-
-    tol_map = {"F": "1%", "J": "5%", "K": "10%"}
 
     # Royal Ohm format: after wattage code
     # 3-digit resistance: XXX + tol at position 3 (e.g., 100J = 10R)
@@ -147,7 +194,7 @@ def parse(pn: str, component_type: str) -> str | None:
     #   0402WGF549JTCE  -> 54.9R ±1%   (549 × 0.1)
     #   0402WGF511KTCE  -> 5.11R ±1%   (511 × 0.01)
     #   0603WAF220KT5E  -> 2.2R  ±1%   (220 × 0.01)
-    multiplier_map = {"J": 0.1, "K": 0.01, "L": 0.001}
+    multiplier_map = _EXPONENT_MAP
     if len(remaining2) >= 4 and remaining2[3] in multiplier_map:
         tolerance = default_tolerance or "1%"
         res_code = remaining2[:3]
