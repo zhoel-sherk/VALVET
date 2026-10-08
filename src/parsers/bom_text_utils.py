@@ -207,6 +207,62 @@ def preprocess_cap_tokens_for_slash_voltage(spec: str) -> str:
     return s
 
 
+# A part number is one compact token: letters, digits and the separators a
+# manufacturer actually uses. Prose never qualifies, because it carries spaces or
+# notation a part number does not have.
+_MPN_TOKEN_RE = r"^[A-Z0-9._+/\-()]+$"
+
+# Substrings a human description carries and a part number does not. Tuned against
+# every description cell of the TechOne 27 (CO1271) order: with this list the check
+# produced 0 false positives across 266 description cells and missed only
+# ``CR2032 3V/230mAh``, which contains a space and so falls back to position.
+_PROSE_MARKERS = (
+    "%",
+    "\u00b1",  # ±
+    " ",
+    "\t",
+    "MLCC",
+    "SCAP",
+    "RES_",
+    "CAP_",
+    "IND_",
+    "PCB_",
+    "PCBA_",
+    "SMD",
+    "DIP",
+    "UF",
+    "NF_",
+    "PF_",
+    "UH",
+    "OHM",
+    "V+",
+)
+
+
+def looks_like_part_number(segment: object) -> bool:
+    """True when ``segment`` is shaped like a manufacturer part number.
+
+    Used only to tell the two halves of a joined comment apart - it is not a
+    parser and deliberately claims nothing about whether the part number decodes.
+    A token qualifies when it is one run of part-number characters, carries a
+    digit, is at least five characters long, and contains no prose marker. The
+    length floor exists to keep dimension fragments such as ``H3.2`` or ``D20``
+    out; no part number in the orders we parse is shorter than that. Bare numerics
+    qualify from five digits up, so ``801000641`` counts while a quantity does not.
+    """
+    t = str(segment).strip() if segment is not None else ""
+    if not t or len(t) < 5 or len(t) > 64:
+        return False
+    if fullmatch(_MPN_TOKEN_RE, t, I) is None:
+        return False
+    if not any(c.isdigit() for c in t):
+        return False
+    if not any(c.isalpha() for c in t) and not (t.isdigit() and len(t) >= 5):
+        return False
+    up = t.upper()
+    return not any(marker.upper() in up for marker in _PROSE_MARKERS)
+
+
 def split_joined_clean_comment(
     spec: str,
     sep: str = DEFAULT_DOUBLE_COMMENT_JOIN,
@@ -215,15 +271,40 @@ def split_joined_clean_comment(
     Split «prose | vendor label | MPN» join rows (Double Comment import).
 
     Returns ``(bom_prose, vendor_label, mpn_tail)``; empty strings when absent.
+
+    An empty ``sep`` would make ``str.split`` raise, and it never matches anything
+    that was joined, so it is resolved to :data:`DEFAULT_DOUBLE_COMMENT_JOIN` here -
+    the same way `merge_clean_comment_cell_parts` resolves it on the way in. Join and
+    split must agree, otherwise the whole cell stays glued and every downstream
+    step sees one unparseable part number.
+
+    The roles are normally positional (prose first, MPN last), but a row joined
+    with the MPN column first would invert both. When the first segment is the only
+    part-number-shaped one, the roles are taken from what the segments look like
+    instead; every other shape keeps the positional rule, so an ordinary
+    «prose | MPN» row behaves exactly as before.
     """
+    if not sep:
+        sep = DEFAULT_DOUBLE_COMMENT_JOIN
     parts = [p.strip() for p in str(spec).split(sep) if str(p).strip()]
+    if not parts:
+        return str(spec).strip(), "", ""
+
+    if (
+        len(parts) >= 2
+        and looks_like_part_number(parts[0])
+        and not any(looks_like_part_number(p) for p in parts[1:])
+    ):
+        # Written MPN-first. Remove the MPN and keep the documented order for the rest.
+        if len(parts) == 2:
+            return parts[1], "", parts[0]
+        return parts[-1], parts[1], parts[0]
+
     if len(parts) >= 3:
         return parts[0], parts[1], parts[-1]
     if len(parts) == 2:
         return parts[0], "", parts[1]
-    if len(parts) == 1:
-        return parts[0], "", ""
-    return str(spec).strip(), "", ""
+    return parts[0], "", ""
 
 
 def joined_clean_comment_mpn(spec: str, sep: str = DEFAULT_DOUBLE_COMMENT_JOIN) -> str:

@@ -76,6 +76,12 @@ class CleanConfig:
     parse_capacitors: bool = True
     parse_inductors: bool = True
     output_separator: str = "_"
+    # Separator the BOM columns were joined with before Clean saw the row. Used to
+    # split the joined comment back apart, so it must match the one used to join it -
+    # `split_joined_clean_comment` cannot recover a row joined with a different
+    # separator, and falls through to treating the whole cell as one part number.
+    # Empty means "not configured" and is resolved to DEFAULT_DOUBLE_COMMENT_JOIN.
+    double_comment_separator: str = " | "
     resistor_template: Tuple[str, ...] = ("pack", "nom", "%")
     cap_template: Tuple[str, ...] = ("pack", "nom", "V", "film", "%")
     resistor_prefix: str = ""

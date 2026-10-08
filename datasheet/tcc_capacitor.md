@@ -1,6 +1,22 @@
-# TCC MLCC (TCC… prefix)
+# TCC MLCC (TCC… prefix) — UNVERIFIED
 
 Source: [`src/pn_original/tcc_capacitor.py`](../src/pn_original/tcc_capacitor.py)
+
+> **No manufacturer catalogue.** These rows come from nine production rows of the
+> CO1271 SKU3 BOM, where the BOM description column is the ground truth. The only
+> CCTC document retrieved (2026-10-04) is a "Specification for Approval" template
+> from Chaozhou Three-Circle (Group) Co., Ltd with image-only tables and no
+> part-number section.
+>
+> Every 3-digit voltage code in these rows ends in `0` (`160` `250` `500`),
+> and that is exactly the set where the assumed V/10 rule and the alternative EIA
+> mantissa-exponent rule agree. The two `6R3` rows are an explicit decimal
+> spelling and carry no information either way. **That is why this looks verified
+> and is not:** nothing here discriminates between the two conventions. Until a
+> catalogue turns up the voltage convention is an assumption, and so is the field
+> layout. Do not add rows from parts whose 3-digit voltage code does not end in
+> 0 — they would either prove the codec wrong or enshrine the assumption as if it
+> were evidence.
 
 ## samples
 

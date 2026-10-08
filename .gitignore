@@ -17,6 +17,7 @@ __pycache__/
 # Coverage output (produced by `pytest --cov`, now part of the CI step)
 .coverage
 .coverage.*
+coverage-shard*
 coverage.xml
 htmlcov/
 

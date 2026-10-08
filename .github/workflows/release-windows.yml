@@ -72,10 +72,67 @@ jobs:
           python -c "import shutil, os; v=os.environ['VERSION']; shutil.make_archive(f'VALVET-{v}-windows-x64', 'zip', 'dist', 'VALVET')"
           ls -la "VALVET-${VERSION}-windows-x64.zip"
           sha256sum "VALVET-${VERSION}-windows-x64.zip"
-          if unzip -l "VALVET-${VERSION}-windows-x64.zip" | grep -q "VALVET/logs/"; then
-            echo "::error::zip contains a logs/ folder" >&2
+
+      # Build hygiene gate. `collect_all()` in valvet.spec sweeps whole packages
+      # (PySide6, qdarkstyle, pyvista, ...), so bytecode caches, test files and
+      # the frozen run's own logs/ can end up inside the onedir folder without
+      # anyone noticing - the zip is what every user unpacks. Anything listed
+      # here has shipped by accident or is customer data; the gate fails the
+      # build instead of writing a note nobody reads.
+      - name: Reject build detritus in the zip
+        run: |
+          set -euo pipefail
+          zip="VALVET-${VERSION}-windows-x64.zip"
+          listing="$(unzip -Z1 "$zip")"
+          # Strip CR: every "$"-anchored pattern below is silently defeated by a
+          # trailing \r, which would turn the gate into a no-op for exactly the
+          # file extensions it exists to catch (.pyc/.spec/.log/test_*.py).
+          listing="$(echo "$listing" | tr -d '\r')"
+          echo "$listing" > zip-manifest.txt
+          echo "zip contains $(echo "$listing" | wc -l) entries; manifest saved to zip-manifest.txt"
+
+          # name_regex is matched against the full path inside the archive.
+          forbidden=(
+            '(^|/)logs?/'
+            '(^|/)__pycache__/'
+            '\.py[co]$'
+            '(^|/)\.pytest_cache/'
+            '(^|/)\.mypy_cache/'
+            '(^|/)\.ruff_cache/'
+            '(^|/)tests?/'
+            '(^|/)test_[^/]*\.py$'
+            '(^|/)conftest\.py$'
+            '(^|/)examples?/'
+            '(^|/)\.coverage'
+            '(^|/)coverage\.xml$'
+            '(^|/)htmlcov/'
+            '(^|/)node_modules/'
+            '(^|/)build/'
+            '(^|/)\.git/'
+            '(^|/)dist/'
+            '\.spec$'
+            '\.log$'
+            '\.orig$'
+            '\.rej$'
+            '\.tmp$'
+          )
+          # Report every violation in one pass rather than dying on the first:
+          # a single build otherwise takes several 5-minute cycles to walk the
+          # list one entry at a time.
+          failed=0
+          for pattern in "${forbidden[@]}"; do
+            hits="$(echo "$listing" | grep -Ei "$pattern" || true)"
+            if [ -n "$hits" ]; then
+              failed=1
+              echo "::error::zip contains entries matching ${pattern}:" >&2
+              echo "$hits" | head -20 >&2
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::release zip rejected; see above and zip-manifest.txt" >&2
             exit 1
           fi
+          echo "zip hygiene gate passed"
 
       # Smoke the shipped artifact, not dist/: exactly what the user unpacks.
       - name: Smoke unpacked zip
@@ -87,6 +144,15 @@ jobs:
           unzip -q "VALVET-${VERSION}-windows-x64.zip" -d smoke
           ls -la smoke/VALVET | head -20
           ./smoke/VALVET/VALVET.exe --smoke
+          # Expected, and the whole reason the archive is built first: the
+          # smoke run recreates logs/ in the unpacked copy. Its absence from the
+          # archive is what the ordering guarantees, so this is a confirmation
+          # rather than a problem.
+          if [ -d smoke/VALVET/logs ]; then
+            echo "logs/ was recreated by the smoke run and is absent from the archive (expected)"
+          else
+            echo "note: the smoke run did not create logs/; the gate above still governs"
+          fi
 
       - name: Attest zip provenance
         uses: actions/attest-build-provenance@v2
@@ -98,6 +164,15 @@ jobs:
           name: VALVET-${{ steps.version.outputs.version }}-windows-x64
           path: VALVET-${{ steps.version.outputs.version }}-windows-x64.zip
           if-no-files-found: error
+
+      # Full archive listing next to the binary, so "what actually shipped" is
+      # reviewable without re-running a Windows build.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VALVET-${{ steps.version.outputs.version }}-zip-manifest
+          path: zip-manifest.txt
+          if-no-files-found: error
+          retention-days: 90
 
       - name: GitHub Release
         if: ${{ inputs.create_release }}

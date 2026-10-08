@@ -35,16 +35,11 @@ VENDOR_NAME = "Murata"
 COMPONENT_TYPES = ["CAP"]
 PARSER_PRIORITY = 100
 
-# GRM155R71C104KA: cap code third digit (104) also encodes V in some columns — use 4th? keep R71C table
-_R71_C_VOL = {
-    "1": "10V",
-    "2": "16V",
-    "3": "25V",
-    "4": "4V",
-    "5": "6.3V",
-    "6": "6.3V",
-    "0": "16V",
-}
+# GRM155R71C104KA… — the literal "C" after R7 is the second character of the
+# two-character voltage code "1C" (16 V). The capacitance code does not carry a
+# voltage; an earlier revision read one from its third digit and reported 4 V
+# for GRM155R71C104FA01D.
+_R71_C_VOL = "16V"
 _R6X_FOLLOW_VOL = {
     "A": "10V",
     "B": "6.3V",
@@ -73,6 +68,7 @@ _TOL = {"J": "5%", "K": "10%", "M": "20%", "Z": "+80/-20%"}
 # voltage field, so these are consulted before the per-series fallbacks below.
 # Note the safety-standard entries (E2/GB/GD/GF) are AC 250V certified types.
 _VOLT_2CH = {
+    "0D": "2V",
     "0E": "2.5V",
     "0G": "4V",
     "0J": "6.3V",
@@ -89,6 +85,7 @@ _VOLT_2CH = {
     "2H": "500V",
     "2J": "630V",
     "3A": "1kV",
+    "3B": "1.25kV",
     "3D": "2kV",
     "3F": "3.15kV",
     "BB": "350V",
@@ -127,7 +124,7 @@ _VOLT = {
 
 _RE_R71C = compile(r"^GRM(155|188)R(71|72)C(10[0-9]|[0-1][0-9]{2})([A-Z0-9]+)$", I)
 _RE_R7V = compile(
-    r"^GRM(155|188|21A|21B|216|31M|32E)R(71|72)([CDEFGHJ])([0-9]{3})(J|K|M|Z)([A-Z0-9]+)$",
+    r"^GRM(155|188|21A|21B|216|31M|32E)R7([0-9])([A-Z])([0-9]{3})(J|K|M|Z)([A-Z0-9]+)$",
     I,
 )
 _RE_61E = compile(r"R61([A-Z])(\d{3})M[0-9A-Z]", I)  # R61E226ME39L
@@ -161,10 +158,10 @@ def parse(pn: str, component_type: str) -> str | None:
         if not size or not cap:
             return None
         if series[:1].isdigit():
-            # R60/R61/... keep a voltage letter after the series. The published
-            # two-character code is preferred when the pair forms one (e.g. R61A
-            # -> 1A = 10V), otherwise the per-series fallback applies.
-            pair = (series[1:2] + vcode).upper()
+            # R60/R61/... keep the series digit, and that digit plus the following
+            # letter IS the published two-character voltage code
+            # (GRM155R61C105KA12D -> "1C" = 16V, not the bare "C").
+            pair = (series + vcode).upper()
             vol = _VOLT_2CH.get(
                 pair, _VOLT.get(vcode.upper(), _R6X_FOLLOW_VOL.get(vcode.upper(), ""))
             )
@@ -181,13 +178,19 @@ def parse(pn: str, component_type: str) -> str | None:
 
     m7v = _RE_R7V.match(pn0)
     if m7v:
-        sc, dcode, vcode, c3, tcode, _tail = m7v.groups()
+        sc, vdig, vletter, c3, tcode, _tail = m7v.groups()
         size = _SIZE.get(sc.upper(), "")
         cap = pf_eia_3_to_str(c3) or ""
         if not size or not cap:
             return None
-        diel = "X7R" if dcode == "71" else "X5R"
-        vol = _VOLT.get(vcode.upper(), "")
+        # R7 is the temperature-characteristic code for X7R (R6 is X5R and is
+        # handled above), so this branch is always X7R.
+        diel = "X7R"
+        # The published voltage field is two characters wide; R7 is the
+        # temperature-characteristic code, so digit+letter form the code
+        # (GRM155R71C104KA88D -> "1C" = 16 V).
+        pair = (vdig + vletter).upper()
+        vol = _VOLT_2CH.get(pair, _VOLT.get(vletter.upper(), ""))
         tol = _TOL.get(tcode.upper(), "")
         return "_".join(p for p in (size, cap, vol, diel, tol) if p)
 
@@ -196,10 +199,8 @@ def parse(pn: str, component_type: str) -> str | None:
         scc, dcode, c3, tail = m.groups()
         size = "0402" if scc == "155" else "0603"
         diel = "X7R" if dcode == "71" else "X5R"
-        cap3 = c3
-        vnum = cap3[2] if len(cap3) == 3 and cap3.isdigit() else "0"
-        cap = pf_eia_3_to_str(cap3) or ""
-        vol = _R71_C_VOL.get(vnum, "16V")
+        cap = pf_eia_3_to_str(c3) or ""
+        vol = _R71_C_VOL
         tol = _TOL.get(tail[0] if tail else "K", "")
         if not cap:
             return None

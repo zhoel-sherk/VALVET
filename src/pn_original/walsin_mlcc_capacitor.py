@@ -1,91 +1,151 @@
 """
-Walsin Capacitor PN Parser
+Walsin MLCC PN parser.
 
-Walsin MLCC Part Number Format (several families — see regexes in code):
-- ``0402N…`` / ``0603N…``: package + N + EIA(3) or 5R0-style + tolerance + voltage digits + tape
-- ``0402B…CT``, ``0805X…CT``, ``1206X…CT``: B/X line + value + tolerance + voltage encoding
-- ``0402CG…CT/NT``: CG (C0G/NP0) line + value + tolerance + voltage digits + tape;
-  the value is EIA-3 (``100`` → 10pF) or the decimal form (``0R5`` → 0.5pF,
-  ``5R6`` → 5.6pF, ``8R2`` → 8.2pF) — ``R`` stands in for the decimal point
+Ordering per the Walsin "MLCC Product Catalog" (retrieved 2026-10-04; local copy
+under the gitignored ``datasheet/pdf/``), page "How To Order and Packaging
+Dimension/Quantity", which gives **one** scheme for the whole catalogue::
 
-Packaging suffix (last two letters of the B/X/CG lines):
-- ``CT`` — 7" paper tape; ``NT`` — 7" plastic tape (same reel code family)
+    0805   B    104   K   500   C   T
+    size  diel  cap  tol  volt  term  pack
+
+- **Size** (inch code): ``01R5`` 0201 0402 0603 0805 1206 1210 1808 1812 1825
+  2220 2225. The metric equivalents are printed alongside in the catalogue
+  (0402 = 1005, 0603 = 1608, ...) but the part number uses the inch form.
+- **Dielectric**, one letter: ``N``=NP0, ``G``=X8G, ``R``=X8R, ``B``=X7R,
+  ``A``=X7S, ``S``=X6S, ``X``=X5R, ``F``=Y5V.
+- **Capacitance**: two significant digits plus a zero count, with ``R`` standing
+  in for the decimal point — ``R47``=0.47 pF, ``0R5``=0.5 pF, ``1R0``=1 pF,
+  ``100``=10 pF, ``101``=100 pF, ``102``=1000 pF, ``103``=0.01 µF, ``104``=0.1 µF,
+  ``105``=1 µF, ``106``=10 µF, ``107``=100 µF.
+- **Tolerance**: ``A`` ±0.05 pF, ``B`` ±0.1 pF, ``C`` ±0.25 pF, ``D`` ±0.5 pF
+  (absolute, class 1) and ``F`` 1 %, ``G`` 2 %, ``J`` 5 %, ``K`` 10 %, ``M`` 20 %,
+  ``Z`` −20 %/+80 %.
+- **Voltage**: ``4R0``=4 Vdc, ``6R3``=6.3 Vdc, then the 3-digit EIA
+  mantissa-exponent form — ``100``=10 V, ``160``=16 V, ``250``=25 V, ``350``=35 V,
+  ``500``=50 V, ``101``=100 V, ``201``=200 V, ``251``=250 V, ``401``=400 V,
+  ``451``=450 V, ``501``=500 V, ``631``=630 V, ``102``=1 kV, ``152``=1.5 kV,
+  ``202``=2 kV, ``252``=2.5 kV, ``302``=3 kV, ``402``=4 kV, ``502``=5 kV,
+  ``602``=6 kV. This is **not** the V/10 form the other China-vendor catalogues
+  use; see :func:`eia_vol_code_to_v`.
+- **Termination + packaging**: ``L`` = Ag/Ni/Sn or ``C`` = Cu/Ni/Sn, then ``T``
+  7" reel, ``Q`` 10" reel or ``G`` 13" reel, optionally followed by a
+  size-dependent thickness symbol. None of these carry electrical meaning, so
+  they are not part of the cleaned value, but they are validated so a foreign
+  ending is rejected.
+
+What the previous version got wrong
+
+It carried seven regexes, one per part-number shape seen in the wild, and
+covered only part of the catalogue:
+
+- five of the eight dielectric letters were unreachable: ``G``(X8G), ``R``(X8R),
+  ``A``(X7S), ``S``(X6S) and ``F``(Y5V) parts returned ``None`` outright.
+- the absolute class-1 tolerances ``A``/``B``/``C``/``D`` and the asymmetric
+  ``Z`` were not in the table at all, so a part could decode "successfully" while
+  silently losing its tolerance.
+- a ``CG`` branch existed, but ``CG`` is **not** a Walsin dielectric code - it is
+  Fenghua's class-1 spelling. Walsin's own class-1 letter is ``N``. That branch
+  was decoding another vendor's part numbers.
+
+Token order is ``size[_capacitance_film]_voltage_tolerance``.
 
 Examples:
-- 0402N100J500CT → CAP_0402_10pF_50V_5%
-- 0402B102K500CT → CAP_0402_1nF_50V_10%
-- 0805X475M6R3CT → CAP_0805_4.7uF_6.3V_20%
-- 0201X104K6R3NT → CAP_0201_100nF_6.3V_X5R_10%
-- 0402CG0R5C500NT → CAP_0402_0.5pF_C0G_0.25pF_50V
-
-Size codes:
-0201, 0402, 0603, 0805, 1206, 1210 (leading 4 digits in PN)
-
-Tolerance:
-F=±1%, G=±2%, J=±5%, K=±10%, M=±20%; on the CG line C=±0.25pF (absolute)
-
-Voltage:
-Numeric blocks (e.g. 500→50V) via ``walsin_vol_code_to_v``; X-line ``dRd`` = d.V (e.g. 6R3 → 6.3V)
-
-Reference:
-https://www.passivecomponent.com/ — Walsin Tech ordering guides
+- 0805B104K500CT → 0805_100nF_X7R_50V_10%
+- 0402N100J500CT → 0402_10pF_C0G_50V_5%
+- 0805X475M6R3CT → 0805_4.7uF_X5R_6.3V_20%
+- 0402G105K6R3CT → 0402_1uF_X8G_6.3V_10%
 """
 
 from __future__ import annotations
 
-from parsers.regex_api import I, compile, match, search, sub
+from parsers.regex_api import I, compile, match, sub
 
-from ._cap_decode import pf_eia_3_to_str, walsin_vol_code_to_v
+from ._cap_decode import eia_vol_code_to_v, pf_eia_3_to_str
 
 VENDOR_NAME = "Walsin_MLCC"
 COMPONENT_TYPES = ["CAP"]
 PARSER_PRIORITY = 65
 
 _SIZE = {
+    "01R5": "0402",
     "0201": "0201",
     "0402": "0402",
     "0603": "0603",
+    "0612": "0612",
     "0805": "0805",
     "1206": "1206",
     "1210": "1210",
+    "1808": "1808",
+    "1812": "1812",
+    "1825": "1825",
+    "2220": "2220",
+    "2225": "2225",
 }
 
-# N100 J 500: 3-digit pF, tolerance J, 500 → 50V; N5R0 C 500: 5.0pF, C0G, 50V
-_RE_N3 = compile(
-    r"^(\d{4})N([0-9]{3})([FGJKM])([0-9]{2,3})([A-Z]{1,3})$",
-    I,
-)
-_RE_N5R = compile(
-    r"^(\d{4})N(5R[0-9])(.)([0-9]{2,3})([A-Z]{1,3})$",
-    I,
-)
-# 0402B102K500CT / 0402B102K500NT — B line, 102 EIA, K tol, 500 = 50V
-_RE_BCT = compile(r"^(\d{4})B(\d{3})([A-Z])(\d{3,4})(?:CT|NT)$", I)
-# 0402CG100J500NT / 0402CG0R5C500NT — CG (C0G) line. Capacitance is either the
-# 3-digit EIA form (100 → 10pF) or the decimal "R is the decimal point" form
-# (0R5 → 0.5pF, 5R6 → 5.6pF, 8R2 → 8.2pF); tolerance C = ±0.25pF per the Walsin
-# MLCC "How to order" table (C=+0.25pF for caps ≤ 10pF).
-_RE_CG = compile(r"^(\d{4})CG(\d{3}|\dR\d)([A-Z])(\d{3})(?:CT|NT)$", I)
-# 0805X475M6R3CT — 475 EIA, 6R3 = 6.3V; leading M = 20% (optional)
-_RE_X6R3 = compile(r"^(\d{4})X(\d{3,4})([A-Z]?)(\d)R(\d)(?:CT|NT)$", I)
-# 1206X106K250CT — 106 value, K tol, 250 = 25V
-_RE_XKV = compile(r"^(\d{4})X(\d{3,4})([A-Z])(\d{3,4})(?:CT|NT)$", I)
-_TOL = {"F": "1%", "G": "2%", "J": "5%", "K": "10%", "M": "20%"}
-# CG line only: C = ±0.25pF absolute tolerance, kept as the bare "0.25pF" token
-# the BOM/regex path already emits (see parsers/bom_text_utils.is_abs_pf_tolerance).
-_TOL_CG = {**_TOL, "C": "0.25pF"}
-_FILM_BY_SERIES = {
+# Dielectric letter -> catalogue name.
+_DIEL = {
+    "N": "C0G",  # NP0
+    "G": "X8G",
+    "R": "X8R",
     "B": "X7R",
+    "A": "X7S",
+    "S": "X6S",
     "X": "X5R",
+    "F": "Y5V",
 }
 
+_TOL = {
+    "A": "0.05pF",
+    "B": "0.1pF",
+    "C": "0.25pF",
+    "D": "0.5pF",
+    "F": "1%",
+    "G": "2%",
+    "J": "5%",
+    "K": "10%",
+    "M": "20%",
+    "Z": "-20%/+80%",
+}
 
-def _pf_from_code(code: str) -> str | None:
-    """``0R5`` → ``0.5pF`` (R stands in for the decimal point), else EIA-3."""
-    mr = match(r"^(\d)R(\d)$", code, I)
+_SIZES = "|".join(sorted(_SIZE, key=len, reverse=True))
+_DIELS = "|".join(_DIEL)
+_TOLS = "|".join(_TOL)
+
+# size, dielectric, capacitance (EIA-3 or R-decimal), tolerance,
+# voltage (EIA-3 or dRd), termination + packaging (+ optional thickness symbol).
+#
+# The tail is enumerated from the catalog rather than left as ``[A-Z]{2}``.
+# Termination is ``L`` = Ag/Ni/Sn or ``C`` = Cu/Ni/Sn (plus ``P`` = Cu/polymer on
+# particular series), and packaging is ``T`` 7" reel, ``Q`` 10" reel, ``G`` 13"
+# reel; a size-dependent thickness symbol may follow, which is why the catalogue
+# prints both ``0805B104K500CT`` and ``0805B104K500CTG``. A permissive tail
+# accepted anything and let foreign endings such as ``…6R3PT`` decode.
+_RE = compile(
+    r"^(" + _SIZES + r")(" + _DIELS + r")"
+    r"(\d{3}|\dR\d)(" + _TOLS + r")"
+    r"(\d{3}|\dR\d)[LC][TQG][A-Z]?$",
+    I,
+)
+
+
+def _capacitance(code: str) -> str:
+    """``0R5`` → ``0.5pF`` (R is the decimal point); otherwise the EIA-3 form."""
+    raw = str(code or "").strip().upper()
+    mr = match(r"^(\d)R(\d)$", raw)
     if mr:
-        return f"{mr.group(1)}.{mr.group(2)}pF"
-    return pf_eia_3_to_str(code) if code.isdigit() else None
+        value = float(f"{mr.group(1)}.{mr.group(2)}")
+        return f"{value:g}pF"
+    return pf_eia_3_to_str(raw) or ""
+
+
+def _voltage(code: str) -> str:
+    """``6R3`` → ``6.3V``; a 3-digit block is EIA mantissa-exponent."""
+    raw = str(code or "").strip().upper()
+    mr = match(r"^(\d)R(\d)$", raw)
+    if mr:
+        value = float(f"{mr.group(1)}.{mr.group(2)}")
+        return f"{value:g}V"
+    return eia_vol_code_to_v(raw)
 
 
 def parse(pn: str, component_type: str) -> str | None:
@@ -94,104 +154,25 @@ def parse(pn: str, component_type: str) -> str | None:
     pn0 = sub(r"\s*<[gG]>\s*$", "", str(pn).strip())
     pn2 = sub(r"\s+", "", pn0).strip().upper()
 
-    mcg = _RE_CG.match(pn2)
-    if mcg:
-        pz, cval, tch, vraw = mcg.groups()
-        if pz not in _SIZE:
-            return None
-        cap = _pf_from_code(cval)
-        if not cap:
-            return None
-        tol = _TOL_CG.get(tch.upper(), "")
-        vol = walsin_vol_code_to_v(vraw)
-        return "_".join(p for p in (_SIZE[pz], cap, "C0G", tol, vol) if p)
-
-    mb = _RE_BCT.match(pn2)
-    if mb:
-        pz, c3, tch, vraw = mb.groups()
-        if pz not in _SIZE:
-            return None
-        cap = pf_eia_3_to_str(c3) if len(c3) == 3 and c3.isdigit() else None
-        if not cap:
-            return None
-        vol = walsin_vol_code_to_v(vraw)
-        tol = _TOL.get(tch.upper(), "")
-        film = _FILM_BY_SERIES.get("B", "")
-        parts2 = [_SIZE[pz], cap]
-        if film:
-            parts2.append(film)
-        if vol:
-            parts2.append(vol)
-        if tol:
-            parts2.append(tol)
-        return "_".join(parts2)
-
-    m6r = _RE_X6R3.match(pn2)
-    if m6r:
-        pz, cblock, tch, _a, _b = m6r.groups()
-        if pz not in _SIZE:
-            return None
-        c3 = cblock if len(cblock) == 3 else cblock[-3:]
-        cap = pf_eia_3_to_str(c3) if len(c3) == 3 and c3.isdigit() else None
-        if not cap:
-            return None
-        tol = _TOL.get(tch.upper(), "") if tch else ""
-        film = _FILM_BY_SERIES.get("X", "")
-        return "_".join(p for p in (_SIZE[pz], cap, film, "6.3V", tol) if p)
-
-    mxk = _RE_XKV.match(pn2)
-    # Guard: the dRd voltage encoding (…6R3CT / …6R3NT) belongs to _RE_X6R3, so
-    # the optional packaging letters after it must be tolerated here as well.
-    if mxk and not search(r"[0-9]R[0-9][A-Z]{0,2}$", pn2, I):
-        pz, cblock, tch, vraw = mxk.groups()
-        if pz not in _SIZE:
-            return None
-        c3 = cblock if len(cblock) == 3 and cblock.isdigit() else cblock[-3:]
-        cap = pf_eia_3_to_str(c3) if len(c3) == 3 and c3.isdigit() else None
-        if not cap:
-            return None
-        vol = walsin_vol_code_to_v(vraw)
-        tol = _TOL.get(tch.upper(), "")
-        film = _FILM_BY_SERIES.get("X", "")
-        parts3 = [_SIZE[pz], cap]
-        if film:
-            parts3.append(film)
-        if vol:
-            parts3.append(vol)
-        if tol:
-            parts3.append(tol)
-        return "_".join(parts3)
-
-    m5 = _RE_N5R.match(pn2)
-    if m5:
-        psize, pval, diel, vcode, _pack = m5.groups()
-        if psize not in _SIZE:
-            return None
-        mr = match(r"^5R([0-9])$", pval, I)
-        if not mr:
-            return None
-        cap_s = f"5.{mr.group(1)}pF"
-        vol = walsin_vol_code_to_v(vcode)
-        d = "C0G" if diel.upper() == "C" else diel
-        segs = [_SIZE[psize], cap_s, d]
-        if vol:
-            segs.append(vol)
-        return "_".join(segs)
-
-    m = _RE_N3.match(pn2)
+    m = _RE.match(pn2)
     if not m:
         return None
-    psize, cap3, tol_ch, vcode, _pack = m.groups()
-    if psize not in _SIZE:
+    size_code, diel, cap_code, tol_ch, vol_code = m.groups()
+
+    size = _SIZE.get(size_code)
+    film = _DIEL.get(diel)
+    if not size or not film:
         return None
-    cap = pf_eia_3_to_str(cap3)
+    cap = _capacitance(cap_code)
     if not cap:
         return None
-    vol = walsin_vol_code_to_v(vcode)
-    tol = _TOL.get(str(tol_ch).upper(), "")
-    parts = [_SIZE[psize], cap]
+    vol = _voltage(vol_code)
+    tol = _TOL.get(tol_ch.upper())
+    # ``N`` is NP0 (class 1); every other letter is a distinct dielectric, so the
+    # film is only omitted when the codec cannot name it.
+    parts = [size, cap, film]
     if vol:
         parts.append(vol)
     if tol:
         parts.append(tol)
-    return "_".join(parts)
+    return "_".join(p for p in parts if p)

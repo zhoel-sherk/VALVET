@@ -61,8 +61,17 @@ def test_validate_rejects_malformed_versions(version: str) -> None:
 
 
 def test_current_version_is_valid() -> None:
+    """The checked-in version must be four numeric segments that round-trip.
+
+    Derived from ``__version__`` rather than spelled out: a literal pin here
+    fails on every legitimate ``bump``, which trains people to "fix" the test
+    instead of the intent. The single source of truth is asserted separately by
+    ``test_constants_reexports_the_single_source_of_truth``.
+    """
     assert validate_version(__version__) == __version__
-    assert parse_version(__version__) == (0, 5, 1, 1)
+    parts = parse_version(__version__)
+    assert len(parts) == 4
+    assert parts == tuple(int(part) for part in __version__.split("."))
 
 
 def test_constants_reexports_the_single_source_of_truth() -> None:
@@ -111,6 +120,47 @@ def test_no_hardcoded_versions_in_tracked_files() -> None:
     """The CI gate: every tracked copy must carry ``__version__``, nothing else."""
     hits = version_tool.stale_hits(__version__)
     assert not hits, "run 'python tools/version.py sync':\n" + "\n".join(hits)
+
+
+def test_readme_banner_svg_is_covered_by_the_version_gate() -> None:
+    """``img/readme.svg`` carries the release line and must be a tracked copy.
+
+    It was missing from ``STALE_FILES``, so the 0.5.1.1 -> 0.5.1.2 bump left the
+    README banner advertising 0.5.1.1 while every other file moved - the one
+    place ``check`` could not see.
+    """
+    assert version_tool.README_SVG in version_tool.STALE_FILES
+    assert version_tool.README_SVG.exists()
+
+    banner = [
+        line
+        for line in version_tool.README_SVG.read_text(encoding="utf-8").splitlines()
+        if "BETA" in line
+    ]
+    assert banner, "the README banner line disappeared from img/readme.svg"
+    found = version_tool.VERSION_LITERAL_RE.findall(banner[0])
+    assert found == [__version__], (
+        f"img/readme.svg advertises {found}, expected [{__version__!r}]; "
+        "run 'python tools/version.py sync'"
+    )
+
+
+def test_readme_svg_sync_rewrites_the_banner(tmp_path: Path) -> None:
+    """``sync`` must actually move the banner, not just find the file."""
+    svg = tmp_path / "readme.svg"
+    svg.write_text(
+        "<text>BETA v0.5.1.1 · BOM</text>\n",
+        encoding="utf-8",
+    )
+    original = version_tool.README_SVG
+    try:
+        version_tool.README_SVG = svg
+        touched = version_tool._sync_readme_svg("0.5.1.2")
+    finally:
+        version_tool.README_SVG = original
+    # tmp_path is outside the repo, so _rel() reports the absolute path.
+    assert touched and touched[0].endswith("readme.svg")
+    assert svg.read_text(encoding="utf-8").strip() == "<text>BETA v0.5.1.2 · BOM</text>"
 
 
 def test_window_title_uses_a_version_placeholder() -> None:
