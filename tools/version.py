@@ -231,7 +231,9 @@ def _sync_readme_svg(version: str) -> list[str]:
     to prevent, in the one place ``check`` could not see it.
     """
     pattern = re.compile(r"(?<=BETA )v?\d+\.\d+\.\d+(?:\.\d+)?")
-    return [_rel(README_SVG)] if _sub(README_SVG, pattern, "v{version}", version) else []
+    return (
+        [_rel(README_SVG)] if _sub(README_SVG, pattern, "v{version}", version) else []
+    )
 
 
 def do_sync(version: str | None = None) -> list[str]:

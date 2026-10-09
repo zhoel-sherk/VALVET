@@ -35,7 +35,9 @@ def parse_md_tables(text: str) -> list[dict[str, str]]:
             continue
         if not header:
             continue
-        rec = {header[i]: cells[i] if i < len(cells) else "" for i in range(len(header))}
+        rec = {
+            header[i]: cells[i] if i < len(cells) else "" for i in range(len(header))
+        }
         rows.append(rec)
     return rows
 
@@ -62,7 +64,9 @@ def noise_variants(bom: str) -> list[str]:
 def main() -> None:
     samples = load_all_samples()
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
-    OUT_JSON.write_text(json.dumps(samples, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(samples, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"wrote {len(samples)} samples -> {OUT_JSON}")
 
 

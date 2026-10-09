@@ -25,6 +25,10 @@ htmlcov/
 logs/
 *.log
 
+# PyInstaller build artifacts
+build/
+dist/
+
 # Working audit / planning documents (local only, never committed).
 # These are scratch analysis for a release; the durable record is CHANGELOG.md.
 PLAN_*.md

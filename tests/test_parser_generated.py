@@ -55,7 +55,7 @@ def test_datasheet_sample_row(rec: dict[str, str]) -> None:
         cfg = _vendor_cfg()
         if " | " in raw or raw.upper().startswith(("RES", "CAP", "MLCC", "NETRES")):
             cleaned, typ, _c, _src = clean_component.clean_one(raw, cfg)
-            assert expected in cleaned or cleaned == expected
+            assert cleaned == expected
         else:
             ct = (
                 "RES"
@@ -66,7 +66,7 @@ def test_datasheet_sample_row(rec: dict[str, str]) -> None:
             )
             out = pn_original.parse_pn(raw, ct, cfg)
             assert out, f"vendor parse failed for {raw!r}"
-            assert out == expected or expected in out
+            assert out == expected
     else:
         cfg = _regex_cfg()
         for variant in noise_variants(raw):

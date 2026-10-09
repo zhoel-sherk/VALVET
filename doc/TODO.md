@@ -4,7 +4,7 @@ Desktop-first SMT prep: BOM/PnP on disk, mapping, Clean, cross-check, merge/expo
 
 **Core vs GUI:** parsers, cleaning, merge, machine-library I/O stay Qt-free (`src/smt_processor.py`, `src/pcb_preview/`, `src/machine_library/`, `src/step_3d/occ_load.py`, `src/services/`). PySide6 orchestrates threads, `QSettings`, and dialogs (`src/app/window.py`, `src/ui/`).
 
-BETA **0.5.2.1** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
+BETA **0.5.3.0** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
 
 **Shipped (one line):** profiles + per-path mapping; Clean/Merge including `.mmd`; PCB Preview Gerber+PnP overlay (nudge, not 2-point auto-align); Step 3D optional (default off); Machine lib Hanwha + Wave 1 footprint preview from UPD vision tables (SQLite cache after Open); PyInstaller `valvet.spec`.
 
@@ -28,22 +28,6 @@ BETA **0.5.2.1** — [TESTING.md](info/TESTING.md). This file is the live backlo
 ## Tests
 
 Do not pin stale pass counts here. Daily/PR: [TESTING.md](info/TESTING.md).
-
-### Tighten `test_datasheet_sample_row` to strict equality
-
-`tests/test_parser_generated.py` asserts `out == expected or expected in out`.
-The substring fallback makes the whole datasheet sample set a weak gate: every
-`expected` is a prefix of the cleaned string, so a codec that appends a **bogus**
-token still passes. It hid a real defect — `WR08X000PTL` emitted
-`0805_0R_5%` with an invented 5% while the datasheet says `0805_0R`, and the row
-passed because `"0805_0R" in "0805_0R_5%"`.
-
-Replace the containment branch with `==` and re-run the whole
-`datasheet/*.md` corpus; expect a batch of latent over-emissions to surface (each
-is a codec inventing a spec the part number never states, the same shape as the
-`WR` jumper). The `regex` path already uses `==`, so this only concerns the
-`vendor` path. Tracked separately because the fallout is wide and each hit needs
-a judgement call — emit the field, drop the field, or fix the codec.
 
 ### Samsung land-grid size codes have no repo vocabulary entry
 

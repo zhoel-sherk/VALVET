@@ -11,7 +11,7 @@ series-code -> dielectric mapping was verified against LCSC product data.
 ## samples
 
 | mpn_or_bom | ctype | expected | path |
-| TAIYO/UMK105CH120JV-F | CAP | 12pF | vendor |
+| TAIYO/UMK105CH120JV-F | CAP | 0402_12pF_C0G_50V_5% | vendor |
 | TAIYO/TMK107BBJ106MA-T | CAP | 0603_10uF_25V_X5R_20% | vendor |
 | TAIYO/TMK316ABJ106KD-T | CAP | 1206_10uF_25V_X5R_10% | vendor |
 | TAIYO/JDK107BBJ226MA-T | CAP | 0603_22uF_6.3V_X5R_20% | vendor |

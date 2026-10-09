@@ -44,7 +44,10 @@ def main() -> int:
         names = set(zf.namelist())
         for arc in _WANTED:
             if arc not in names:
-                print(f"Missing {arc!r} in ZIP; archive layout may have changed.", file=sys.stderr)
+                print(
+                    f"Missing {arc!r} in ZIP; archive layout may have changed.",
+                    file=sys.stderr,
+                )
                 return 1
             out = dest_dir / Path(arc).name
             out.write_bytes(zf.read(arc))
