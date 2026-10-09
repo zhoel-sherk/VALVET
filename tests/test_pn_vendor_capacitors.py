@@ -431,9 +431,18 @@ EYANG_DIELECTRICS = ["C0G", "X7R", "X7T", "X7S", "X6S", "X6T", "X5R"]
 
 # "5 Capacitance Tolerance ... A +/-0.05pF  B +/-0.1pF  C +/-0.25pF  D +/-0.5pF
 #  P +/-0.02pF  F +/-1%  G +/-2%  J +/-5%  K +/-10%  L +/-15%  M +/-20%
-#  N +/-30%  S +50%/-20%  X +22%/-33%  Y +150%/-20%  Z +80%/-20%" - PDF p.4.
-# The seven percentage codes below are all of them.
+#  N +/-30%  S +50%/-20%  X +22%/-33%  Y +150/-20%  Z +80%/-20%" - PDF p.4.
+# All sixteen, in three shapes.  The absolute codes render as a bare magnitude
+# (fenghua/darfon/walsin already do this) and the asymmetric ones as the sheet
+# spells them (fenghua's "+50%/-20%"), so none of them needed to be dropped -
+# and because the pattern *requires* a tolerance letter, every code missing
+# from the table made the whole part unparseable rather than one field short.
 EYANG_TOLERANCES = [
+    ("A", "0.05pF"),
+    ("B", "0.1pF"),
+    ("C", "0.25pF"),
+    ("D", "0.5pF"),
+    ("P", "0.02pF"),
     ("F", "1%"),
     ("G", "2%"),
     ("J", "5%"),
@@ -441,6 +450,10 @@ EYANG_TOLERANCES = [
     ("L", "15%"),
     ("M", "20%"),
     ("N", "30%"),
+    ("S", "+50%/-20%"),
+    ("X", "+22%/-33%"),
+    ("Y", "+150/-20%"),
+    ("Z", "+80%/-20%"),
 ]
 
 # "6 Rated Voltage ... 100 10V  160 16V  4R0 4.0V  6R3 6.3V  2R5 2.5V  630 63V
@@ -460,9 +473,10 @@ EYANG_VOLTAGES = [
 ]
 
 # "1.2 Size Code: A8A4(008004)\0105(01005)\0201\0402\0603\0805\1206\1210"
-# - PDF p.2.  The list below is every code in that row that is four digits wide;
-# ``A8A4`` (and its alias ``008004``) is not, so it is not exercised here.
-EYANG_SIZES = ["0105", "0201", "0402", "0603", "0805", "1206", "1210"]
+# - PDF p.2.  The land-grid code and its alias are not four digits wide, so the
+# old size group could not express them at all; ``EYANG_SIZES`` below now covers
+# the whole row.
+EYANG_SIZES = ["A8A4", "008004", "0105", "0201", "0402", "0603", "0805", "1206", "1210"]
 
 
 @pytest.mark.parametrize("diel", EYANG_DIELECTRICS)
@@ -483,14 +497,15 @@ def test_eyang_seven_dielectric_codes(diel: str) -> None:
 @pytest.mark.parametrize(
     "letter,expected_tol", EYANG_TOLERANCES, ids=[t for _c, t in EYANG_TOLERANCES]
 )
-def test_eyang_seven_percentage_tolerance_codes(letter: str, expected_tol: str) -> None:
-    """Capacitance-tolerance field, section 5, including ``L`` and ``N``.
+def test_eyang_sixteen_tolerance_codes(letter: str, expected_tol: str) -> None:
+    """Capacitance-tolerance field, section 5, all sixteen codes.
 
     Eyang "Multilayer Ceramic Chip Capacitors for General Purpose",
     PDF p.4, section 5: F +/-1%, G +/-2%, J +/-5%, K +/-10%, L +/-15%,
-    M +/-20%, N +/-30%.  ``L`` and ``N`` were absent from the old table, and
-    because the pattern *required* a tolerance letter that made the whole part
-    unparseable instead of merely dropping a field.
+    M +/-20%, N +/-30%, the absolute-pF A/B/C/D/P, and the asymmetric
+    S/X/Y/Z.  The nine non-percentage codes were absent from the old table, and
+    because the pattern *required* a tolerance letter each of them made the
+    whole part unparseable instead of merely dropping a field.
     """
     pn = f"C0402X7R221{letter}500NTB"
     assert _parse(pn) == f"0402_220pF_X7R_{expected_tol}_50V"
@@ -639,6 +654,15 @@ FENGHUA_VOLTAGES = [
     ("501", "500V"),
     ("102", "1000V"),
     ("202", "2000V"),
+    # The decimal spelling (4R0 / 6R3) is what the Walsin, Eyang and Viiyong
+    # catalogues list, and production parts carry it. See
+    # test_fenghua_owns_the_drd_voltage_spelling_on_nt_parts below. It renders
+    # through ``%g`` exactly as ``walsin_mlcc_capacitor`` renders it, so the two
+    # codecs that share the X/B/CG bodies also share the spelling - note this
+    # is ``4V``, whereas ``china_mlcc_vol_token`` (Eyang/Viiyong/Darfon) gives
+    # ``4.0V`` for the same code.
+    ("4R0", "4V"),
+    ("6R3", "6.3V"),
 ]
 
 
@@ -918,7 +942,22 @@ VIIYONG_DIELECTRICS = ["C0G", "X7R", "X5R", "X5S", "Y5V"]
 # 2019 sheet PDF p.2, "Capacitance Tolerance A: +/-0.05pF  B: +/-0.1pF
 # C: +/-0.25pF  D: +/-0.5pF  F: +/-1%  G: +/-2%  J: +/-5%  K: +/-10%
 # L: +/-15%  M: +/-20%  Z: +80/-20%  N: +/-30%  X: +/-40%  Y: +150/-20%".
-VIIYONG_TOLERANCES = [("J", "5%"), ("K", "10%"), ("M", "20%")]
+VIIYONG_TOLERANCES = [
+    ("A", "0.05pF"),
+    ("B", "0.1pF"),
+    ("C", "0.25pF"),
+    ("D", "0.5pF"),
+    ("F", "1%"),
+    ("G", "2%"),
+    ("J", "5%"),
+    ("K", "10%"),
+    ("L", "15%"),
+    ("M", "20%"),
+    ("N", "30%"),
+    ("X", "40%"),
+    ("Z", "+80/-20%"),
+    ("Y", "+150/-20%"),
+]
 
 # 2019 sheet PDF p.2, "Size Code (EIA size) 0105(01005) 0201(0201)" with
 # Table 1 dimensions (01005 = 0.40 x 0.20 mm, 0201 = 0.60 x 0.30 mm); the
@@ -1027,6 +1066,20 @@ def test_viiyong_size_codes(size: str) -> None:
     assert _parse(pn) == f"{size}_22uF_X5R_20%_6.3V"
 
 
+@pytest.mark.parametrize("spelling", ["C0G", "COG", "C0H", "NP0", "NPO"])
+def test_viiyong_class_one_spellings_all_clean_to_c0g(spelling: str) -> None:
+    """Every class-1 spelling collapses to C0G, as the other codecs do.
+
+    Section 1.3 of the sheet prints the class-1 group as "C0G/C0H(NP0)". This
+    codec used to pass the vendor's own spelling straight through, so the same
+    class-1 dielectric cleaned to ``C0G`` from Darfon and to ``NP0`` from
+    Viiyong - equality-based matching and dedup could not see them as the same
+    part. darfon, eyang, fenghua, tcc and walsin all normalise to C0G already.
+    """
+    pn = f"V226M0402{spelling}6R3NCT"
+    assert _parse(pn) == "0402_22uF_C0G_20%_6.3V"
+
+
 @pytest.mark.parametrize(
     "code,expected_cap",
     [("103", "10nF"), ("104", "100nF"), ("105", "1uF"), ("474", "470nF")],
@@ -1069,8 +1122,9 @@ def test_viiyong_part_number_system_fields(pn: str, expected: str) -> None:
         # Section 1 series code V is mandatory.
         "226M0402X5R6R3NCT",
         # Section 3 tolerance letter is mandatory and is one of the printed set.
-        "V226X0402X5R6R3NCT",
-        "V226A0402X5R6R3NCT",
+        # The sheet prints A B C D F G J K L M N X Z Y, so E/H/W are not codes.
+        "V226E0402X5R6R3NCT",
+        "V226W0402X5R6R3NCT",
         # Section 6 rated voltage is mandatory and is dRd or a 3-digit block.
         "V226M0402X5RNCT",
         "V226M0402X5R6NC",
@@ -1086,9 +1140,8 @@ def test_viiyong_rejects_malformed_part_numbers(pn: str) -> None:
 
     Viiyong 2023 sheet PDF p.2 (positions 1-9) and Version A sheet PDF p.2,
     section 1.3 "Capacitance Tolerance" and the "Rated Voltage" and "Terminal
-    Type" legends.  ``X`` (+/-40 %) and ``A`` (+/-0.05 pF) *are* printed in the
-    sheet's tolerance table but are not decoded; the list above only pins the
-    structural rejections.
+    Type" legends.  All fourteen printed tolerance codes are decoded now, so the
+    rejections below are structural or use a letter the sheet does not publish.
     """
     assert viiyong_capacitor.parse(pn, "CAP") is None
 

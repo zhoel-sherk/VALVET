@@ -45,7 +45,7 @@ Examples:
 
 from __future__ import annotations
 
-from parsers.regex_api import I, compile
+from parsers.regex_api import I, compile, match
 
 from ._cap_decode import eia_vol_code_to_v, pf_eia_3_to_str
 
@@ -83,12 +83,34 @@ _TOL = {
 # token order). Datasheet F/G: termination S=silver or N=Ni-barrier/tin,
 # packaging T=tape&reel or B=bulk, so the pairs are ST, NT, SB, NB.
 _RE = compile(
-    r"^(\d{4})(COG|CG|B|X)(\d{3}|\dR\d)([BCDFGJKMS])(\d{3})(?:ST|NT|SB|NB)$",
+    r"^(\d{4})(COG|CG|B|X)(\d{3}|\dR\d)([BCDFGJKMS])(\d{3}|\dR\d)(?:ST|NT|SB|NB)$",
     I,
 )
 
 # Dielectric code → normalised name.
 _FILM = {"COG": "C0G", "CG": "C0G", "B": "X7R", "X": "X5R"}
+
+
+def _voltage(code: str) -> str:
+    """Rated voltage: the sheet's 3-digit EIA form, plus the ``dRd`` decimal.
+
+    The datasheet's own table is the 3-digit form (``101`` = 100 V, ``202`` =
+    2 kV), but ``4R0`` / ``6R3`` is the other spelling the industry uses and
+    this vendor prints it too - Walsin, Eyang and Viiyong catalogues all list it,
+    and it is the only one some production parts carry.
+
+    That matters because of ownership: this codec is the one that owns the
+    ``NT`` ending (the Walsin catalogue's termination codes are ``L``/``C``/``P``,
+    so Walsin correctly refuses ``NT``). With the decimal form unreadable here,
+    an ``…X…K6R3NT`` part had no owner at all and fell through to the regex
+    phase, losing every field.
+    """
+    raw = str(code or "").strip().upper()
+    if "R" in raw:
+        mr = match(r"^(\d)R(\d)$", raw)
+        if mr:
+            return f"{float(f'{mr.group(1)}.{mr.group(2)}'):g}V"
+    return eia_vol_code_to_v(raw)
 
 
 def _parse_line(m) -> str | None:
@@ -104,7 +126,7 @@ def _parse_line(m) -> str | None:
     if not cap:
         return None
     tol = _TOL.get(tch.upper(), "")
-    vol = eia_vol_code_to_v(vraw)
+    vol = _voltage(vraw)
     parts = [size, cap, _FILM.get(diel.upper(), diel.upper())]
     if tol:
         parts.append(tol)

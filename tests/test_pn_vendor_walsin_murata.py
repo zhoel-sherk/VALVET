@@ -39,6 +39,27 @@ def test_walsin_nt_suffix_xkv_line() -> None:
     assert _parse("0603X226M100NT", "CAP") == "0603_22uF_X5R_20%_10V"
 
 
+def test_fenghua_owns_the_drd_voltage_spelling_on_nt_parts() -> None:
+    """The Walsin ``NT`` hand-off left the ``dRd`` voltage spelling unowned.
+
+    Walsin's MLCC catalogue gives termination ``L``/``C``/``P`` (plus ``P`` for
+    the Cu/polymer lines), so its codec correctly refuses ``NT``; the ``NT``
+    ending belongs to Fenghua, whose sheet lists termination ``S``/``N``. But
+    Fenghua accepted only the 3-digit EIA voltage form, so an ``X``-line part
+    written with the decimal spelling had no owner at all:
+
+        0201X104K6R3NT -> None   (CO1271 production row)
+
+    The row fell through to the regex phase and lost size, capacitance,
+    dielectric, tolerance and voltage. Both spellings are now accepted, the EIA
+    form unchanged.
+    """
+    assert _parse("0201X104K6R3NT", "CAP") == "0201_100nF_X5R_10%_6.3V"
+    assert _parse("0805X475M6R3NT", "CAP") == "0805_4.7uF_X5R_20%_6.3V"
+    # The EIA form is unaffected.
+    assert _parse("0805X475M6R3CT", "CAP") == "0805_4.7uF_X5R_6.3V_20%"
+
+
 def test_walsin_cq_and_cg_reel_codes_decode() -> None:
     """The documented 10" and 13" reels must behave like the 7" reel."""
     assert _parse("0805X475M6R3CQ", "CAP") == _parse("0805X475M6R3CT", "CAP")

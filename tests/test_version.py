@@ -206,12 +206,18 @@ def test_check_subcommand_passes_on_a_clean_tree() -> None:
 
 
 def test_bump_subcommand_rewrites_the_version_file(tmp_path: Path, monkeypatch) -> None:
-    """``bump Z`` on 0.5.1.1 yields 0.5.2.0 and keeps the derived copies in sync."""
+    """``bump Z`` on 0.5.1.1 yields 0.5.2.0 and keeps the derived copies in sync.
+
+    The starting version is pinned rather than taken from the live tree. Reading
+    it from ``__version__`` made the assertion self-referential: it only held
+    while the repo happened to sit at 0.5.1.1, so every real bump broke this
+    test instead of testing the bump.
+    """
     version_file = tmp_path / "__version__.py"
     version_file.write_text(VERSION_FILE.read_text(encoding="utf-8"), encoding="utf-8")
     monkeypatch.setattr(version_tool, "VERSION_FILE", version_file)
     monkeypatch.setattr(version_tool, "do_sync", lambda _version: [])
-    monkeypatch.setattr(version_tool, "current_version", lambda: __version__)
+    monkeypatch.setattr(version_tool, "current_version", lambda: "0.5.1.1")
 
     assert version_tool.main(["bump", "Z"]) == 0
     assert '__version__ = "0.5.2.0"' in version_file.read_text(encoding="utf-8")

@@ -20,10 +20,18 @@ A size(4)  B dielectric  C capacitance  D tolerance  E rated voltage  F terminat
   `500`=50 V, `630`=63 V, `101`=100 V, `201`=200 V, `501`=500 V, `102`=1 kV,
   `202`=2 kV. This is **not** the V/10 form Eyang/TCC/Darfon/Viiyong use; the
   two agree only on codes ending in 0.
+- **Rated voltage** also accepts the decimal spelling `4R0`=4 V, `6R3`=6.3 V.
+  The table above is the sheet's own form, but this vendor prints the decimal
+  one too, and it is the form the Walsin/Eyang/Viiyong catalogues use. Without
+  it, an `…X…K6R3NT` part matched no codec at all (see below).
 - **Termination + packaging** `N`/`S` and `T`/`B`.
 
-The `B`/`X`/`CG` bodies are shared with the Walsin MLCC lines, so a `…NT` part
-can be claimed by either codec; Walsin has the higher `PARSER_PRIORITY` and wins.
+The `B`/`X`/`CG` bodies are shared with the Walsin MLCC lines, but the two
+vendors do not overlap on endings: Walsin's catalogue gives termination
+`L`=Ag/Ni/Sn, `C`=Cu/Ni/Sn and `P`=Cu/polymer, while this sheet gives `N` and
+`S`. Walsin therefore refuses `NT` on both datasheet grounds and this codec
+owns that ending outright, whatever the `PARSER_PRIORITY` order. The two agree
+on `ST`.
 
 ## samples
 
@@ -38,3 +46,5 @@ can be claimed by either codec; Walsin has the higher `PARSER_PRIORITY` and wins
 | 0805CG102M202NT | CAP | 0805_1nF_C0G_20%_2000V | vendor |
 | 0402B101S630NT | CAP | 0402_100pF_X7R_+50%/-20%_63V | vendor |
 | 0805B201M101NT | CAP | 0805_200pF_X7R_20%_100V | vendor |
+| 0201X104K6R3NT | CAP | 0201_100nF_X5R_10%_6.3V | vendor |
+| 0805X475M6R3NT | CAP | 0805_4.7uF_X5R_20%_6.3V | vendor |
