@@ -1,4 +1,4 @@
-# VALVET — BETA v0.5.2.0
+# VALVET — BETA v0.5.2.1
 
 [English](README.md) | **Русский**
 
@@ -47,7 +47,7 @@
 
 ## Установка: Windows zip (без Python)
 
-1. Скачай [VALVET-0.5.2.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.2.0/VALVET-0.5.2.0-windows-x64.zip) с [релиза v0.5.2.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.2.0). Это дерево — **0.5.2.0 BETA**; пока релиз не опубликован, последняя доступная сборка — **0.2.0**.
+1. Скачай [VALVET-0.5.2.1-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.2.1/VALVET-0.5.2.1-windows-x64.zip) с [релиза v0.5.2.1](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.2.1). Это дерево — **0.5.2.1 BETA**; пока релиз не опубликован, последняя доступная сборка — **0.2.0**.
 2. Распакуй. Запусти `VALVET\VALVET.exe` (папка `_internal` должна лежать рядом с exe).
 3. На флешку копируй **всю** папку.
 

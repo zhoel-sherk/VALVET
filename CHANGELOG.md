@@ -5,6 +5,43 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.2.1] - BETA - 2026-10-09
+
+### Fixed
+
+- **The Clean BOM token alert reported `missing=nominal` on 104 rows that had a
+  nominal.** `analyze_token_alert` assumed a fixed output shape, but the ohm `R`
+  suffix is a user toggle: with it off, `normalize_res_ohm_value` renders a plain
+  ohm value as a bare number (`2.2`, not `2.2R`) and the recogniser — which
+  required the token to end in `R`/`K`/`M` — could not see it. On the CO1271 SKU3
+  sheet that was **104 of the 108 alerts, 96 %**: every plain-ohm resistor in the
+  order. The first report was SKU3 row 137, `0603WAF220KT5E`, which cleaned
+  correctly to `0603_2.2_1%` and was still flagged. The recogniser now takes the
+  toggle into account, and `K`/`M` — unchanged by the toggle — keep passing in
+  both positions.
+- **The same alert was blind to the field templates.** It hardcoded
+  `package`/`nominal`/`tolerance` (and five roles for a capacitor), so dropping
+  `%` from the resistor template flagged every row `missing=tolerance`, and
+  dropping `V` from the capacitor template flagged every row `missing=voltage`.
+  The expected roles are now derived from the configured template in
+  `clean_component` — the module that owns the emitting side, so the alert
+  cannot drift from the formatter. On SKU3 the alert count goes **108 → 4**, and
+  the four survivors are the genuine misses: `RB520S-40` (a Schottky MPN typed as
+  a resistor, which does not parse), two capacitor descriptions carrying no
+  package, and one where the 2 kV rating was dropped.
+- **A package token can no longer stand in for a missing value.** `0603` is a
+  bare number as well, so the bare-number form deliberately excludes any token
+  that matches the package pattern — otherwise a dropped value would look
+  complete simply because the package was present.
+- **`build_clean_config` defaulted the ohm `R` suffix to off while everything
+  else defaulted it on.** `CleanConfig` and the settings checkbox (`profiles.py`,
+  `clean_tab.py`) both said `True`; only the builder said `False`, so a
+  programmatic caller got a different cleaned shape from the one the settings
+  screen shows. The builder now agrees.
+
+Behaviour for the default configuration is unchanged: the suffix stays on, so
+`0603_2.2R_1%` is what ships.
+
 ## [0.5.2.0] - BETA - 2026-10-09
 
 New vendor codecs for two automotive MLCC catalogues, and a rewrite of the

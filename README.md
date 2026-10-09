@@ -1,4 +1,4 @@
-# VALVET — BETA v0.5.2.0
+# VALVET — BETA v0.5.2.1
 
 **English** | [Русский](README.ru.md)
 
@@ -47,7 +47,7 @@ Repo: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Own project (
 
 ## Install: Windows zip (no Python)
 
-1. Download [VALVET-0.5.2.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.2.0/VALVET-0.5.2.0-windows-x64.zip) from [release v0.5.2.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.2.0). This tree is **0.5.2.0 BETA**; until that release is published, the newest download is still **0.2.0**.
+1. Download [VALVET-0.5.2.1-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.2.1/VALVET-0.5.2.1-windows-x64.zip) from [release v0.5.2.1](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.2.1). This tree is **0.5.2.1 BETA**; until that release is published, the newest download is still **0.2.0**.
 2. Unzip. Run `VALVET\VALVET.exe` (keep the `_internal` folder next to the exe).
 3. Copy the whole folder if you put it on a USB stick.
 
