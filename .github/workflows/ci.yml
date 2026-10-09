@@ -23,11 +23,31 @@ concurrency:
 env:
   PYTHONPATH: src
   QT_QPA_PLATFORM: offscreen
+  # Bound every apt call to this workflow.
+  #
+  # Run 37738397328 (the 0.5.1.2 merge to main) sat for 6h02m and was killed by
+  # GitHub's job limit. Coverage 2/4 and 4/4 never reached pytest: both died in
+  # "Install Qt runtime libs", whose `apt-get update` filled the log with
+  # `Ign:` for azure.archive.ubuntu.com (fetch/checksum failed) while
+  # archive.ubuntu.com returned `Hit:`, then produced no further output for six
+  # hours. The step never reported completion, so the stall is either the tail
+  # of `update` or the start of `install` - both are covered by the options
+  # below, and the per-job `timeout-minutes` is the backstop that turns any
+  # remaining stall into a fast, visible failure instead of a 6-hour burn.
+  #
+  # `Retries` is 0 by default, so one flaky mirror meant no second attempt.
+  APT_OPTS: >-
+    -o Acquire::Retries=3
+    -o Acquire::http::Timeout=30
+    -o Acquire::https::Timeout=30
+    -o Acquire::ftp::Timeout=30
+    -o DPkg::Lock::Timeout=120
 
 jobs:
   lint:
     name: Lint / version / smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
@@ -44,8 +64,11 @@ jobs:
 
       - name: Install Qt runtime libs
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          # A previous hang can leave a half-written index behind, and the next
+          # update then fails on it; drop the old state before fetching.
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get $APT_OPTS update
+          sudo apt-get $APT_OPTS install -y --no-install-recommends \
             libegl1 \
             libgl1 \
             libglib2.0-0 \
@@ -107,6 +130,7 @@ jobs:
         shard: [1, 2, 3, 4]
         total: [4]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -124,8 +148,11 @@ jobs:
       - name: Install Qt runtime libs (Linux)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          # A previous hang can leave a half-written index behind, and the next
+          # update then fails on it; drop the old state before fetching.
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get $APT_OPTS update
+          sudo apt-get $APT_OPTS install -y --no-install-recommends \
             libegl1 \
             libgl1 \
             libglib2.0-0 \
@@ -162,6 +189,9 @@ jobs:
   coverage:
     name: Coverage ${{ matrix.shard }}/${{ matrix.total }}
     needs: lint
+    # Coverage instrumentation makes this the slowest job, but it still finished
+    # in 1-4 min on the last green run, so 60 is headroom, not a target.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -184,8 +214,11 @@ jobs:
 
       - name: Install Qt runtime libs
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          # A previous hang can leave a half-written index behind, and the next
+          # update then fails on it; drop the old state before fetching.
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get $APT_OPTS update
+          sudo apt-get $APT_OPTS install -y --no-install-recommends \
             libegl1 \
             libgl1 \
             libglib2.0-0 \
@@ -241,6 +274,9 @@ jobs:
     name: Coverage report
     needs: coverage
     runs-on: ubuntu-latest
+    # No apt step here, but this job downloads artifacts and pip-installs, so it
+    # needs a ceiling too - otherwise it is the next job to burn 6 hours.
+    timeout-minutes: 20
     defaults:
       run:
         shell: bash
