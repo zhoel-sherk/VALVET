@@ -18,7 +18,7 @@ def build_clean_config(
     ind_template: tuple[str, ...],
     cap_nf_to_uf: bool = False,
     cap_uf_micro_sign: bool = False,
-    res_ohm_r_suffix: bool = False,
+    res_ohm_r_suffix: bool = True,
     infer_resistor_watt_from_package: bool = False,
     use_pn_codecs: bool = True,
     use_vendor_pn: bool = True,

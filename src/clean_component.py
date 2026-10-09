@@ -1016,6 +1016,51 @@ def clean_bom_column(
     return [clean_one(c, config) for c in comments]
 
 
+#: Template token -> the role name clean_alerts reports it as. Roles the alert
+#: does not check (``watt``, ``Imax``, ``DCR``) are simply absent here, so they
+#: never inflate the "present" count.
+_ALERT_ROLE_BY_TOKEN = {
+    "pack": "package",
+    "nom": "nominal",
+    "%": "tolerance",
+    "V": "voltage",
+    "film": "film",
+}
+_RES_ALERT_TOKENS = ("pack", "nom", "%")
+_CAP_ALERT_TOKENS = ("pack", "nom", "V", "film", "%")
+
+
+def _alert_roles(template: tuple[str, ...], tokens: tuple[str, ...]) -> tuple[str, ...]:
+    """Roles the configured template will actually emit, in alert order.
+
+    ``clean_component`` owns the emitting side, so it also owns the expectation:
+    a role the user removed from their template is not missing from the output,
+    it was never asked for.
+    """
+    wanted = {str(t).strip() for t in tokens}
+    roles: list[str] = []
+    for raw in template:
+        token = str(raw).strip()
+        if token not in wanted:
+            continue
+        role = _ALERT_ROLE_BY_TOKEN.get(token)
+        if role and role not in roles:
+            roles.append(role)
+    return tuple(roles)
+
+
+def _alert_for(cleaned: str, type_tag: str, cfg: CleanConfig) -> str:
+    """The alert text for one cleaned row, told what the config asked for."""
+    return analyze_token_alert(
+        cleaned,
+        type_tag,
+        separator=cfg.output_separator,
+        resistor_ohm_r_suffix=cfg.resistor_include_ohm_r_suffix,
+        resistor_roles=_alert_roles(cfg.resistor_template, _RES_ALERT_TOKENS),
+        cap_roles=_alert_roles(cfg.cap_template, _CAP_ALERT_TOKENS),
+    ).as_text()
+
+
 def clean_preview(
     comments: list[str], config: Optional[CleanConfig] = None
 ) -> list[tuple]:
@@ -1065,7 +1110,7 @@ def clean_preview(
         ctype = classify_component_type(bom_prose or raw)
         if ctype == "FERRITE_BEAD":
             a, b, _pc, d = _ferrite_bead_passthrough(raw, cfg.double_comment_separator)
-            alert = analyze_token_alert(a, b, separator=cfg.output_separator).as_text()
+            alert = _alert_for(a, b, cfg)
             if alert:
                 append_missing_tokens_log(
                     {
@@ -1098,7 +1143,7 @@ def clean_preview(
         )
         if cfg.regex_master_enabled:
             a, b, c, d, dbg, wsc = _clean_one_regex_master(raw, ctype, eff_vendor, cfg)
-            alert = analyze_token_alert(a, b, separator=cfg.output_separator).as_text()
+            alert = _alert_for(a, b, cfg)
             if alert:
                 append_missing_tokens_log(
                     {
@@ -1129,9 +1174,7 @@ def clean_preview(
             cleaned, typ, _pc, vnote = _clean_one_pipeline_legacy(
                 raw, ctype, eff_vendor, cfg
             )
-            alert = analyze_token_alert(
-                cleaned, typ, separator=cfg.output_separator
-            ).as_text()
+            alert = _alert_for(cleaned, typ, cfg)
             if alert:
                 append_missing_tokens_log(
                     {

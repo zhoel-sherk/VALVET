@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import re
 
-__version__ = "0.5.2.0"
+__version__ = "0.5.2.1"
 
 #: Four numeric segments, in order, no suffixes and no leading/trailing junk.
 VERSION_RE = re.compile(r"^\d+\.\d+\.\d+\.\d+$")

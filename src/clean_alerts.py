@@ -34,8 +34,37 @@ _CAP_FILMS = (
 _PKG_RE = compile(r"^(?:01R5|01005|0201|0402|0603|0805|1206|1210|1812|2010|2512)$", I)
 _CAP_NOM_RE = compile(r"^[0-9]+(?:\.[0-9]+)?(?:P|N|U|µ)F$", I)
 _RES_NOM_RE = compile(r"^(?:[0-9]+(?:\.[0-9]+)?(?:R|K|M)|0R)$", I)
+# Only meaningful when the ohm ``R`` suffix is switched off: see _has_res_nominal.
+_RES_NOM_BARE_RE = compile(r"^[0-9]+(?:\.[0-9]+)?$")
 _TOL_RE = compile(r"^(?:[0-9]+(?:\.[0-9]+)?%|[0-9]+(?:\.[0-9]+)?PF)$", I)
 _VOLT_RE = compile(r"^[0-9]+(?:\.[0-9]+)?V$", I)
+
+# What the alert checks when the caller does not say otherwise. These are the
+# default templates; a caller that supplies the expected roles derives them from
+# the user's own template instead, so a deliberately dropped role is not
+# reported as a miss.
+_RES_DEFAULT_ROLES = ("package", "nominal", "tolerance")
+_CAP_DEFAULT_ROLES = ("package", "nominal", "voltage", "film", "tolerance")
+
+
+def _has_res_nominal(toks: list[str], *, ohm_r_suffix: bool) -> bool:
+    """Whether *toks* carry a resistance magnitude.
+
+    ``normalize_res_ohm_value`` decides the spelling: with the ohm ``R`` suffix
+    on, a plain ohm value renders as ``2.2R`` and the suffix form is the only
+    one possible. With it off it renders as a bare ``2.2``, and ``K``/``M`` are
+    unchanged either way — so the suffix form is always accepted and the bare
+    form is accepted only when the suffix is off.
+
+    The package token is excluded from the bare form deliberately: ``0603`` is
+    a bare number too, and letting it satisfy the nominal check would hide a
+    genuinely missing value behind a passing one.
+    """
+    if any(_RES_NOM_RE.match(t) for t in toks):
+        return True
+    if ohm_r_suffix:
+        return False
+    return any(_RES_NOM_BARE_RE.match(t) and not _PKG_RE.match(t) for t in toks)
 
 
 @dataclass(frozen=True)
@@ -104,7 +133,19 @@ def analyze_token_alert(
     type_tag: str,
     *,
     separator: str = "_",
+    resistor_ohm_r_suffix: bool = True,
+    resistor_roles: Iterable[str] | None = None,
+    cap_roles: Iterable[str] | None = None,
 ) -> TokenAlert:
+    """Report which expected field roles the cleaned string is missing.
+
+    *resistor_ohm_r_suffix* and the two role sets default to the behaviour this
+    function had before it learned about the configuration, so a caller with no
+    CleanConfig in hand keeps the old answer. ``clean_component`` passes the
+    real values; that is what stops a user who turns the ohm ``R`` suffix off —
+    or drops ``%`` from the template — from getting every row of the preview
+    flagged.
+    """
     toks = _tokens(cleaned, separator)
     if not toks:
         return TokenAlert(("empty_cleaned",), 0, 0)
@@ -114,35 +155,34 @@ def analyze_token_alert(
     has_tol = any(_TOL_RE.match(t) for t in toks)
 
     if tt == "CAP":
+        roles = tuple(cap_roles) if cap_roles is not None else _CAP_DEFAULT_ROLES
         has_nom = any(_CAP_NOM_RE.match(t) for t in toks)
         has_vol = any(_VOLT_RE.match(t) for t in toks)
         has_film = any(str(t).upper() in _CAP_FILMS for t in toks)
-        missing: list[str] = []
-        if not has_pack:
-            missing.append("package")
-        if not has_nom:
-            missing.append("nominal")
-        if not has_vol:
-            missing.append("voltage")
-        if not has_film:
-            missing.append("film")
-        if not has_tol:
-            missing.append("tolerance")
+        found = {
+            "package": has_pack,
+            "nominal": has_nom,
+            "voltage": has_vol,
+            "film": has_film,
+            "tolerance": has_tol,
+        }
+        missing = [r for r in roles if not found.get(r, False)]
         hint = _best_film_hint(toks) if "film" in missing else ""
-        present = 5 - len(missing)
-        return TokenAlert(tuple(missing), present, 5, hint=hint)
+        return TokenAlert(
+            tuple(missing), len(roles) - len(missing), len(roles), hint=hint
+        )
 
     if tt == "RESISTOR":
-        has_nom = any(_RES_NOM_RE.match(t) for t in toks)
-        missing = []
-        if not has_pack:
-            missing.append("package")
-        if not has_nom:
-            missing.append("nominal")
-        if not has_tol:
-            missing.append("tolerance")
-        present = 3 - len(missing)
-        return TokenAlert(tuple(missing), present, 3)
+        roles = (
+            tuple(resistor_roles) if resistor_roles is not None else _RES_DEFAULT_ROLES
+        )
+        found = {
+            "package": has_pack,
+            "nominal": _has_res_nominal(toks, ohm_r_suffix=resistor_ohm_r_suffix),
+            "tolerance": has_tol,
+        }
+        missing = [r for r in roles if not found.get(r, False)]
+        return TokenAlert(tuple(missing), len(roles) - len(missing), len(roles))
 
     return TokenAlert((), 0, 0)
 
