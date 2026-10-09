@@ -1164,7 +1164,7 @@
   {
     "mpn_or_bom": "TAIYO/UMK105CH120JV-F",
     "ctype": "CAP",
-    "expected": "12pF",
+    "expected": "0402_12pF_C0G_50V_5%",
     "path": "vendor",
     "file": "taiyo_mlcc_capacitor.md"
   },

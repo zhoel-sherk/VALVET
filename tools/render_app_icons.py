@@ -22,8 +22,8 @@ def _qimage(renderer, size: int):
 
 
 def render() -> None:
-    from PySide6 import QtSvg, QtWidgets
     from PIL import Image
+    from PySide6 import QtSvg, QtWidgets
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     renderer = QtSvg.QSvgRenderer(str(SVG))

@@ -14,7 +14,7 @@ import sys
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Iterator
 
 import pandas as pd
 
@@ -24,11 +24,14 @@ _SRC = _BOOMER_ROOT / "src"
 if str(_SRC) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(_SRC))
 
-from clean_component import clean_one  # noqa: E402
 from clean_alerts import analyze_token_alert  # noqa: E402
+from clean_component import clean_one  # noqa: E402
 from clean_types import CleanConfig, default_clean_config  # noqa: E402
 from machine_library.hanwha_partnames import load_partnames_snapshot  # noqa: E402
-from parsers.bom_text_utils import DEFAULT_DOUBLE_COMMENT_JOIN, merge_clean_comment_cell_parts  # noqa: E402
+from parsers.bom_text_utils import (  # noqa: E402
+    DEFAULT_DOUBLE_COMMENT_JOIN,
+    merge_clean_comment_cell_parts,
+)
 
 FIXTURES_DIR = _BOOMER_ROOT / "tests" / "fixtures" / "clean_corpus"
 DEFAULT_PROFILE = FIXTURES_DIR / "profile.json"
@@ -47,18 +50,6 @@ TSV_COLUMNS = [
     "type_auto",
     "source_auto",
     "alert_auto",
-    "expected_cleaned",
-    "expected_type",
-    "expected_source",
-    "status",
-    "notes",
-]
-
-GOLDEN_COLUMNS = [
-    "id",
-    "source_file",
-    "source_kind",
-    "original",
     "expected_cleaned",
     "expected_type",
     "expected_source",
@@ -152,7 +143,9 @@ def harvest_from_allegro_html(path: Path, rel: str) -> Iterator[dict[str, str]]:
                 }
         if idx_val >= 0 and idx_val < len(row):
             v = _normalize_original(row[idx_val])
-            if len(v) >= 2 and (idx_type < 0 or v != _normalize_original(row[idx_type])):
+            if len(v) >= 2 and (
+                idx_type < 0 or v != _normalize_original(row[idx_type])
+            ):
                 yield {
                     "source_file": rel,
                     "source_kind": "allegro_html_value",
@@ -535,7 +528,12 @@ def harvest_curated_xlsx(
     ws = wb.active
     all_rows = list(ws.iter_rows(values_only=True))
     wb.close()
-    stats = {"raw_rows": 0, "empty_skipped": 0, "junk_skipped": 0, "duplicate_skipped": 0}
+    stats = {
+        "raw_rows": 0,
+        "empty_skipped": 0,
+        "junk_skipped": 0,
+        "duplicate_skipped": 0,
+    }
 
     if not all_rows:
         return [], stats
@@ -544,7 +542,10 @@ def harvest_curated_xlsx(
     data_rows = all_rows
     if not join_mode:
         headers = [_excel_cell_str(c).lower() for c in all_rows[0]]
-        if any(h in ("original", "description", "comment", "value", "component") for h in headers):
+        if any(
+            h in ("original", "description", "comment", "value", "component")
+            for h in headers
+        ):
             for i, h in enumerate(headers):
                 if h in ("original", "description", "comment", "value", "component"):
                     col_idx = i
@@ -591,7 +592,9 @@ def harvest_curated_xlsx(
     return out, stats
 
 
-def bootstrap_golden_from_draft(draft_rows: list[dict[str, str]]) -> list[dict[str, str]]:
+def bootstrap_golden_from_draft(
+    draft_rows: list[dict[str, str]],
+) -> list[dict[str, str]]:
     """Build golden editor rows: auto-filled expected_*; ok if clean_one already matches."""
     out: list[dict[str, str]] = []
     for row in draft_rows:
@@ -640,11 +643,11 @@ def sample_records_stratified_by_file(
     max_per_file: int | None = None,
 ) -> tuple[list[dict[str, str]], dict[str, int]]:
     """
-  Pick up to ``limit`` rows with fair representation per ``source_file``.
+    Pick up to ``limit`` rows with fair representation per ``source_file``.
 
-  1. Take up to ``min_per_file`` from each file (shuffled within file).
-  2. Round-robin across files until ``limit`` or no file can contribute.
-  3. Never exceed ``max_per_file`` per file (default: ceil(limit / n_files)).
+    1. Take up to ``min_per_file`` from each file (shuffled within file).
+    2. Round-robin across files until ``limit`` or no file can contribute.
+    3. Never exceed ``max_per_file`` per file (default: ceil(limit / n_files)).
     """
     by_file: dict[str, list[dict[str, str]]] = {}
     for r in records:
@@ -718,7 +721,9 @@ def harvest_directory(
                     if should_harvest_original(r["original"], source_file=rel):
                         add(r)
             elif "cmp" in path.name.lower() or (
-                suf == ".txt" and "device type" in path.read_text(encoding="utf-8", errors="ignore")[:8000].lower()
+                suf == ".txt"
+                and "device type"
+                in path.read_text(encoding="utf-8", errors="ignore")[:8000].lower()
             ):
                 for r in harvest_from_cmp_report(path, rel):
                     if should_harvest_original(r["original"], source_file=rel):
@@ -800,15 +805,11 @@ def read_tsv(path: Path) -> list[dict[str, str]]:
     return _dataframe_to_row_dicts(df)
 
 
-def write_tsv(path: Path, rows: list[dict[str, str]], columns: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    df = _rows_to_dataframe(rows, columns)
-    df.to_csv(path, sep="\t", index=False, encoding="utf-8")
-
-
 def _dataframe_to_row_dicts(df: pd.DataFrame) -> list[dict[str, str]]:
     df = df.fillna("")
-    return [{str(k): str(v) for k, v in row.items()} for row in df.to_dict(orient="records")]
+    return [
+        {str(k): str(v) for k, v in row.items()} for row in df.to_dict(orient="records")
+    ]
 
 
 def _rows_to_dataframe(rows: list[dict[str, str]], columns: list[str]) -> pd.DataFrame:
@@ -831,7 +832,9 @@ def read_corpus_table(path: Path) -> list[dict[str, str]]:
     return read_tsv(path)
 
 
-def write_corpus_table(path: Path, rows: list[dict[str, str]], columns: list[str]) -> None:
+def write_corpus_table(
+    path: Path, rows: list[dict[str, str]], columns: list[str]
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     df = _rows_to_dataframe(rows, columns)
     suf = path.suffix.lower()
@@ -867,7 +870,9 @@ def run_clean_row(original: str, cfg: CleanConfig) -> tuple[str, str, str]:
     return cleaned, typ, src
 
 
-def build_draft(manifest: list[dict[str, str]], cfg: CleanConfig) -> list[dict[str, str]]:
+def build_draft(
+    manifest: list[dict[str, str]], cfg: CleanConfig
+) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     for r in manifest:
         cleaned, typ, src = run_clean_row(r["original"], cfg)
@@ -1005,8 +1010,12 @@ def format_failure_report(
     counts: dict[str, int] = {}
     for f in failures:
         counts[f.field] = counts.get(f.field, 0) + 1
-    lines.append("summary by field: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
-    lines.append("filter: pytest -k <id> or: python tools/clean_corpus.py report --id <prefix>")
+    lines.append(
+        "summary by field: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items()))
+    )
+    lines.append(
+        "filter: pytest -k <id> or: python tools/clean_corpus.py report --id <prefix>"
+    )
     return "\n".join(lines) + "\n"
 
 

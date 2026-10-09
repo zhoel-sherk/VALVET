@@ -5,6 +5,35 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.3.0] - BETA - 2026-10-09
+
+### Changed
+
+- **`test_datasheet_sample_row` now uses strict equality.** The previous
+  `expected in out` fallback let any codec append invented tokens and still pass;
+  it masked the `WR08X000PTL` 5 % over-emission. Both vendor and regex paths now
+  assert `==`. Running the strict gate surfaced one drift in the Taiyo Yuden
+  UMK sample: the expected string was updated from `12pF` to
+  `0402_12pF_C0G_50V_5%` to match the parser output documented in the codec.
+
+### Removed
+
+- **Deleted the untracked `tests/generate_clean_golden.py` script.** It was not
+  part of CI, failed Ruff, and was only a local helper.
+- **Pruned dead tooling code:** `tools/clean_corpus_lib.py` dropped the unused
+  `GOLDEN_COLUMNS` constant and `write_tsv` helper; `tools/clean_corpus.py`
+  removed an unused `ps` assignment and an unused `typing.Any` import; import
+  blocks in `tools/` were sorted/reformatted by Ruff.
+
+### Repository
+
+- **Stale local and remote branches were deleted; only `main` remains active.**
+
+### Packaging
+
+- **PyInstaller `valvet.spec` smoke build passed.** The frozen `dist/VALVET/VALVET.exe`
+  launched and stayed alive for 5 s without an early crash.
+
 ## [0.5.2.1] - BETA - 2026-10-09
 
 ### Fixed

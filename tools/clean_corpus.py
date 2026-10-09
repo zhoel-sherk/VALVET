@@ -47,6 +47,7 @@ from clean_corpus_lib import (  # noqa: E402
     write_corpus_table,
     write_manifest,
 )
+
 from machine_library.hanwha_partnames import (  # noqa: E402
     export_partnames_snapshot,
     resolve_upd_mdb_path,
@@ -185,9 +186,7 @@ def _run_validate(args: argparse.Namespace) -> tuple[list, int]:
         return [], 1
     cfg = load_corpus_profile(_profile_path())
     ok_rows = sum(
-        1
-        for r in golden
-        if str(r.get("status", "")).strip().lower() in ("ok", "")
+        1 for r in golden if str(r.get("status", "")).strip().lower() in ("ok", "")
     )
     failures = validate_golden(
         golden,
@@ -228,14 +227,23 @@ def cmd_stabilize(args: argparse.Namespace) -> int:
         return 0
     n = 0
     for row in rows:
-        if row.get("id") in fail_ids and str(row.get("status", "")).strip().lower() == "ok":
+        if (
+            row.get("id") in fail_ids
+            and str(row.get("status", "")).strip().lower() == "ok"
+        ):
             row["status"] = "wip"
             note = str(row.get("notes", "")).strip()
             row["notes"] = (note + "; unstable_in_batch").strip("; ")
             n += 1
-    cols = [c for c in GOLDEN_EDITOR_COLUMNS if c in rows[0]] if rows else GOLDEN_EDITOR_COLUMNS
+    cols = (
+        [c for c in GOLDEN_EDITOR_COLUMNS if c in rows[0]]
+        if rows
+        else GOLDEN_EDITOR_COLUMNS
+    )
     write_corpus_table(path, rows, cols)
-    print(f"stabilize: marked {n} row(s) as wip (ids: {', '.join(sorted(fail_ids)[:8])}…)")
+    print(
+        f"stabilize: marked {n} row(s) as wip (ids: {', '.join(sorted(fail_ids)[:8])}…)"
+    )
     return 0
 
 
@@ -243,19 +251,27 @@ def main() -> int:
     p = argparse.ArgumentParser(description="Clean BOM golden corpus tools")
     sub = p.add_subparsers(dest="command", required=True)
 
-    pe = sub.add_parser("mdb-export", help="Export filtered Hanwha PARTNAME JSON snapshot")
-    pe.add_argument("--mdb", default=None, help="Path to UPD.MDB (default: examples/UPD.MDB)")
+    pe = sub.add_parser(
+        "mdb-export", help="Export filtered Hanwha PARTNAME JSON snapshot"
+    )
+    pe.add_argument(
+        "--mdb", default=None, help="Path to UPD.MDB (default: examples/UPD.MDB)"
+    )
     pe.add_argument(
         "--out",
         default=str(FIXTURES_DIR / "hanwha_partnames_cl40.json"),
     )
-    pe.add_argument("--confidence", default="40", help="Comma-separated CONFIDENCE_LEVEL values")
+    pe.add_argument(
+        "--confidence", default="40", help="Comma-separated CONFIDENCE_LEVEL values"
+    )
     pe.add_argument(
         "--include-passive-rc",
         action="store_true",
         help="Include chip R/C MLCC-style PARTNAME rows (default: ICs and specials only)",
     )
-    pe.add_argument("--dump-rejects", default=None, help="Optional TSV of rejected PARTNAME rows")
+    pe.add_argument(
+        "--dump-rejects", default=None, help="Optional TSV of rejected PARTNAME rows"
+    )
 
     pi = sub.add_parser(
         "import-curated",
@@ -313,15 +329,21 @@ def main() -> int:
     pd_.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
     pd_.add_argument("--out", default=str(DEFAULT_DRAFT))
 
-    pt = sub.add_parser("test", help="Compare golden.xlsx to clean_one (exit 1 on mismatch)")
-    pt.add_argument("--id", default="", help="Only rows whose id starts with this prefix")
+    pt = sub.add_parser(
+        "test", help="Compare golden.xlsx to clean_one (exit 1 on mismatch)"
+    )
+    pt.add_argument(
+        "--id", default="", help="Only rows whose id starts with this prefix"
+    )
     pt.add_argument("--max-rows", default=None, type=int)
 
-    pr = sub.add_parser("report", help="Print LLM-friendly diff (same as test failures)")
+    pr = sub.add_parser(
+        "report", help="Print LLM-friendly diff (same as test failures)"
+    )
     pr.add_argument("--id", default="")
     pr.add_argument("--max-rows", default=None, type=int)
 
-    ps = sub.add_parser(
+    sub.add_parser(
         "stabilize",
         help="Mark golden rows that fail validate as wip (run after bootstrap)",
     )
