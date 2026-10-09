@@ -24,6 +24,9 @@ What the previous pattern got wrong:
 - Temperature characteristics cover the class-2 families the sheet lists
   alongside X5R/X7R/X6S, plus class 1. Only the first three were accepted, so
   X7S/X6T/Y5V/Y5U/C0G parts returned ``None``.
+- All fourteen tolerance codes of section 3 are accepted, and the class-1
+  spellings (C0G / COG / C0H / NP0 / NPO) all clean to ``C0G`` instead of
+  leaking the vendor's own spelling into the cleaned string.
 
 Examples:
 - V226M0402X5R6R3NCT → 0402_22uF_X5R_20%_6.3V   (datasheet part number)
@@ -42,14 +45,46 @@ VENDOR_NAME = "Viiyong"
 COMPONENT_TYPES = ["CAP"]
 PARSER_PRIORITY = 87
 
-# Datasheet section 3 "Capacitance Tolerance".
-_TOL = {"J": "5%", "K": "10%", "M": "20%"}
-# Class 1 + the class-2 families named in section 5 of the sheet.
-_TC = "X5R|X5S|X7R|X7S|X7T|X6S|X6T|Y5V|Y5U|C0G|COG|NP0|NPO|P7R|P6R"
+# Datasheet section 3 "Capacitance Tolerance", PDF p.2: "A: +/-0.05pF B: +/-0.1pF
+# C: +/-0.25pF D: +/-0.5pF F: +/-1% G: +/-2% J: +/-5% K: +/-10% L: +/-15% M:
+# +/-20% N: +/-30% X: +/-40% Z: +80/-20% Y: +150/-20%".
+#
+# Only J/K/M were decoded, and because the pattern *required* a tolerance letter
+# the other nine made the whole part unparseable - size, capacitance, dielectric
+# and voltage all thrown away. The absolute codes render as a bare ``0.25pF``
+# magnitude and the asymmetric ones as the sheet spells them, which is what
+# ``fenghua``/``darfon``/``walsin`` already do for the same two classes.
+_TOL = {
+    "A": "0.05pF",
+    "B": "0.1pF",
+    "C": "0.25pF",
+    "D": "0.5pF",
+    "F": "1%",
+    "G": "2%",
+    "J": "5%",
+    "K": "10%",
+    "L": "15%",
+    "M": "20%",
+    "N": "30%",
+    "X": "40%",
+    "Z": "+80/-20%",
+    "Y": "+150/-20%",
+}
+# Class 1 + the class-2 families named in section 5 of the sheet. Section 1.3
+# lists the class-1 group as "C0G/C0H(NP0)", so C0H is a real spelling here.
+_TC = "X5R|X5S|X7R|X7S|X7T|X6S|X6T|Y5V|Y5U|C0G|COG|C0H|NP0|NPO|P7R|P6R"
+# Every class-1 spelling collapses to C0G, as darfon/eyang/fenghua/tcc/walsin
+# already do: the same class-1 dielectric must clean to the same string whichever
+# vendor marked it.
+_CLASS1 = {"C0G", "COG", "C0H", "NP0", "NPO"}
 # (2) capacitance EIA, (3) tolerance, (4) size, (5) TC, (6) voltage as dRd or 3
 # digits, then terminal + thickness + control code.
 _RE = compile(
-    r"^V(\d{3})([JKM])(\d{4})(" + _TC + r")(\dR\d|\d{3})N[A-Z]{0,3}$",
+    r"^V(\d{3})(["
+    + "".join(sorted(_TOL))
+    + r"])(\d{4})("
+    + _TC
+    + r")(\dR\d|\d{3})N[A-Z]{0,3}$",
     I,
 )
 
@@ -61,10 +96,12 @@ def parse(pn: str, component_type: str) -> str | None:
     m = _RE.match(pn2)
     if not m:
         return None
-    c3, tol_ch, size, film, vraw = m.groups()
+    c3, tol_ch, size, film_raw, vraw = m.groups()
     cap = pf_eia_3_to_str(c3)
     if not cap:
         return None
+    film_raw = str(film_raw).upper()
+    film = "C0G" if film_raw in _CLASS1 else film_raw
     tol = _TOL.get(str(tol_ch).upper(), "")
     vol = china_mlcc_vol_token(vraw)
     parts = [size, cap, film]

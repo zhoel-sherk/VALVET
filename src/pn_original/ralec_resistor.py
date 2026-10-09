@@ -410,7 +410,7 @@ _SERIES = {
             "20": "2010",
             "25": "2512",
         },
-        "tolerances": {"B": "0.1%", "C": "0.25%", "D": "0.5%", "F": "1.0%"},
+        "tolerances": {"B": "0.1%", "C": "0.25%", "D": "0.5%", "F": "1%"},
         "packing": {"TE", "TH", "TP"},
         "extra": "TCR",
         "extra_letters": "BCDE",

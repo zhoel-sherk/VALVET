@@ -21,7 +21,10 @@ Datasheet scope, which is what the tables below mirror:
   ``M``+/-20% ``N``+/-30%, plus the absolute-pF codes ``A``/``B``/``C``/``D``/
   ``P`` and the asymmetric ``S``/``X``/``Y``/``Z``. ``L`` and ``N`` were missing,
   and because the pattern requires a tolerance letter they made the whole part
-  unparseable rather than merely dropping a field.
+  unparseable rather than merely dropping a field; the other nine had the same
+  effect and are now decoded too.
+- 1.2 also lists the land-grid code ``A8A4`` and its alias ``008004``, which the
+  old four-digit-only size group could not express.
 
 Examples:
 - C0402C0G180J500NTB → 0402_18pF_C0G_5%_50V
@@ -45,13 +48,39 @@ PARSER_PRIORITY = 88
 # COG/NP0/NPO are accepted as the usual alternate spellings of C0G, X8R is kept
 # because it appears in sibling China-vendor catalogues.
 _DIELECTRICS = "C0G|COG|X7R|X8R|X7T|X7S|X6S|X6T|X5R|NP0|NPO"
-# Datasheet section 5. The absolute-pF and asymmetric codes are deliberately not
-# here: they cannot be rendered as a percentage, and guessing one would be worse
-# than omitting the field.
-_TOL = {"F": "1%", "G": "2%", "J": "5%", "K": "10%", "L": "15%", "M": "20%", "N": "30%"}
+# Datasheet section 5 (PDF p.4), every code of it: the absolute-pF group renders
+# as a bare magnitude, matching fenghua/darfon/walsin, and the asymmetric group
+# as the sheet spells it, matching fenghua's "+50%/-20%". The earlier note that
+# these "cannot be rendered as a percentage" was wrong - only the absolute ones
+# needed a different shape, and because the pattern *required* a tolerance letter
+# the nine missing codes made the whole part unparseable rather than merely
+# dropping a field.
+_TOL = {
+    "A": "0.05pF",
+    "B": "0.1pF",
+    "C": "0.25pF",
+    "D": "0.5pF",
+    "P": "0.02pF",
+    "F": "1%",
+    "G": "2%",
+    "J": "5%",
+    "K": "10%",
+    "L": "15%",
+    "M": "20%",
+    "N": "30%",
+    "S": "+50%/-20%",
+    "X": "+22%/-33%",
+    "Y": "+150/-20%",
+    "Z": "+80%/-20%",
+}
+# Datasheet 1.2: "A8A4(008004) 0105(01005) 0201 0402 0603 0805 1206 1210".
+# The land-grid code and its alias are six/four characters that do not fit a
+# plain ``(\d{4})``, and both were therefore unparseable. Longest alternative
+# first so ``008004`` cannot be split as a 4-digit size plus a 3-digit value.
+_SIZES = "008004|A8A4|[0-9]{4}"
 _RE = compile(
-    r"^C(\d{4})(" + _DIELECTRICS + r")"
-    r"(\d{3})([FGJKLMN])"
+    r"^C(" + _SIZES + r")(" + _DIELECTRICS + r")"
+    r"(\d{3})([" + "".join(sorted(_TOL)) + r"])"
     r"((?:\d{3})|(?:\dR\d))([A-Z]*)$",
     I,
 )

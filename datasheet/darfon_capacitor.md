@@ -11,10 +11,14 @@ C  1005  NP0  101  J  G  T  S  △
 1   2    3    4    5  6  7  8  9
 ```
 
-- **Size** is written either way round — the datasheet prints
+- **Size** is the *metric* code, and only that: the datasheet prints
   `0402(01005) 0603(0201) 1005(0402) 1608(0603) 2012(0805) 3216(1206)
-  3225(1210) 4520(1808) 4532(1812)` — so both the EIA and the metric spelling
-  are accepted and mapped.
+  3225(1210) 4520(1808) 4532(1812)`, where the leading token is what the part
+  number carries and the parenthesised EIA inch code is a cross-reference for
+  buyers. Accepting both spellings is **wrong**, not permissive: `1005` in the
+  metric column means 0402, so reading the same four characters as an EIA code
+  reports `01005` — roughly 2.7x the body. `test_darfon_eia_size_spelling_is_refused`
+  pins the refusal.
 - **T.C.** is three characters: `NP0` (class 1) plus `X8G X8R X7R X7S X7T X7U
   X6S X6T X5R`. `Y5V` is not in this catalogue.
 - **Capacitance**: first two digits significant, third is the power of ten,

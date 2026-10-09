@@ -1,36 +1,99 @@
 [
   {
+    "mpn_or_bom": "C0603NP0240JGT",
+    "ctype": "CAP",
+    "expected": "0201_24pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0603NP0201JGT",
+    "ctype": "CAP",
+    "expected": "0201_200pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0603NP0201JFT",
+    "ctype": "CAP",
+    "expected": "0201_200pF_C0G_5%_25V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0603NP0271JGT",
+    "ctype": "CAP",
+    "expected": "0201_270pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0603NP0430JGT",
+    "ctype": "CAP",
+    "expected": "0201_43pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
     "mpn_or_bom": "C1005NP0508CGTS",
     "ctype": "CAP",
-    "expected": "0402_0.5pF_C0G_50V",
+    "expected": "0402_0.5pF_C0G_0.25pF_50V",
     "path": "vendor",
     "file": "darfon_capacitor.md"
   },
   {
-    "mpn_or_bom": "C1608NP0508CGTS",
+    "mpn_or_bom": "C0603X5R475MTT",
     "ctype": "CAP",
-    "expected": "0603_0.5pF_C0G_50V",
+    "expected": "0201_4.7uF_X5R_20%_2.5V",
     "path": "vendor",
     "file": "darfon_capacitor.md"
   },
   {
-    "mpn_or_bom": "C3216NP0508CGTS",
+    "mpn_or_bom": "C0603X5R155MBT",
     "ctype": "CAP",
-    "expected": "1206_0.5pF_C0G_50V",
+    "expected": "0201_1.5uF_X5R_20%_4V",
     "path": "vendor",
     "file": "darfon_capacitor.md"
   },
   {
-    "mpn_or_bom": "C1005NP0253CGTS",
+    "mpn_or_bom": "C0603X5R101KCT",
     "ctype": "CAP",
-    "expected": "0402_0.25pF_C0G_30V",
+    "expected": "0201_100pF_X5R_10%_6.3V",
     "path": "vendor",
     "file": "darfon_capacitor.md"
   },
   {
-    "mpn_or_bom": "C1005NP0501CGTS",
+    "mpn_or_bom": "C0603X5R182KDT",
     "ctype": "CAP",
-    "expected": "0402_0.5pF_C0G_10V",
+    "expected": "0201_1.8nF_X5R_10%_10V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0603X5R105MET",
+    "ctype": "CAP",
+    "expected": "0201_1uF_X5R_20%_16V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0603X5R101KFT",
+    "ctype": "CAP",
+    "expected": "0201_100pF_X5R_10%_25V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C1005X5R224KNT",
+    "ctype": "CAP",
+    "expected": "0402_220nF_X5R_10%_35V",
+    "path": "vendor",
+    "file": "darfon_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0603X5R103KGT",
+    "ctype": "CAP",
+    "expected": "0201_10nF_X5R_10%_50V",
     "path": "vendor",
     "file": "darfon_capacitor.md"
   },
@@ -56,16 +119,93 @@
     "file": "eyang_capacitor.md"
   },
   {
-    "mpn_or_bom": "C0603X7R105K160NTB",
+    "mpn_or_bom": "C0402X7T120L250NTB",
     "ctype": "CAP",
-    "expected": "0603_1uF_X7R_10%_16V",
+    "expected": "0402_12pF_X7T_15%_25V",
     "path": "vendor",
     "file": "eyang_capacitor.md"
   },
   {
-    "mpn_or_bom": "C0805X5R475M6R3NTB",
+    "mpn_or_bom": "C0402X6T105M630NTB",
     "ctype": "CAP",
-    "expected": "0805_4.7uF_X5R_20%_6.3V",
+    "expected": "0402_1uF_X6T_20%_63V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402X7S330K100NTB",
+    "ctype": "CAP",
+    "expected": "0402_33pF_X7S_10%_10V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402C0G120N500NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_C0G_30%_50V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402C0G120J630NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_C0G_5%_63V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402C0G120J350NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_C0G_5%_35V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402C0G120J2R5NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_C0G_5%_2.5V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402X7R120C250NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_X7R_0.25pF_25V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402X7R120P250NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_X7R_0.02pF_25V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402X7R120S250NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_X7R_+50%/-20%_25V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C0402X7R120Z250NTB",
+    "ctype": "CAP",
+    "expected": "0402_12pF_X7R_+80%/-20%_25V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CA8A4X5R105M500NTB",
+    "ctype": "CAP",
+    "expected": "A8A4_1uF_X5R_20%_50V",
+    "path": "vendor",
+    "file": "eyang_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "C008004X5R105M500NTB",
+    "ctype": "CAP",
+    "expected": "008004_1uF_X5R_20%_50V",
     "path": "vendor",
     "file": "eyang_capacitor.md"
   },
@@ -84,23 +224,72 @@
     "file": "fenghua_capacitor.md"
   },
   {
-    "mpn_or_bom": "0603B104K160NT",
+    "mpn_or_bom": "0805B104K500NT",
     "ctype": "CAP",
-    "expected": "0603_100nF_X7R_10%_16V",
+    "expected": "0805_100nF_X7R_10%_50V",
     "path": "vendor",
     "file": "fenghua_capacitor.md"
   },
   {
-    "mpn_or_bom": "1206B106M100NT",
+    "mpn_or_bom": "0402X104M101NT",
     "ctype": "CAP",
-    "expected": "1206_10uF_X7R_20%_10V",
+    "expected": "0402_100nF_X5R_20%_100V",
     "path": "vendor",
     "file": "fenghua_capacitor.md"
   },
   {
-    "mpn_or_bom": "0201CG471J250NT",
+    "mpn_or_bom": "0805COG102J630SB",
     "ctype": "CAP",
-    "expected": "0201_470pF_C0G_5%_25V",
+    "expected": "0805_1nF_C0G_5%_63V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0402CG1R0B160SB",
+    "ctype": "CAP",
+    "expected": "0402_1pF_C0G_0.1pF_16V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0805CG102M501NT",
+    "ctype": "CAP",
+    "expected": "0805_1nF_C0G_20%_500V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0805CG102M202NT",
+    "ctype": "CAP",
+    "expected": "0805_1nF_C0G_20%_2000V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0402B101S630NT",
+    "ctype": "CAP",
+    "expected": "0402_100pF_X7R_+50%/-20%_63V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0805B201M101NT",
+    "ctype": "CAP",
+    "expected": "0805_200pF_X7R_20%_100V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0201X104K6R3NT",
+    "ctype": "CAP",
+    "expected": "0201_100nF_X5R_10%_6.3V",
+    "path": "vendor",
+    "file": "fenghua_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0805X475M6R3NT",
+    "ctype": "CAP",
+    "expected": "0805_4.7uF_X5R_20%_6.3V",
     "path": "vendor",
     "file": "fenghua_capacitor.md"
   },
@@ -140,6 +329,146 @@
     "file": "fenghua_resistor.md"
   },
   {
+    "mpn_or_bom": "KAM03CT70J105KH",
+    "ctype": "CAP",
+    "expected": "0201_1uF_6.3V_X7T_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM05ACG1H0R5CH",
+    "ctype": "CAP",
+    "expected": "0402_0.5pF_50V_C0G_0.25pF",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM05ACG1H390JH",
+    "ctype": "CAP",
+    "expected": "0402_39pF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM05AR71C103JH",
+    "ctype": "CAP",
+    "expected": "0402_10nF_16V_X7R_5%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM05AR71H561JH",
+    "ctype": "CAP",
+    "expected": "0402_560pF_50V_X7R_5%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM05CT70J225KH",
+    "ctype": "CAP",
+    "expected": "0402_2.2uF_6.3V_X7T_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM05CT70J475KH",
+    "ctype": "CAP",
+    "expected": "0402_4.7uF_6.3V_X7T_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM15ACG1E103JT",
+    "ctype": "CAP",
+    "expected": "0603_10nF_25V_C0G_5%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM15BR71E224KT",
+    "ctype": "CAP",
+    "expected": "0603_220nF_25V_X7R_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM15CT70J106KT",
+    "ctype": "CAP",
+    "expected": "0603_10uF_6.3V_X7T_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM15CT70J226KT",
+    "ctype": "CAP",
+    "expected": "0603_22uF_6.3V_X7T_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM21AT70J226KU",
+    "ctype": "CAP",
+    "expected": "0805_22uF_6.3V_X7T_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM21KR71H225KU",
+    "ctype": "CAP",
+    "expected": "0805_2.2uF_50V_X7R_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM31GCG2J103JU",
+    "ctype": "CAP",
+    "expected": "1206_10nF_630V_C0G_5%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM31GR71C106KU",
+    "ctype": "CAP",
+    "expected": "1206_10uF_16V_X7R_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM32LCG2J223JU",
+    "ctype": "CAP",
+    "expected": "1210_22nF_630V_C0G_5%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM32LCG3A103JU",
+    "ctype": "CAP",
+    "expected": "1210_10nF_1000V_C0G_5%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM32HR73A332KU",
+    "ctype": "CAP",
+    "expected": "1210_3.3nF_1000V_X7R_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM32LL81E106KU",
+    "ctype": "CAP",
+    "expected": "1210_10uF_25V_X8L_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "KAM32LL81H475KU",
+    "ctype": "CAP",
+    "expected": "1210_4.7uF_50V_X8L_10%",
+    "path": "vendor",
+    "file": "kyocera_capacitor.md"
+  },
+  {
     "mpn_or_bom": "GRM1555C1H100JA01D",
     "ctype": "CAP",
     "expected": "0402_10pF_50V_C0G_5%",
@@ -149,7 +478,7 @@
   {
     "mpn_or_bom": "GRM155R71C104KA88D",
     "ctype": "CAP",
-    "expected": "0402_100nF_6.3V_X7R_10%",
+    "expected": "0402_100nF_16V_X7R_10%",
     "path": "vendor",
     "file": "murata_capacitor.md"
   },
@@ -170,7 +499,7 @@
   {
     "mpn_or_bom": "GRM155R61C105KA12D",
     "ctype": "CAP",
-    "expected": "0402_1uF_6.3V_X5R_10%",
+    "expected": "0402_1uF_16V_X5R_10%",
     "path": "vendor",
     "file": "murata_capacitor.md"
   },
@@ -196,6 +525,55 @@
     "file": "murata_capacitor.md"
   },
   {
+    "mpn_or_bom": "GRM188R60J106MA73D",
+    "ctype": "CAP",
+    "expected": "0603_10uF_6.3V_X5R_20%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "GRM188R61J106MA73D",
+    "ctype": "CAP",
+    "expected": "0603_10uF_63V_X5R_20%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "GRM188R62D106MA73D",
+    "ctype": "CAP",
+    "expected": "0603_10uF_200V_X5R_20%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "GRM155R71E104KA01D",
+    "ctype": "CAP",
+    "expected": "0402_100nF_25V_X7R_10%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "GRM155R70J104KA01D",
+    "ctype": "CAP",
+    "expected": "0402_100nF_6.3V_X7R_10%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "GRM155R71K104KA01D",
+    "ctype": "CAP",
+    "expected": "0402_100nF_80V_X7R_10%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "GRM188R73D104KA01D",
+    "ctype": "CAP",
+    "expected": "0603_100nF_2kV_X7R_10%",
+    "path": "vendor",
+    "file": "murata_capacitor.md"
+  },
+  {
     "mpn_or_bom": "TA-I/RM04JTN100",
     "ctype": "RES",
     "expected": "0402_10R_5%",
@@ -212,7 +590,7 @@
   {
     "mpn_or_bom": "WALSIN/0402N100J500CT",
     "ctype": "CAP",
-    "expected": "0402_10pF_50V_5%",
+    "expected": "0402_10pF_C0G_50V_5%",
     "path": "vendor",
     "file": "other_vendors.md"
   },
@@ -278,6 +656,230 @@
     "expected": "0402_18pF_C0G_5%_50V",
     "path": "vendor",
     "file": "other_vendors.md"
+  },
+  {
+    "mpn_or_bom": "RTT02100JTH",
+    "ctype": "RES",
+    "expected": "0402_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTT02R100FTH",
+    "ctype": "RES",
+    "expected": "0402_0.1R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTT18100JTP",
+    "ctype": "RES",
+    "expected": "1812_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTT02000JTH",
+    "ctype": "RES",
+    "expected": "0402_0R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTT024R7FTH",
+    "ctype": "RES",
+    "expected": "0402_4.7R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTT021002FTH",
+    "ctype": "RES",
+    "expected": "0402_10K_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTW06100JTP",
+    "ctype": "RES",
+    "expected": "0612_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTW06R240FTP",
+    "ctype": "RES",
+    "expected": "0612_0.24R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RAW18100JTP",
+    "ctype": "RES",
+    "expected": "1218_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RAW18R100FTP",
+    "ctype": "RES",
+    "expected": "1218_0.1R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTX021002BDTH",
+    "ctype": "RES",
+    "expected": "0402_10K_0.1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "ARTX021002BDTH",
+    "ctype": "RES",
+    "expected": "0402_10K_0.1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RST02100JATH",
+    "ctype": "RES",
+    "expected": "0402_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "AHW25R200FTE",
+    "ctype": "RES",
+    "expected": "1225_0.2R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "AHH03R050JTP",
+    "ctype": "RES",
+    "expected": "0603_0.05R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RAT02100JTH",
+    "ctype": "RES",
+    "expected": "0402_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RAH06103JTP",
+    "ctype": "RES",
+    "expected": "1206_10K_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RAR051002FTP",
+    "ctype": "RES",
+    "expected": "0805_10K_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RAG061000FTP",
+    "ctype": "RES",
+    "expected": "1206_100R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTR011002DTH",
+    "ctype": "RES",
+    "expected": "0201_10K_0.5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RSR051002FTP",
+    "ctype": "RES",
+    "expected": "0805_10K_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "ARST051002FTP",
+    "ctype": "RES",
+    "expected": "0805_10K_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RAV05100JTP",
+    "ctype": "RES",
+    "expected": "0805_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RSV03100JTP",
+    "ctype": "RES",
+    "expected": "0603_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTV03100JTP",
+    "ctype": "RES",
+    "expected": "0603_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTH02100JTH",
+    "ctype": "RES",
+    "expected": "0402_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTG05100JTP",
+    "ctype": "RES",
+    "expected": "0805_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "RTG25R100FTE",
+    "ctype": "RES",
+    "expected": "2512_0.1R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "FTG06100JTP",
+    "ctype": "RES",
+    "expected": "1206_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "FTH06100JTP",
+    "ctype": "RES",
+    "expected": "1206_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "FTT02100JTH",
+    "ctype": "RES",
+    "expected": "0402_10R_5%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
+  },
+  {
+    "mpn_or_bom": "FTT02R100FTH",
+    "ctype": "RES",
+    "expected": "0402_0.1R_1%",
+    "path": "vendor",
+    "file": "ralec_resistor.md"
   },
   {
     "mpn_or_bom": "RES_22K_+/-5%_1/16W_R0402_SMD",
@@ -388,6 +990,41 @@
     "mpn_or_bom": "1206W4F220JTCE",
     "ctype": "RES",
     "expected": "1206_22R_1%_1/4W",
+    "path": "vendor",
+    "file": "royalohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0805W8J0103T5E",
+    "ctype": "RES",
+    "expected": "0805_10K_5%_1/8W",
+    "path": "vendor",
+    "file": "royalohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGD1002TCE",
+    "ctype": "RES",
+    "expected": "0402_10K_0.5%_1/16W",
+    "path": "vendor",
+    "file": "royalohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGG1002TCE",
+    "ctype": "RES",
+    "expected": "0402_10K_2%_1/16W",
+    "path": "vendor",
+    "file": "royalohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0603WAD1001T5E",
+    "ctype": "RES",
+    "expected": "0603_1K_0.5%_1/10W",
+    "path": "vendor",
+    "file": "royalohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGF100MTCE",
+    "ctype": "RES",
+    "expected": "0402_0.01R_1%_1/16W",
     "path": "vendor",
     "file": "royalohm_resistor.md"
   },
@@ -637,6 +1274,356 @@
     "file": "tcc_capacitor.md"
   },
   {
+    "mpn_or_bom": "CGA1A2C0G1E010C030BA",
+    "ctype": "CAP",
+    "expected": "0201_1pF_25V_C0G_0.25pF",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA1A2C0G1H101J030BA",
+    "ctype": "CAP",
+    "expected": "0201_100pF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B2C0G1H010C050BA",
+    "ctype": "CAP",
+    "expected": "0402_1pF_50V_C0G_0.25pF",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B2C0G1H102J050BA",
+    "ctype": "CAP",
+    "expected": "0402_1nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E2C0G1H010C080AA",
+    "ctype": "CAP",
+    "expected": "0603_1pF_50V_C0G_0.25pF",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E2C0G1H103J080AA",
+    "ctype": "CAP",
+    "expected": "0603_10nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4C2C0G1H102J060AA",
+    "ctype": "CAP",
+    "expected": "0805_1nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4J2C0G1H333J125AA",
+    "ctype": "CAP",
+    "expected": "0805_33nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5C2C0G1H472J060AA",
+    "ctype": "CAP",
+    "expected": "1206_4.7nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5L2C0G1H104J160AA",
+    "ctype": "CAP",
+    "expected": "1206_100nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA6J2C0G1H223J125AA",
+    "ctype": "CAP",
+    "expected": "1210_22nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA6P2C0G1H104J250AA",
+    "ctype": "CAP",
+    "expected": "1210_100nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA8L2C0G1H473J160KA",
+    "ctype": "CAP",
+    "expected": "1812_47nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA8R2C0G1H224J320KA",
+    "ctype": "CAP",
+    "expected": "1812_220nF_50V_C0G_5%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B2X5R1A104K050BA",
+    "ctype": "CAP",
+    "expected": "0402_100nF_10V_X5R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B3X5R1V104M050BB",
+    "ctype": "CAP",
+    "expected": "0402_100nF_35V_X5R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E3X5R0J335K080AB",
+    "ctype": "CAP",
+    "expected": "0603_3.3uF_6.3V_X5R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E3X5R1V105M080AB",
+    "ctype": "CAP",
+    "expected": "0603_1uF_35V_X5R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4J2X5R1A155K125AA",
+    "ctype": "CAP",
+    "expected": "0805_1.5uF_10V_X5R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4J3X5R1V475M125AB",
+    "ctype": "CAP",
+    "expected": "0805_4.7uF_35V_X5R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5L2X5R1C475K160AA",
+    "ctype": "CAP",
+    "expected": "1206_4.7uF_16V_X5R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5L3X5R1V106M160AB",
+    "ctype": "CAP",
+    "expected": "1206_10uF_35V_X5R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA1A2X7R0J103K030BA",
+    "ctype": "CAP",
+    "expected": "0201_10nF_6.3V_X7R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA1A2X7R1H471M030BA",
+    "ctype": "CAP",
+    "expected": "0201_470pF_50V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B3X7R0J154K050BB",
+    "ctype": "CAP",
+    "expected": "0402_150nF_6.3V_X7R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B1X7R1V224M050BC",
+    "ctype": "CAP",
+    "expected": "0402_220nF_35V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E1X7R0J155K080AC",
+    "ctype": "CAP",
+    "expected": "0603_1.5uF_6.3V_X7R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E1X7R1V105M080AC",
+    "ctype": "CAP",
+    "expected": "0603_1uF_35V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4J1X7R0J685K125AC",
+    "ctype": "CAP",
+    "expected": "0805_6.8uF_6.3V_X7R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4J1X7R1V475M125AC",
+    "ctype": "CAP",
+    "expected": "0805_4.7uF_35V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5L1X7R0J226M160AC",
+    "ctype": "CAP",
+    "expected": "1206_22uF_6.3V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5L1X7R1V106M160AC",
+    "ctype": "CAP",
+    "expected": "1206_10uF_35V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA6M3X7R1C106K200AB",
+    "ctype": "CAP",
+    "expected": "1210_10uF_16V_X7R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA6P1X7R1N106M250AC",
+    "ctype": "CAP",
+    "expected": "1210_10uF_75V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA8N3X7R1C226M230KB",
+    "ctype": "CAP",
+    "expected": "1812_22uF_16V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA8P3X7R1H685K250KB",
+    "ctype": "CAP",
+    "expected": "1812_6.8uF_50V_X7R_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA9N3X7R1C476M230KB",
+    "ctype": "CAP",
+    "expected": "2220_47uF_16V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA9P3X7R1H226M250KB",
+    "ctype": "CAP",
+    "expected": "2220_22uF_50V_X7R_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B3X7S1A334K050BB",
+    "ctype": "CAP",
+    "expected": "0402_330nF_10V_X7S_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA2B1X7S1C474M050BC",
+    "ctype": "CAP",
+    "expected": "0402_470nF_16V_X7S_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E1X7S0G106M080AC",
+    "ctype": "CAP",
+    "expected": "0603_10uF_4V_X7S_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E1X7S1C225M080AC",
+    "ctype": "CAP",
+    "expected": "0603_2.2uF_16V_X7S_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA6P1X7S0J336M250AC",
+    "ctype": "CAP",
+    "expected": "1210_33uF_6.3V_X7S_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA6P3X7S1H106M250AB",
+    "ctype": "CAP",
+    "expected": "1210_10uF_50V_X7S_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4J3X7S1A685K125AB",
+    "ctype": "CAP",
+    "expected": "0805_6.8uF_10V_X7S_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA4J1X7S1E106K125AC",
+    "ctype": "CAP",
+    "expected": "0805_10uF_25V_X7S_10%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5L1X7S1A156M160AC",
+    "ctype": "CAP",
+    "expected": "1206_15uF_10V_X7S_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA5L1X7S1A226M160AC",
+    "ctype": "CAP",
+    "expected": "1206_22uF_10V_X7S_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA1A1X7T0G104M030BC",
+    "ctype": "CAP",
+    "expected": "0201_100nF_4V_X7T_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "CGA3E1X7T0G106M080AC",
+    "ctype": "CAP",
+    "expected": "0603_10uF_4V_X7T_20%",
+    "path": "vendor",
+    "file": "tdk_capacitor.md"
+  },
+  {
     "mpn_or_bom": "0402WGJ0223TCE",
     "ctype": "RES",
     "expected": "0402_22K_5%_1/16W",
@@ -672,6 +1659,41 @@
     "file": "uniohm_resistor.md"
   },
   {
+    "mpn_or_bom": "0402WGD1002TCE",
+    "ctype": "RES",
+    "expected": "0402_10K_0.5%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGG1002TCE",
+    "ctype": "RES",
+    "expected": "0402_10K_2%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "0402WGF100MTCE",
+    "ctype": "RES",
+    "expected": "0402_0.01R_1%_1/16W",
+    "path": "vendor",
+    "file": "uniohm_resistor.md"
+  },
+  {
+    "mpn_or_bom": "V226M0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_20%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V180J0201C0G500NAT",
+    "ctype": "CAP",
+    "expected": "0201_18pF_C0G_5%_50V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
     "mpn_or_bom": "V105K0201X5R160NXT",
     "ctype": "CAP",
     "expected": "0201_1uF_X5R_10%_16V",
@@ -679,37 +1701,135 @@
     "file": "viiyong_capacitor.md"
   },
   {
-    "mpn_or_bom": "V106M0805X5R250NXT",
+    "mpn_or_bom": "V475M0805X7R6R3NCT",
     "ctype": "CAP",
-    "expected": "0805_10uF_X5R_20%_25V",
+    "expected": "0805_4.7uF_X7R_20%_6.3V",
     "path": "vendor",
     "file": "viiyong_capacitor.md"
   },
   {
-    "mpn_or_bom": "V104K0603X7R250NAT",
+    "mpn_or_bom": "V104K0402Y5V6R3NCT",
     "ctype": "CAP",
-    "expected": "0603_100nF_X7R_10%_25V",
+    "expected": "0402_100nF_Y5V_10%_6.3V",
     "path": "vendor",
     "file": "viiyong_capacitor.md"
   },
   {
-    "mpn_or_bom": "V104M0402X7R100NAT",
+    "mpn_or_bom": "V226F0402X5R6R3NCT",
     "ctype": "CAP",
-    "expected": "0402_100nF_X7R_20%_10V",
+    "expected": "0402_22uF_X5R_1%_6.3V",
     "path": "vendor",
     "file": "viiyong_capacitor.md"
   },
   {
-    "mpn_or_bom": "V221J0402X7R500NXT",
+    "mpn_or_bom": "V226G0402X5R6R3NCT",
     "ctype": "CAP",
-    "expected": "0402_220pF_X7R_5%_50V",
+    "expected": "0402_22uF_X5R_2%_6.3V",
     "path": "vendor",
     "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226L0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_15%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226N0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_30%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226X0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_40%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226C0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_0.25pF_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226D0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_0.5pF_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226Z0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_+80/-20%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226Y0402X5R6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_X5R_+150/-20%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226M0402C0H6R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_C0G_20%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "V226M0402NP06R3NCT",
+    "ctype": "CAP",
+    "expected": "0402_22uF_C0G_20%_6.3V",
+    "path": "vendor",
+    "file": "viiyong_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "ARG03C1002DT",
+    "ctype": "RES",
+    "expected": "0603_10K_0.25%_50ppm",
+    "path": "vendor",
+    "file": "viking_resistor.md"
+  },
+  {
+    "mpn_or_bom": "ARG02F1001CT",
+    "ctype": "RES",
+    "expected": "0402_1K_1%_25ppm",
+    "path": "vendor",
+    "file": "viking_resistor.md"
+  },
+  {
+    "mpn_or_bom": "ARG06D4R70CT",
+    "ctype": "RES",
+    "expected": "1206_4.7R_0.5%_25ppm",
+    "path": "vendor",
+    "file": "viking_resistor.md"
+  },
+  {
+    "mpn_or_bom": "ARG05B0010CB",
+    "ctype": "RES",
+    "expected": "0805_1R_0.1%_25ppm",
+    "path": "vendor",
+    "file": "viking_resistor.md"
+  },
+  {
+    "mpn_or_bom": "ARG05F1004DT",
+    "ctype": "RES",
+    "expected": "0805_1M_1%_50ppm",
+    "path": "vendor",
+    "file": "viking_resistor.md"
   },
   {
     "mpn_or_bom": "0402N100J500CT",
     "ctype": "CAP",
-    "expected": "0402_10pF_50V_5%",
+    "expected": "0402_10pF_C0G_50V_5%",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
@@ -717,6 +1837,13 @@
     "mpn_or_bom": "0402B101K500CT",
     "ctype": "CAP",
     "expected": "0402_100pF_X7R_50V_10%",
+    "path": "vendor",
+    "file": "walsin_mlcc_capacitor.md"
+  },
+  {
+    "mpn_or_bom": "0402B102K500CT",
+    "ctype": "CAP",
+    "expected": "0402_1nF_X7R_50V_10%",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
@@ -735,51 +1862,51 @@
     "file": "walsin_mlcc_capacitor.md"
   },
   {
-    "mpn_or_bom": "0201X104K6R3NT",
+    "mpn_or_bom": "0805G104K500CT",
     "ctype": "CAP",
-    "expected": "0201_100nF_X5R_6.3V_10%",
+    "expected": "0805_100nF_X8G_50V_10%",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
   {
-    "mpn_or_bom": "0402X224K160NT",
+    "mpn_or_bom": "0805R106M631CT",
     "ctype": "CAP",
-    "expected": "0402_220nF_X5R_16V_10%",
+    "expected": "0805_10uF_X8R_630V_20%",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
   {
-    "mpn_or_bom": "0603X226M100NT",
+    "mpn_or_bom": "0805A104D500CT",
     "ctype": "CAP",
-    "expected": "0603_22uF_X5R_10V_20%",
+    "expected": "0805_100nF_X7S_50V_0.5pF",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
   {
-    "mpn_or_bom": "0402CG100J500NT",
+    "mpn_or_bom": "0805S105K6R3CT",
     "ctype": "CAP",
-    "expected": "0402_10pF_C0G_5%_50V",
+    "expected": "0805_1uF_X6S_6.3V_10%",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
   {
-    "mpn_or_bom": "0402CG0R5C500NT",
+    "mpn_or_bom": "0805F104Z500CT",
     "ctype": "CAP",
-    "expected": "0402_0.5pF_C0G_0.25pF_50V",
+    "expected": "0805_100nF_Y5V_50V_-20%/+80%",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
   {
-    "mpn_or_bom": "0402CG5R6C500NT",
+    "mpn_or_bom": "1206B471K202CT",
     "ctype": "CAP",
-    "expected": "0402_5.6pF_C0G_0.25pF_50V",
+    "expected": "1206_470pF_X7R_2000V_10%",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
   {
-    "mpn_or_bom": "0402CG8R2C500NT",
+    "mpn_or_bom": "0402N1R0B500CT",
     "ctype": "CAP",
-    "expected": "0402_8.2pF_C0G_0.25pF_50V",
+    "expected": "0402_1pF_C0G_50V_0.1pF",
     "path": "vendor",
     "file": "walsin_mlcc_capacitor.md"
   },
@@ -819,30 +1946,121 @@
     "file": "walsin_wr_resistor.md"
   },
   {
-    "mpn_or_bom": "WW06RR050FTL",
+    "mpn_or_bom": "WR10X1001FTL",
     "ctype": "RES",
-    "expected": "0603_0.05R_1%",
+    "expected": "1210_1K_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR12X1001FTL",
+    "ctype": "RES",
+    "expected": "1206_1K_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR18X472JTL",
+    "ctype": "RES",
+    "expected": "1218_4.7K_5%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR20X472JTL",
+    "ctype": "RES",
+    "expected": "2010_4.7K_5%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR25X1001FTL",
+    "ctype": "RES",
+    "expected": "2512_1K_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR06X4754FTL",
+    "ctype": "RES",
+    "expected": "0603_4.75M_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR06X4R70FTL",
+    "ctype": "RES",
+    "expected": "0603_4.7R_1%",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WR08X000PTL",
+    "ctype": "RES",
+    "expected": "0805_0R",
+    "path": "vendor",
+    "file": "walsin_wr_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WW06RR005JTLS",
+    "ctype": "RES",
+    "expected": "0603_0.005R_5%",
     "path": "vendor",
     "file": "walsin_ww_resistor.md"
   },
   {
-    "mpn_or_bom": "WW08RR100JTL",
+    "mpn_or_bom": "WW10XR100JTLS",
     "ctype": "RES",
-    "expected": "0805_0.1R_5%",
+    "expected": "1210_0.1R_5%",
     "path": "vendor",
     "file": "walsin_ww_resistor.md"
   },
   {
-    "mpn_or_bom": "WW12RR010FTL",
+    "mpn_or_bom": "WW10PR500JTLS",
     "ctype": "RES",
-    "expected": "1206_0.01R_1%",
+    "expected": "1210_0.5R_5%",
     "path": "vendor",
     "file": "walsin_ww_resistor.md"
   },
   {
-    "mpn_or_bom": "WW25RR250FTL",
+    "mpn_or_bom": "WW20NR005JTLS",
     "ctype": "RES",
-    "expected": "2512_0.25R_1%",
+    "expected": "2010_0.005R_5%",
+    "path": "vendor",
+    "file": "walsin_ww_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WW20PR100JTLJS",
+    "ctype": "RES",
+    "expected": "2010_0.1R_5%",
+    "path": "vendor",
+    "file": "walsin_ww_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WW25NR005JTLS",
+    "ctype": "RES",
+    "expected": "2512_0.005R_5%",
+    "path": "vendor",
+    "file": "walsin_ww_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WW25AR005JTLS",
+    "ctype": "RES",
+    "expected": "2512_0.005R_5%",
+    "path": "vendor",
+    "file": "walsin_ww_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WW25BR005FTLS",
+    "ctype": "RES",
+    "expected": "2512_0.005R_1%",
+    "path": "vendor",
+    "file": "walsin_ww_resistor.md"
+  },
+  {
+    "mpn_or_bom": "WW25RR050FTL",
+    "ctype": "RES",
+    "expected": "2512_0.05R_1%",
     "path": "vendor",
     "file": "walsin_ww_resistor.md"
   },

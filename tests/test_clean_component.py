@@ -409,7 +409,10 @@ def test_vendor_pn_list_does_not_fall_back_to_regex():
     cfg = clean_component.CleanConfig()
     cases = {
         "RC0402-JR-07510RL": ("RES", "51R"),
-        "WR04W2R20FTL": ("RES", "2.20R"),
+        # 2R20 and 2R2 are the same 2.2 ohm; the shared decoder normalises the
+        # trailing zero so the two spellings clean identically (RM06JTN-2R2
+        # below is the same check from the other vendor).
+        "WR04W2R20FTL": ("RES", "2.2R"),
         "RC0402FR-076K49L (PC335)": ("RES", "6.49K"),
         "RC0402-JR-0775RL": ("RES", "75R"),
         "RM06JTN-2R2": ("RES", "2.2R"),

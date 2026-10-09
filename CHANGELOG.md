@@ -5,6 +5,150 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.2.0] - BETA - 2026-10-09
+
+New vendor codecs for two automotive MLCC catalogues, and a rewrite of the
+Samsung one against both of its datasheets.
+
+### Added
+
+- **Kyocera AVX `KAM` automotive MLCC.** `KAM + size(2) + thickness(1) +
+  dielectric(2) + voltage(2) + capacitance(3) + tolerance(1) + packaging(1)`,
+  always 15 characters. Kyocera prints each size both ways; the repo vocabulary is
+  the inch name, so `15` is 0603 — a codec assuming EIA digits would read it as an
+  unknown size and `21` as 2100. Two entries in the sheet's order block read like
+  more than they are: `0G` is the 4 V *voltage* code printed immediately right of
+  `CG` and looks like an eighth dielectric, and no X5R code is printed at all, so
+  `R5` is refused. `NP0` is a product line with no order code printed and `KAF` is
+  the separate FLEXITERM catalogue; neither is claimed.
+- **TDK `CGA` automotive MLCC.** `CGA + size(1) + thickness(1) + (1) +
+  dielectric(3) + voltage(2) + capacitance(3) + tolerance(1) + dimension(3) +
+  packaging(2)`, always 20 characters. Unlike Kyocera, TDK spells the dielectric
+  out in the part number. The catalogue is scoped to **75 V and under**, so the
+  codec carries the eight voltage codes it prints and refuses a 100 V part rather
+  than guessing at a table it does not have — that needs the full-range sheet.
+  Both new codecs were validated as corpora, not just as references: all 100
+  `KAM` part numbers and all 898 `CGA` part numbers printed in the two sheets
+  decode, with nothing refused and no overlap between the two codecs.
+
+### Fixed
+
+- **The Samsung `CL` field tables were mostly wrong, in both directions.** The
+  voltage map held 6 correct letters, 6 wrong ones, and 2 that are not voltage
+  codes at all — and where it was wrong it usually overstated the rating:
+  `C` reported 630 V for a 100 V part and `L` reported 16 V for a 35 V part, so a
+  part was rated well above what it can take. At the same time `G`=Y5U,
+  `R`=NP0 and the tolerance letters `P`/`Q`/`R`/`S`/`T` appear in *no* Samsung
+  catalogue; most were voltage codes that had leaked into the wrong map.
+- **Samsung `C` was X6S and `E` was COG.** Both are real codes, but not for those
+  dielectrics: `Samsung_MLCC_2512.pdf` p.6 gives `C`=C0G (class 1) and
+  `E`=X8L, and `E` emitted the raw `COG` spelling where every other codec here
+  normalises to `C0G`. A C0G part cleaned as X6S, i.e. the wrong dielectric
+  class entirely.
+- **Samsung dropped the whole class-1 absolute tolerance group.** `N`, `A`, `B`,
+  `C`, `D`, `H` and `L` (±0.03 … ±0.5 pF) were all unhandled, so a C0G part lost
+  its tolerance: `CL10C101NANNNNC` cleaned to `0603_100pF_25V_X6S` with no
+  tolerance at all. `V`/`U`/`Z` were missing too.
+- **Samsung could not read an `R`-decimal capacitance.** The sheet documents
+  `1R5` = 1.5 pF for values below 10 pF, but only the 3-digit EIA form was
+  handled, so a decimal code cost the part its capacitance entirely.
+- **Samsung returned half a part when a code was unknown.** It now refuses a part
+  whose size, dielectric, capacitance, tolerance or voltage letter is not in
+  either sheet, because emitting the surviving fields reports a part as
+  confidently wrong rather than as unread — which is how a 100 V part came out as
+  630 V without complaint.
+- **A Walsin hand-off left an `…X…K6R3NT` part with no owner.** The Walsin MLCC
+  catalogue gives termination `L`/`C`/`P`, so its codec is right to refuse the
+  `NT` ending — that spelling belongs to Fenghua, whose sheet lists termination
+  `S`/`N`. But Fenghua accepted only the 3-digit EIA voltage form, so a part
+  written with the decimal spelling (`6R3`) matched neither codec and fell
+  through to the regex phase with every field lost: `0201X104K6R3NT`, a CO1271
+  production row, decoded as `0201_100nF_X5R_6.3V_10%` before the Walsin rewrite
+  and returned `None` after it. Fenghua now accepts both spellings, the EIA form
+  unchanged. (`test_join_separator_does_not_change_the_vendor_count` counts 180
+  vendor-decoded rows in the real SKU3 sheet and has been failing on `main`
+  since that rewrite.)
+- **Walsin WR size codes were assumed to increase with the series number.** They
+  do not. `ASC_WR_TR_V07` p.3/p.5 gives `WR10: 1210` and `WR12: 1206`, and
+  `WR18-20-25X(W)_V14` p.3 adds `WR18: 1218`, `WR20: 2010`, `WR25: 2512`. The
+  table had `10` aliased onto `0805` — so `WR10X1001FTL` and `WR08X1001FTL`
+  produced byte-identical output and a 1210 part was reported as 0805, a
+  footprint error of roughly 4x that no downstream size check catches — and `12`
+  mapped to 1210 instead of 1206. Every `WR12*` part got the wrong body. `WR18`
+  was absent, so those parts returned `None`. `WR02` is in neither sheet and is
+  kept on production evidence rather than a catalogue: the CO1271 corpus carries
+  `WR02X3301FTL` (`RES_3K3 ±1%_1/20W_R0201_SMD`) and the jumper `WR02X000 PAL`
+  (`RES 0 OHM 1/20W (0201) 1%`).
+- **The shared resistance decoder lost the M scale for every non-round
+  megohm.** `decode_ohms_suffix` in `_resistor_decode` handled K correctly
+  (`4751` → `4.75K`) but only took the M branch on exact multiples of 1e6, so
+  `4754` → `4750000R`, `1014` → `1010000R`, `1055` → `10500000R`. 1.2 % of the
+  four-digit E96 space with exponent ≥ 4 was affected — ordinary 1–10 MΩ
+  feedback parts. `viking` and `ralec` carry a private `_format_ohm` that divides
+  by 1e6 unconditionally, which is what pinned the intended output. The helper
+  also had no ceiling, so `4999` decoded to `499000M` while the two codecs that
+  predate it refuse it; it now matches them.
+- **`4R70` decoded as `4.70R` instead of `4.7R`.** The `nRm` branch kept the
+  fraction verbatim while every other path strips trailing zeros, so `4R7` and
+  `4R70` — the same 4.7 Ω — cleaned to two different strings and equality-based
+  dedup saw two components.
+- **Viiyong decoded 3 of the 14 tolerance codes its datasheet publishes.** The
+  pattern *requires* a tolerance letter, so `F`, `G`, `L`, `N`, `X` (ordinary
+  percentages), the absolute `A`/`B`/`C`/`D`, and the asymmetric `Z`/`Y` did not
+  merely lose one field — `V180F0201C0G500NAT` returned `None`, discarding size,
+  capacitance, dielectric and voltage with it. All fourteen now decode, with the
+  absolute group as a bare `0.25pF` magnitude and the asymmetric group as the
+  sheet spells it, which is what `fenghua`/`darfon`/`walsin` already do for the
+  same two classes. The earlier note that these "cannot be rendered as a
+  percentage" was wrong.
+- **Viiyong leaked the vendor's own class-1 spelling into the cleaned string.**
+  It was the only codec that passed `C0G`/`COG`/`C0H`/`NP0`/`NPO` through
+  verbatim, so the same class-1 dielectric cleaned to `C0G` from Darfon and to
+  `NP0` from Viiyong, and cross-vendor matching could not see them as one part.
+  `darfon`, `eyang`, `fenghua`, `tcc` and `walsin` all normalise to `C0G` already.
+  `C0H` was also missing from the pattern entirely, though section 1.3 prints the
+  group as `C0G/C0H(NP0)`.
+- **Eyang decoded 7 of the 16 tolerance codes its datasheet publishes**, and its
+  size group could not express `A8A4`/`008004` at all — a land-grid code that is
+  not four digits wide, so both were unparseable. Same require-the-tolerance
+  failure mode as Viiyong: every missing code discarded the whole part.
+- **`WR08X000PTL` reported `0805_0R_5%`.** A jumper is `P` ("P : Jumper" in both
+  WR sheets) and states no percentage at all; the 5 % was hardcoded. This
+  survived because `test_datasheet_sample_row` accepts `expected in out`, and
+  `"0805_0R"` is a substring of `"0805_0R_5%"`. Tightening that assertion is
+  tracked in `doc/TODO.md`.
+- **Ralec RTX emitted `1.0%` where the other 22 series emit `1%`.** Transcribed
+  verbatim from that catalogue page, it made the same electrical part clean to
+  two different strings depending only on the prefix
+  (`RTX021002FTH` → `0402_10K_1.0%` vs `RTT021002FTH` → `0402_10K_1%`). The
+  value is unchanged; only the spelling is normalised.
+- **`datasheet/darfon_capacitor.md` contradicted the codec it documents.** It
+  said both the EIA and the metric size spelling were accepted, while the code
+  accepts only the metric one and a test deliberately pins the refusal. Reading
+  the metric column as EIA (`1005` → `01005`) reported a body ~2.7x too large, so
+  the sentence would have led the next auditor straight back into that bug.
+- **Murata GRM voltage came from a legacy one-character table, and Royal Ohm
+  3-digit values were off by a power of ten.** Verified
+  against manufacturer catalogues instead of distributor listings. Murata's GRM
+  voltage field is two characters wide, and the pair after the temperature code
+  *is* that field; the R7x pattern consumed the leading digit as part of the
+  series and looked the bare letter up in a legacy one-character table, so
+  `GRM155R71C104KA88D` reported 6.3 V instead of 16 V, `GRM155R71J104KA01D`
+  reported 100 V instead of 63 V, `GRM188R60J106MA73D` reported 100 V instead of
+  6.3 V, and `GRM188R62D106MA73D` reported 10 V instead of 200 V. Codes starting
+  with `0` or `3` never matched at all, and `3B` (1.25 kV) was missing from the
+  table. Understating a voltage is the dangerous direction. Royal Ohm / UniOhm
+  turned out to be two *brands of one manufacturer* (Uniroyal Electronics
+  Global Co., Ltd.), so both codecs mirror the same 14-code datasheet; power and
+  tolerance are independent fields there, which made D=±0.5% and G=±2%
+  unreachable and the two codecs disagree on the same part number. That
+  datasheet also lists `M`/`N`/`P` as 10⁻⁴/10⁻⁵/10⁻⁶ power-of-ten codes; without
+  them such parts fell through to the 3-digit rule, decoded up to 10⁶ times too
+  high and lost their tolerance - a 0.01 Ω shunt read as 10 Ω. The Murata
+  codec's own docstring had documented the correct 16 V while the code returned
+  6.3 V, and a `## samples` row pinned the wrong value, so
+  `tests/test_parser_generated.py` was asserting the defect.
+
 ## [0.5.1.2] — BETA - 2026-10-07
 
 Fixes found by checking the part-number codecs against manufacturer datasheets,
@@ -43,7 +187,78 @@ plus release-pipeline hardening.
 
 ### Fixed
 
-- **Two vendor codecs decoded values the datasheets do not support.** Verified
+- **Walsin WR size codes were assumed to increase with the series number.** They
+  do not. `ASC_WR_TR_V07` p.3/p.5 gives `WR10: 1210` and `WR12: 1206`, and
+  `WR18-20-25X(W)_V14` p.3 adds `WR18: 1218`, `WR20: 2010`, `WR25: 2512`. The
+  table had `10` aliased onto `0805` — so `WR10X1001FTL` and `WR08X1001FTL`
+  produced byte-identical output and a 1210 part was reported as 0805, a
+  footprint error of roughly 4x that no downstream size check catches — and `12`
+  mapped to 1210 instead of 1206. Every `WR12*` part got the wrong body. `WR18`
+  was absent, so those parts returned `None`. `WR02` is in neither sheet and is
+  kept on production evidence rather than a catalogue: the CO1271 corpus carries
+  `WR02X3301FTL` (`RES_3K3 ±1%_1/20W_R0201_SMD`) and the jumper `WR02X000 PAL`
+  (`RES 0 OHM 1/20W (0201) 1%`).
+- **The shared resistance decoder lost the M scale for every non-round
+  megohm.** `decode_ohms_suffix` in `_resistor_decode` handled K correctly
+  (`4751` → `4.75K`) but only took the M branch on exact multiples of 1e6, so
+  `4754` → `4750000R`, `1014` → `1010000R`, `1055` → `10500000R`. 1.2 % of the
+  four-digit E96 space with exponent ≥ 4 was affected — ordinary 1–10 MΩ
+  feedback parts. `viking` and `ralec` carry a private `_format_ohm` that divides
+  by 1e6 unconditionally, which is what pinned the intended output. The helper
+  also had no ceiling, so `4999` decoded to `499000M` while the two codecs that
+  predate it refuse it; it now matches them.
+- **`4R70` decoded as `4.70R` instead of `4.7R`.** The `nRm` branch kept the
+  fraction verbatim while every other path strips trailing zeros, so `4R7` and
+  `4R70` — the same 4.7 Ω — cleaned to two different strings and equality-based
+  dedup saw two components.
+- **Viiyong decoded 3 of the 14 tolerance codes its datasheet publishes.** The
+  pattern *requires* a tolerance letter, so `F`, `G`, `L`, `N`, `X` (ordinary
+  percentages), the absolute `A`/`B`/`C`/`D`, and the asymmetric `Z`/`Y` did not
+  merely lose one field — `V180F0201C0G500NAT` returned `None`, discarding size,
+  capacitance, dielectric and voltage with it. All fourteen now decode, with the
+  absolute group as a bare `0.25pF` magnitude and the asymmetric group as the
+  sheet spells it, which is what `fenghua`/`darfon`/`walsin` already do for the
+  same two classes. The earlier note that these "cannot be rendered as a
+  percentage" was wrong.
+- **Viiyong leaked the vendor's own class-1 spelling into the cleaned string.**
+  It was the only codec that passed `C0G`/`COG`/`C0H`/`NP0`/`NPO` through
+  verbatim, so the same class-1 dielectric cleaned to `C0G` from Darfon and to
+  `NP0` from Viiyong, and cross-vendor matching could not see them as one part.
+  `darfon`, `eyang`, `fenghua`, `tcc` and `walsin` all normalise to `C0G` already.
+  `C0H` was also missing from the pattern entirely, though section 1.3 prints the
+  group as `C0G/C0H(NP0)`.
+- **Eyang decoded 7 of the 16 tolerance codes its datasheet publishes**, and its
+  size group could not express `A8A4`/`008004` at all — a land-grid code that is
+  not four digits wide, so both were unparseable. Same require-the-tolerance
+  failure mode as Viiyong: every missing code discarded the whole part.
+- **`WR08X000PTL` reported `0805_0R_5%`.** A jumper is `P` ("P : Jumper" in both
+  WR sheets) and states no percentage at all; the 5 % was hardcoded. This
+  survived because `test_datasheet_sample_row` accepts `expected in out`, and
+  `"0805_0R"` is a substring of `"0805_0R_5%"`. Tightening that assertion is
+  tracked in `doc/TODO.md`.
+- **Ralec RTX emitted `1.0%` where the other 22 series emit `1%`.** Transcribed
+  verbatim from that catalogue page, it made the same electrical part clean to
+  two different strings depending only on the prefix
+  (`RTX021002FTH` → `0402_10K_1.0%` vs `RTT021002FTH` → `0402_10K_1%`). The
+  value is unchanged; only the spelling is normalised.
+- **A Walsin hand-off left an `…X…K6R3NT` part with no owner.** The Walsin MLCC
+  catalogue gives termination `L`/`C`/`P`, so its codec is right to refuse the
+  `NT` ending — that spelling belongs to Fenghua, whose sheet lists termination
+  `S`/`N`. But Fenghua accepted only the 3-digit EIA voltage form, so a part
+  written with the decimal spelling (`6R3`) matched neither codec and fell
+  through to the regex phase with every field lost: `0201X104K6R3NT`, a CO1271
+  production row, decoded as `0201_100nF_X5R_6.3V_10%` before the Walsin rewrite
+  and returns `None` after it. Fenghua now accepts both spellings, the EIA form
+  unchanged. (`test_join_separator_does_not_change_the_vendor_count` counts 180
+  vendor-decoded rows in the real SKU3 sheet and has been failing on `main`
+  since that rewrite.)
+- **`datasheet/darfon_capacitor.md` contradicted the codec it documents.** It
+  said both the EIA and the metric size spelling were accepted, while the code
+  accepts only the metric one and a test deliberately pins the refusal. Reading
+  the metric column as EIA (`1005` → `01005`) reported a body ~2.7x too large, so
+  the sentence would have led the next auditor straight back into that bug.
+- **Murata GRM voltage came from a legacy one-character table, and Royal Ohm
+  3-digit values were off by a power of ten.** Verified
   against manufacturer catalogues instead of distributor listings. Murata's GRM
   voltage field is two characters wide, and the pair after the temperature code
   *is* that field; the R7x pattern consumed the leading digit as part of the

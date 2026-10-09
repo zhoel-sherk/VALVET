@@ -578,8 +578,14 @@ _CATALOG = {
         "extra_letters": "",
     },
     "RTX": {
-        # p.49, RTX Thin Film Chip Resistors. TCR B/C/D/E, and the tolerance
-        # table prints F as "+- 1.0%" with no percent sign.
+        # p.49, RTX Thin Film Chip Resistors. TCR B/C/D/E.
+        #
+        # The catalogue prints F on this page as "+- 1.0%", where all 22 other
+        # series print "1%". Transcribed verbatim it made the *same* electrical
+        # part clean to two different strings depending only on the prefix
+        # (RTX021002FTH -> 0402_10K_1.0% vs RTT021002FTH -> 0402_10K_1%), which
+        # breaks equality-based dedup and cross-series matching. The table below
+        # therefore records the normalised token; the value is unchanged.
         "pages": (49,),
         "sizes": {
             "01": "0201",
@@ -591,7 +597,7 @@ _CATALOG = {
             "20": "2010",
             "25": "2512",
         },
-        "tolerances": {"B": "0.1%", "C": "0.25%", "D": "0.5%", "F": "1.0%"},
+        "tolerances": {"B": "0.1%", "C": "0.25%", "D": "0.5%", "F": "1%"},
         "packing": {"TE", "TH", "TP"},
         "extra": "TCR",
         "extra_letters": "BCDE",
