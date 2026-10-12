@@ -1009,13 +1009,6 @@ def clean_one(
     return _clean_one_pipeline_legacy(s, ctype, eff_vendor, cfg)
 
 
-def clean_bom_column(
-    comments: list[str], config: Optional[CleanConfig] = None
-) -> List[Tuple[str, str, str, str]]:
-    """List of (cleaned, type_tag, part_code, vendor_note) per row."""
-    return [clean_one(c, config) for c in comments]
-
-
 #: Template token -> the role name clean_alerts reports it as. Roles the alert
 #: does not check (``watt``, ``Imax``, ``DCR``) are simply absent here, so they
 #: never inflate the "present" count.
@@ -1199,20 +1192,3 @@ def clean_preview(
                 )
     return results
 
-
-def clean_bom_dataframe(
-    df: "pd.DataFrame", comment_col: str, config: Optional[CleanConfig] = None
-) -> "pd.DataFrame":
-    """
-    Add columns: Comment_cleaned (or {comment_col}_cleaned), clean_type, clean_part_code, clean_vendor.
-    """
-
-    if comment_col not in df.columns:
-        raise ValueError(f"Column {comment_col!r} not in DataFrame")
-    series = [clean_one(x, config) for x in df[comment_col].astype(str).tolist()]
-    out = df.copy()
-    out[f"{comment_col}_cleaned"] = [r[0] for r in series]
-    out["clean_type"] = [r[1] for r in series]
-    out["clean_part_code"] = [r[2] for r in series]
-    out["clean_vendor"] = [r[3] for r in series]
-    return out

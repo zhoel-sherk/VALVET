@@ -98,16 +98,3 @@ def import_machine_packages(
         skipped=skipped,
         outlines=outlines,
     )
-
-
-def import_machine_names(
-    store: PackageStore,
-    names: Iterable[str],
-    *,
-    kind: str,
-    standard: str,
-) -> int:
-    """Legacy: import strings that parse to a known package (skips OTHER)."""
-    stats = import_machine_packages(store, part_groups=names)
-    _ = (kind, standard)
-    return stats.mapped

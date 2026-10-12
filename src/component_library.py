@@ -106,8 +106,10 @@ def append_component(
     p = Path(path) if path is not None else default_components_path()
     key_candidates = {normalize_key(raw), normalize_key(cleaned)}
     key_candidates.discard("")
-    existing = {normalize_key(e.raw) for e in load_components(p)} | {
-        normalize_key(e.cleaned) for e in load_components(p)
+    # Load once, not twice
+    existing_entries = load_components(p)
+    existing = {normalize_key(e.raw) for e in existing_entries} | {
+        normalize_key(e.cleaned) for e in existing_entries
     }
     if key_candidates & existing:
         return False
@@ -120,17 +122,10 @@ def append_component(
         "source": "userdb",
         "approved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+    # Check if file exists and has content BEFORE opening in append mode
+    needs_newline = p.exists() and p.stat().st_size > 0
     with p.open("a", encoding="utf-8") as f:
-        if p.exists() and p.stat().st_size > 0:
+        if needs_newline:
             f.write("\n")
         f.write(PREFIX + json.dumps(payload, ensure_ascii=False, sort_keys=True))
     return True
-
-
-def entries_to_keys(entries: Iterable[ComponentEntry]) -> set[str]:
-    keys: set[str] = set()
-    for entry in entries:
-        keys.add(normalize_key(entry.raw))
-        keys.add(normalize_key(entry.cleaned))
-    keys.discard("")
-    return keys

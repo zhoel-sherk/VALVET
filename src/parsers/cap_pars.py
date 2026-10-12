@@ -122,11 +122,6 @@ def try_parse_mlcc_bom_line_slots(
     return raw, result
 
 
-def try_parse_mlcc_bom_line(spec: str, cfg: CleanConfig) -> Optional[str]:
-    t = try_parse_mlcc_bom_line_slots(spec, cfg)
-    return t[1] if t else None
-
-
 def parse_capacitor_token_fields(
     spec: str,
     config: Optional[CleanConfig] = None,
