@@ -33,3 +33,5 @@ dist/
 # These are scratch analysis for a release; the durable record is CHANGELOG.md.
 PLAN_*.md
 AUDIT_*.md
+doc/PLAN_*.md
+doc/AUDIT_*.md
