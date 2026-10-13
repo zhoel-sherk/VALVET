@@ -533,11 +533,13 @@ class HanwhaMdbEditorWindow(QtWidgets.QMainWindow):
 
 
 def pick_mdb_path(parent: QtWidgets.QWidget) -> Optional[str]:
-    start = os.path.expanduser("~")
-    path, _ = QtWidgets.QFileDialog.getOpenFileName(
+    from ui.dialog_paths import open_file_dialog
+
+    # Note: parent may not have _settings attribute, so we pass None
+    # The function signature doesn't allow settings access here
+    path, _ = open_file_dialog(
         parent,
         "Select Hanwha UPD library (.mdb)",
-        start,
         "Access database (*.mdb *.MDB);;All (*.*)",
     )
     return path or None

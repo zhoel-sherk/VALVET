@@ -120,11 +120,14 @@ class CleanPipelineDebugDialog(QtWidgets.QDialog):
         layout.addWidget(btns)
 
     def _browse_components_txt(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        from ui.dialog_paths import open_file_dialog
+
+        path, _ = open_file_dialog(
             self,
             "Component library text file",
-            self._path_edit.text() or os.path.expanduser("~"),
             "Text (*.txt);;All (*.*)",
+            settings=self._settings,
+            history_key="ui/dialog_last_dir_component_lib",
         )
         if path:
             self._path_edit.setText(path)

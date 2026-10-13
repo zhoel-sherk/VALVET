@@ -858,8 +858,13 @@ class SettingsPages(QtCore.QObject):
                 self._main.ui_tr("debug.none_selected"),
             )
             return
-        d = QtWidgets.QFileDialog.getExistingDirectory(
-            self._main, self._main.ui_tr("debug.pick_folder")
+        from ui.dialog_paths import directory_dialog
+
+        d = directory_dialog(
+            self._main,
+            self._main.ui_tr("debug.pick_folder"),
+            settings=self._main._settings,
+            history_key="debug/last_dir",
         )
         if not d:
             return
@@ -878,11 +883,15 @@ class SettingsPages(QtCore.QObject):
                 self._main.ui_tr("debug.none_selected"),
             )
             return
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
             self._main,
             self._main.ui_tr("debug.export_zip_save_title"),
-            str(Path.home() / "valvet_snapshots_export.zip"),
             "ZIP (*.zip);;All (*)",
+            settings=self._main._settings,
+            history_key="debug/last_dir_export",
+            default_name="valvet_snapshots_export.zip",
         )
         if not path:
             return
@@ -934,11 +943,15 @@ class SettingsPages(QtCore.QObject):
         )
 
     def _save_boomerpack(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
             self._main,
             self._main.ui_tr("debug.save_boomerpack"),
-            str(Path.home() / "session.valvetpack"),
             SAVE_FILTER,
+            settings=self._main._settings,
+            history_key="debug/last_dir_boomerpack",
+            default_name="session.valvetpack",
         )
         if not path:
             return
@@ -947,11 +960,14 @@ class SettingsPages(QtCore.QObject):
         self._main._debug_save_boomerpack(path)
 
     def _load_boomerpack(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        from ui.dialog_paths import open_file_dialog
+
+        path, _ = open_file_dialog(
             self._main,
             self._main.ui_tr("debug.load_boomerpack"),
-            str(Path.home()),
             OPEN_FILTER,
+            settings=self._main._settings,
+            history_key="debug/last_dir_boomerpack",
         )
         if not path:
             return

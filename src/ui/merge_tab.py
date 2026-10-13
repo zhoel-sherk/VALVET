@@ -906,8 +906,15 @@ class MergeTabMixin:
             )
             return
         default_name = f"merge_{side}_{selected.lower().replace(' ', '_')}.csv"
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, f"Export {side.upper()} CSV", default_name, "CSV (*.csv);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            f"Export {side.upper()} CSV",
+            "CSV (*.csv);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_csv_dir",
+            default_name=default_name,
         )
         if not path:
             return
@@ -939,8 +946,15 @@ class MergeTabMixin:
             )
             return
         default_name = f"merge_{side}_{selected.lower().replace(' ', '_')}.mmd"
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, f"Export {side.upper()} MMD", default_name, "MMD (*.mmd);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            f"Export {side.upper()} MMD",
+            "MMD (*.mmd);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_mmd_dir",
+            default_name=default_name,
         )
         if not path:
             return
@@ -964,8 +978,14 @@ class MergeTabMixin:
         if self._last_merge_df is None or self._last_merge_df.empty:
             self._log("No merge data to save — run Merge first", "warning")
             return
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save merged CSV", "", "CSV (*.csv);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            "Save merged CSV",
+            "CSV (*.csv);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_csv_dir",
         )
         if not path:
             return
@@ -982,8 +1002,14 @@ class MergeTabMixin:
         if self._last_merge_df is None or self._last_merge_df.empty:
             self._log("No merge data to save — run Merge first", "warning")
             return
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save merged Excel", "", "Excel (*.xlsx);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            "Save merged Excel",
+            "Excel (*.xlsx);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_excel_dir",
         )
         if not path:
             return

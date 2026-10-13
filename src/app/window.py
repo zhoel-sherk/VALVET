@@ -658,11 +658,15 @@ class MainWindow(
         self.setMenuBar(None)
 
     def _menu_save_boomerpack(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
             self,
             self.ui_tr("project.save_session"),
-            str(Path.home() / "session.valvetpack"),
             SAVE_FILTER,
+            settings=self._settings,
+            history_key="ui/dialog_last_dir_boomerpack",
+            default_name="session.valvetpack",
         )
         if path:
             if not path.lower().endswith(VALVETPACK_EXT):
@@ -670,11 +674,14 @@ class MainWindow(
             self._debug_save_boomerpack(path)
 
     def _menu_load_boomerpack(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        from ui.dialog_paths import open_file_dialog
+
+        path, _ = open_file_dialog(
             self,
             self.ui_tr("project.load_session"),
-            str(Path.home()),
             OPEN_FILTER,
+            settings=self._settings,
+            history_key="ui/dialog_last_dir_boomerpack",
         )
         if path:
             self._debug_load_boomerpack(path)

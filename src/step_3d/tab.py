@@ -279,11 +279,14 @@ class Step3DTabWidget(QtWidgets.QWidget):
         self._temp_mesh = None
 
     def _on_open_step(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        from ui.dialog_paths import open_file_dialog
+
+        path, _ = open_file_dialog(
             self,
             self._ui_tr("step_3d.open_dialog_title"),
-            "",
             _STEP_FILTER,
+            settings=self._settings,
+            history_key="step_3d/last_open_dir",
         )
         if not path:
             return
