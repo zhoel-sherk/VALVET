@@ -5,6 +5,16 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.3.2] - BETA - 2026-10-13
+
+### Changed
+
+- **Updated app icon with enhanced design.** The new icon.svg features improved gradients, drop shadows, and additional visual elements (CAD grid, SMD pads with gradient fills, geometric VALVET logo with shadow effects). Regenerated all icon assets (icon-256.png, icon-512.png, icon.ico) and updated readme.svg banner to reflect the new design.
+
+### Added
+
+- **File dialog path persistence utility.** Created `ui/dialog_paths.py` with helper functions (`open_file_dialog`, `save_file_dialog`, `directory_dialog`) that automatically save and restore the last used directory via QSettings. All 17 file dialogs across the application now use this utility, providing consistent UX for import/export operations.
+
 ## [0.5.3.0] - BETA - 2026-10-09
 
 ### Changed
