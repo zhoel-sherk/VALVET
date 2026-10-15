@@ -24,20 +24,51 @@ def _qimage(renderer, size: int):
 def render() -> None:
     from PIL import Image
     from PySide6 import QtSvg, QtWidgets
+    import tempfile
+    import os
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     renderer = QtSvg.QSvgRenderer(str(SVG))
+    
+    # Generate PNG files for distribution
     for size in (256, 512):
         path = OUT_DIR / f"icon-{size}.png"
         _qimage(renderer, size).save(str(path), "PNG")
         print("wrote", path)
+    
+    # Generate ICO file with multiple sizes for better quality
+    # Render each size separately from SVG for optimal quality
     ico_path = OUT_DIR / "icon.ico"
-    Image.open(OUT_DIR / "icon-256.png").convert("RGBA").save(
-        ico_path,
-        format="ICO",
-        sizes=[(16, 16), (32, 32), (48, 48), (256, 256)],
-    )
-    print("wrote", ico_path)
+    temp_pngs = []
+    
+    try:
+        # Render each required size as PNG
+        for size in (256, 48, 32, 16):
+            temp_path = OUT_DIR / f"icon-{size}-temp.png"
+            _qimage(renderer, size).save(str(temp_path), "PNG")
+            temp_pngs.append(temp_path)
+        
+        # Open the 256x256 PNG as the base image
+        base_img = Image.open(temp_pngs[0])
+        
+        # Open other sizes as append images
+        append_imgs = [Image.open(p) for p in temp_pngs[1:]]
+        
+        # Save as ICO with multiple sizes
+        base_img.save(
+            str(ico_path),
+            format="ICO",
+            sizes=[(256, 256), (48, 48), (32, 32), (16, 16)],
+            append_images=append_imgs
+        )
+        print("wrote", ico_path)
+        
+    finally:
+        # Clean up temporary files
+        for temp_path in temp_pngs:
+            if temp_path.exists():
+                temp_path.unlink()
+    
     if QtWidgets.QApplication.instance() is app:
         app.quit()
 
