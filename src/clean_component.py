@@ -31,7 +31,7 @@ from parsers.thermistors import extract_thermistor_mpn
 from parsers.vendor_context_merge import enrich_vendor_cleaned_from_bom
 
 if TYPE_CHECKING:
-    import pandas as pd
+    pass
 
 
 def _default_config(config: Optional[CleanConfig]) -> CleanConfig:
@@ -422,18 +422,55 @@ def _try_parse_vendor_pn(
 def _try_parse_vendor_pn_res_cap_any(
     orig: str, config: CleanConfig, hint: str
 ) -> Optional[Tuple[str, str]]:
+    """Try to parse vendor PN, handling multiple alternatives separated by '/'.
+
+    When the MPN contains '/' (e.g., 'PN1/PN2/PN3'), try each alternative
+    and return the first successful parse (legacy first-match-wins behavior).
+    """
     if not config.use_pn_codecs:
         return None
     if extract_thermistor_mpn(str(orig).strip()):
         return None
-    if hint in ("RESISTOR", "CAP"):
-        order = [hint, "CAP" if hint == "RESISTOR" else "RESISTOR"]
+
+    from parsers.bom_text_utils import (
+        joined_clean_comment_mpn,
+        split_joined_clean_comment,
+    )
+
+    # Determine which segment contains the part numbers
+    # BOM file case: "PN1/PN2/PN3 | specifications" - bom contains multiple PNs (no spaces, no "_")
+    # Other cases: "description | vendor | PN" or "description | PN" - bom is description (has spaces or "_")
+    bom, _label, _mpn = split_joined_clean_comment(
+        orig, config.double_comment_separator
+    )
+    if bom and "/" in bom and " " not in bom and "_" not in bom:
+        # bom contains multiple vendor PNs (BOM file case)
+        mpn_full = bom.strip()
     else:
-        order = ["CAP", "RESISTOR"]
-    for cls in order:
-        out = _try_parse_vendor_pn(orig, cls, config)
-        if out:
-            return (out, cls)
+        # Original behavior: use last segment
+        mpn_full = joined_clean_comment_mpn(
+            orig, config.double_comment_separator
+        ).strip()
+
+    # Split on "/" to get alternative PNs
+    alternatives = (
+        [p.strip() for p in mpn_full.split("/") if p.strip()]
+        if "/" in mpn_full
+        else [mpn_full]
+    )
+
+    # Try each alternative
+    for alt in alternatives:
+        if hint in ("RESISTOR", "CAP"):
+            order = [hint, "CAP" if hint == "RESISTOR" else "RESISTOR"]
+        else:
+            order = ["CAP", "RESISTOR"]
+
+        for cls in order:
+            out = _try_parse_single_vendor_pn(alt, cls, config)
+            if out:
+                return (out, cls)
+
     return None
 
 
@@ -702,31 +739,92 @@ def _collect_hanwha_partial_arbiter_candidate(
     )
 
 
-def _collect_vendor_arbiter_candidate(
+def _collect_vendor_arbiter_candidates(
     s: str, eff_vendor: str, cfg: CleanConfig, disabled: frozenset[str]
-) -> Optional[ParserCandidate]:
-    if "vendor" in disabled or not cfg.use_pn_codecs:
-        return None
-    if eff_vendor not in ("RESISTOR", "CAP", "OTHER"):
-        return None
-    pnr = _try_parse_vendor_pn_res_cap_any(s, cfg, eff_vendor)
-    if not pnr:
-        return None
-    pnv, eff = pnr[0], pnr[1]
+) -> List[ParserCandidate]:
+    """Collect vendor PN candidates, trying each "/" alternative separately.
 
-    pnv = enrich_vendor_cleaned_from_bom(s, pnv, eff, cfg)
-    pnv = reformat_cleaned_pn(pnv, eff, cfg)
-    src_note = "vendor" if cfg.use_vendor_pn else "pn"
-    slots = vendor_pn_slots_from_string(pnv, cfg.output_separator)
-    return ParserCandidate(
-        name="vendor_pn",
-        tier="vendor",
-        cleaned=str(pnv).strip(),
-        type_tag=_type_tag_for_classify(eff),
-        part_code=_map_classify_to_part_code(eff),
-        source_note=src_note,
-        slots=slots,
+    When a BOM row contains multiple alternative vendor PNs separated by "/"
+    (e.g., "PN1/PN2/PN3"), we try each one and let the arbiter pick the best.
+    """
+    if "vendor" in disabled or not cfg.use_pn_codecs:
+        return []
+    if eff_vendor not in ("RESISTOR", "CAP", "OTHER"):
+        return []
+
+    from parsers.bom_text_utils import (
+        split_joined_clean_comment,
     )
+
+    # Determine which segment contains the part numbers
+    # BOM file case: "PN1/PN2/PN3 | specifications" - bom contains multiple PNs (no spaces, no "_")
+    # Other cases: "description | vendor | PN" or "description | PN" - bom is description (has spaces or "_")
+    bom, _label, mpn = split_joined_clean_comment(s, cfg.double_comment_separator)
+    if bom and "/" in bom and " " not in bom and "_" not in bom:
+        # bom contains multiple vendor PNs (BOM file case)
+        mpn_full = bom.strip()
+    else:
+        # Original behavior: use last segment
+        mpn_full = (mpn or str(s).strip()).strip()
+
+    # Split on "/" to get alternative PNs
+    # If no "/", alternatives will be a single-element list
+    alternatives = (
+        [p.strip() for p in mpn_full.split("/") if p.strip()]
+        if "/" in mpn_full
+        else [mpn_full]
+    )
+
+    candidates = []
+    for idx, alt in enumerate(alternatives):
+        # Try to parse this alternative
+        if eff_vendor in ("RESISTOR", "CAP"):
+            order = [eff_vendor, "CAP" if eff_vendor == "RESISTOR" else "RESISTOR"]
+        else:
+            order = ["CAP", "RESISTOR"]
+
+        for cls in order:
+            parsed = _try_parse_single_vendor_pn(alt, cls, cfg)
+            if parsed:
+                pnv = enrich_vendor_cleaned_from_bom(s, parsed, cls, cfg)
+                pnv = reformat_cleaned_pn(pnv, cls, cfg)
+                src_note = "vendor" if cfg.use_vendor_pn else "pn"
+                slots = vendor_pn_slots_from_string(pnv, cfg.output_separator)
+                candidates.append(
+                    ParserCandidate(
+                        name=f"vendor_pn_{idx}",
+                        tier="vendor",
+                        cleaned=str(pnv).strip(),
+                        type_tag=_type_tag_for_classify(cls),
+                        part_code=_map_classify_to_part_code(cls),
+                        source_note=src_note,
+                        slots=slots,
+                    )
+                )
+                break  # First successful type for this PN
+
+    return candidates
+
+
+def _try_parse_single_vendor_pn(
+    bare_pn: str, classify_type: str, config: CleanConfig
+) -> Optional[str]:
+    """Parse a single bare PN (no "/" splitting, no double-comment extraction)."""
+    if not config.use_pn_codecs or classify_type not in ("RESISTOR", "CAP"):
+        return None
+    if classify_type == "RESISTOR" and not config.parse_resistors:
+        return None
+    if classify_type == "CAP" and not config.parse_capacitors:
+        return None
+    ct = "RES" if classify_type == "RESISTOR" else "CAP"
+    try:
+        _ensure_src_on_path()
+        from pn_original import parse_pn
+
+        return parse_pn(bare_pn.strip(), ct, config)
+    except Exception:
+        logger.error("parse_pn failed for %r (%s)", bare_pn, ct, exc_info=True)
+        return None
 
 
 def _collect_regex_arbiter_candidates(
@@ -830,9 +928,9 @@ def _clean_one_regex_master(
                 _collect_inferit_arbiter_candidates(s, ctype, cfg, disabled)
             )
         elif sid == "vendor":
-            vc = _collect_vendor_arbiter_candidate(s, eff_vendor, cfg, disabled)
-            if vc:
-                master_candidates.append(vc)
+            master_candidates.extend(
+                _collect_vendor_arbiter_candidates(s, eff_vendor, cfg, disabled)
+            )
         elif sid == "library":
             lib_hit = _clean_one_try_library(s, cfg)
             if lib_hit:
@@ -1191,4 +1289,3 @@ def clean_preview(
                     row[1],
                 )
     return results
-
