@@ -11,14 +11,6 @@ pytest.importorskip("PySide6")
 from PySide6 import QtCore, QtWidgets
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
-
 def _ini_settings(tmp_path: Path) -> QtCore.QSettings:
     ini = tmp_path / "valvet.ini"
     return QtCore.QSettings(str(ini), QtCore.QSettings.Format.IniFormat)

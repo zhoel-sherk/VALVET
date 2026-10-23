@@ -13,14 +13,6 @@ from qt_models import SortableTableModel  # noqa: E402
 from ui.mapping_header import MappingComboBox, MappingHeaderView  # noqa: E402
 
 
-@pytest.fixture
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
-
 def _visible_table(qapp) -> tuple[QtWidgets.QTableView, MappingHeaderView]:
     table = QtWidgets.QTableView()
     model = SortableTableModel(

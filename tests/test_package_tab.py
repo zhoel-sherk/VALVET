@@ -14,14 +14,6 @@ from ui.machine_lib.footprint_preview import FootprintPreviewWidget
 from ui.package_tab import PackageTab
 
 
-@pytest.fixture
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
-
 def test_package_tab_chip0402_canvas(qapp, tmp_path: Path) -> None:
     tab = PackageTab(db_path=tmp_path / "vspd.sqlite")
     try:
