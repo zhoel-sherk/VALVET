@@ -45,6 +45,22 @@ def _qapp():
     return app
 
 
+@pytest.fixture
+def main_window(qapp, tmp_path):
+    """Function-scoped MainWindow for tests that modify window state."""
+    from PySide6 import QtCore
+    from app.window import MainWindow
+
+    settings = QtCore.QSettings(
+        str(tmp_path / "clean_log.ini"), QtCore.QSettings.Format.IniFormat
+    )
+    settings.setValue("experimental/enable_step_3d", False)
+    win = MainWindow(settings=settings)
+    yield win
+    win.close()
+    win.deleteLater()
+
+
 def _main_window(tmp_path: Path):
     from PySide6 import QtCore
 
@@ -154,34 +170,28 @@ def test_clean_tab_still_logs_paths_by_name_somewhere() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_import_log_does_not_print_comment_text(tmp_path: Path) -> None:
+def test_import_log_does_not_print_comment_text(main_window) -> None:
     """The sample-row lines carry the row number and length, never the text."""
     pytest.importorskip("PySide6")
     import pandas as pd
 
-    _qapp()
-    win = _main_window(tmp_path)
     lines: list[str] = []
-    win.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
-    try:
-        secret = "ACME-CONFIDENTIAL 0805 33pF 50V lot7731"
-        df = pd.DataFrame({"Comment": [secret], "Part": ["12345"]})
-        win._bom_df = df
-        win.bom_model.update_dataframe(df)
+    main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
+    secret = "ACME-CONFIDENTIAL 0805 33pF 50V lot7731"
+    df = pd.DataFrame({"Comment": [secret], "Part": ["12345"]})
+    main_window._bom_df = df
+    main_window.bom_model.update_dataframe(df)
 
-        win._clean_import()
+    main_window._clean_import()
 
-        panel = "\n".join(lines)
-        assert secret not in panel
-        assert "ACME-CONFIDENTIAL" not in panel
-        assert "7731" not in panel
-        # Still useful for the operator: which rows and how much text came in.
-        assert "sample row 1" in panel
-        assert "char(s) imported" in panel
-        assert "imported 1 row(s)" in panel
-    finally:
-        win.close()
-        win.deleteLater()
+    panel = "\n".join(lines)
+    assert secret not in panel
+    assert "ACME-CONFIDENTIAL" not in panel
+    assert "7731" not in panel
+    # Still useful for the operator: which rows and how much text came in.
+    assert "sample row 1" in panel
+    assert "char(s) imported" in panel
+    assert "imported 1 row(s)" in panel
 
 
 def test_import_log_has_no_truncated_comment_echo() -> None:
@@ -238,115 +248,100 @@ def test_state_only_logger_errors_were_left_alone() -> None:
     assert len(outside) >= 3
 
 
-def test_convert_failure_log_keeps_traceback(
-    tmp_path: Path, monkeypatch, caplog
-) -> None:
+def test_convert_failure_log_keeps_traceback(main_window, monkeypatch, caplog) -> None:
     """Behavioural half: logger.exception really attaches exc_info here."""
     import ui.clean_tab as clean_tab
 
-    _qapp()
-    win = _main_window(tmp_path)
-    try:
-        win._clean_imported_comments = ["CAP 100nF"]
+    main_window._clean_imported_comments = ["CAP 100nF"]
 
-        def boom(_comments, _cfg):
-            raise ValueError("kaboom")
+    def boom(_comments, _cfg):
+        raise ValueError("kaboom")
 
-        monkeypatch.setattr(clean_tab, "clean_preview", boom)
-        with caplog.at_level(logging.ERROR):
-            win._run_clean_preview()
-        record = next(
-            r for r in caplog.records if "clean_preview failed" in r.getMessage()
-        )
-        assert record.levelno == logging.ERROR
-        assert record.exc_info is not None
-        assert "ValueError: kaboom" in logging.Formatter().formatException(
-            record.exc_info
-        )
-    finally:
-        win.close()
-        win.deleteLater()
+    monkeypatch.setattr(clean_tab, "clean_preview", boom)
+    with caplog.at_level(logging.ERROR):
+        main_window._run_clean_preview()
+    record = next(
+        r for r in caplog.records if "clean_preview failed" in r.getMessage()
+    )
+    assert record.levelno == logging.ERROR
+    assert record.exc_info is not None
+    assert "ValueError: kaboom" in logging.Formatter().formatException(
+        record.exc_info
+    )
 
 
 def test_save_excel_failure_log_keeps_traceback(
-    tmp_path: Path, monkeypatch, caplog
+    main_window, tmp_path: Path, monkeypatch, caplog
 ) -> None:
     """The other converted site, and its GUI line stays path-free."""
     import pandas as pd
 
     import ui.clean_tab as clean_tab
 
-    _qapp()
-    win = _main_window(tmp_path)
     lines: list[str] = []
-    win.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
-    try:
-        df = pd.DataFrame({"Comment": ["CAP 100nF"], "Part": ["1"]})
-        win._bom_df = df
-        win.bom_model.update_dataframe(df)
-        monkeypatch.setattr(
-            clean_tab.QtWidgets.QFileDialog,
-            "getSaveFileName",
-            staticmethod(lambda *a, **k: (str(tmp_path / "out.xlsx"), "")),
-        )
-        monkeypatch.setattr(
-            clean_tab.QtWidgets.QMessageBox,
-            "critical",
-            staticmethod(lambda *a, **k: None),
-        )
+    main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
+    df = pd.DataFrame({"Comment": ["CAP 100nF"], "Part": ["1"]})
+    main_window._bom_df = df
+    main_window.bom_model.update_dataframe(df)
+    monkeypatch.setattr(
+        clean_tab.QtWidgets.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *a, **k: (str(tmp_path / "out.xlsx"), "")),
+    )
+    monkeypatch.setattr(
+        clean_tab.QtWidgets.QMessageBox,
+        "critical",
+        staticmethod(lambda *a, **k: None),
+    )
 
-        def boom(self, *a, **k):
-            raise OSError("disk full")
+    def boom(self, *a, **k):
+        raise OSError("disk full")
 
-        monkeypatch.setattr(pd.DataFrame, "to_excel", boom)
-        with caplog.at_level(logging.ERROR):
-            win._clean_save_excel()
-        record = next(
-            r for r in caplog.records if "save Excel failed" in r.getMessage()
-        )
-        assert record.exc_info is not None
-        assert "OSError: disk full" in logging.Formatter().formatException(
-            record.exc_info
-        )
-        panel = "\n".join(lines)
-        assert "Save Excel error" in panel
-        assert str(tmp_path) not in panel
-    finally:
-        win.close()
-        win.deleteLater()
+    monkeypatch.setattr(pd.DataFrame, "to_excel", boom)
+    with caplog.at_level(logging.ERROR):
+        main_window._clean_save_excel()
+    record = next(
+        r for r in caplog.records if "save Excel failed" in r.getMessage()
+    )
+    assert record.exc_info is not None
+    assert "OSError: disk full" in logging.Formatter().formatException(
+        record.exc_info
+    )
+    panel = "\n".join(lines)
+    assert "Save Excel error" in panel
+    assert str(tmp_path) not in panel
 
 
 def test_save_excel_success_logs_only_the_file_name(
-    tmp_path: Path, monkeypatch
+    main_window, tmp_path: Path, monkeypatch
 ) -> None:
     """The success path: the operator still sees which file was written."""
     import pandas as pd
 
     import ui.clean_tab as clean_tab
 
-    _qapp()
-    win = _main_window(tmp_path)
     lines: list[str] = []
-    win.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
-    try:
-        df = pd.DataFrame({"Comment": ["CAP 100nF"], "Part": ["1"]})
-        win._bom_df = df
-        win.bom_model.update_dataframe(df)
-        monkeypatch.setattr(
-            clean_tab.QtWidgets.QFileDialog,
-            "getSaveFileName",
-            staticmethod(lambda *a, **k: (str(tmp_path / "customer" / "out.xlsx"), "")),
-        )
-        monkeypatch.setattr(pd.DataFrame, "to_excel", lambda self, *a, **k: None)
+    main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
+    df = pd.DataFrame({"Comment": ["CAP 100nF"], "Part": ["1"]})
+    main_window._bom_df = df
+    main_window.bom_model.update_dataframe(df)
+    monkeypatch.setattr(
+        clean_tab.QtWidgets.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *a, **k: (str(tmp_path / "customer" / "out.xlsx"), "")),
+    )
+    monkeypatch.setattr(
+        clean_tab.QtWidgets.QMessageBox,
+        "information",
+        staticmethod(lambda *a, **k: None),
+    )
+    monkeypatch.setattr(pd.DataFrame, "to_excel", lambda self, *a, **k: None)
 
-        win._clean_save_excel()
+    main_window._clean_save_excel()
 
-        panel = "\n".join(lines)
-        assert "Clean BOM: saved out.xlsx" in panel
-        assert str(tmp_path) not in panel
-    finally:
-        win.close()
-        win.deleteLater()
+    panel = "\n".join(lines)
+    assert "Clean BOM: saved out.xlsx" in panel
+    assert str(tmp_path) not in panel
 
 
 # ---------------------------------------------------------------------------
@@ -362,30 +357,25 @@ def test_clean_tab_module_imports() -> None:
     assert hasattr(mod, "CleanTabMixin")
 
 
-def test_clean_config_from_ui_surface(tmp_path: Path) -> None:
+def test_clean_config_from_ui_surface(main_window) -> None:
     """use_pn_codecs, use_component_library and the pipeline settings still flow."""
     pytest.importorskip("PySide6")
-    _qapp()
-    win = _main_window(tmp_path)
-    try:
-        win._settings.setValue("clean/pipeline_order", json.dumps(["regex", "library"]))
-        win._settings.setValue("clean/pipeline_disabled", json.dumps(["hanwha"]))
+    
+    main_window._settings.setValue("clean/pipeline_order", json.dumps(["regex", "library"]))
+    main_window._settings.setValue("clean/pipeline_disabled", json.dumps(["hanwha"]))
 
-        win.gb_clean_pn.setChecked(True)
-        win.clean_from_db.setChecked(True)
-        cfg = win._clean_config_from_ui()
-        assert cfg.use_pn_codecs is True
-        assert cfg.use_component_library is True
-        assert cfg.clean_pipeline_order.index("regex") < cfg.clean_pipeline_order.index(
-            "library"
-        )
-        assert "hanwha" in cfg.clean_pipeline_disabled
+    main_window.gb_clean_pn.setChecked(True)
+    main_window.clean_from_db.setChecked(True)
+    cfg = main_window._clean_config_from_ui()
+    assert cfg.use_pn_codecs is True
+    assert cfg.use_component_library is True
+    assert cfg.clean_pipeline_order.index("regex") < cfg.clean_pipeline_order.index(
+        "library"
+    )
+    assert "hanwha" in cfg.clean_pipeline_disabled
 
-        win.gb_clean_pn.setChecked(False)
-        win.clean_from_db.setChecked(False)
-        off = win._clean_config_from_ui()
-        assert off.use_pn_codecs is False
-        assert off.use_component_library is False
-    finally:
-        win.close()
-        win.deleteLater()
+    main_window.gb_clean_pn.setChecked(False)
+    main_window.clean_from_db.setChecked(False)
+    off = main_window._clean_config_from_ui()
+    assert off.use_pn_codecs is False
+    assert off.use_component_library is False

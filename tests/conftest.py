@@ -45,3 +45,42 @@ def corpus_cfg():
     from tools.clean_corpus_lib import load_corpus_profile
 
     return load_corpus_profile()
+
+
+@pytest.fixture(scope="module")
+def main_window(qapp, tmp_path_factory):
+    """Module-scoped MainWindow instance to avoid repeated creation.
+    
+    Creates a single MainWindow per test module, reducing test time by ~10s per test.
+    Uses tmp_path_factory to create a module-level temporary directory for settings.
+    """
+    from PySide6 import QtCore
+    from app.window import MainWindow
+
+    tmp_path = tmp_path_factory.mktemp("main_window")
+    settings = QtCore.QSettings(
+        str(tmp_path / "valvet.ini"),
+        QtCore.QSettings.Format.IniFormat,
+    )
+    settings.setValue("experimental/enable_step_3d", False)
+    win = MainWindow(settings=settings)
+    yield win
+    win.close()
+
+
+@pytest.fixture(autouse=True)
+def _reset_main_window_state(main_window):
+    """Reset MainWindow state between tests to prevent cross-test contamination."""
+    yield
+    # Reset state after each test
+    # Disconnect all signal handlers (only if there are connections)
+    try:
+        if main_window.log_message.receivers() > 0:
+            main_window.log_message.disconnect()
+    except (RuntimeError, TypeError, AttributeError):
+        pass  # No connections to disconnect or method not available
+    # Reset BOM data but keep bom_model instance
+    if hasattr(main_window, '_bom_df'):
+        main_window._bom_df = None
+    if hasattr(main_window, '_clean_imported_comments'):
+        main_window._clean_imported_comments = []

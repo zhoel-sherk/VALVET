@@ -17,44 +17,41 @@ def _ini_settings(tmp_path: Path) -> QtCore.QSettings:
     return QtCore.QSettings(str(ini), QtCore.QSettings.Format.IniFormat)
 
 
-def test_profile_new_gathers_current_ui(import_parsers, qapp, tmp_path, mocker) -> None:
-    from app.window import MainWindow
+def test_profile_new_gathers_current_ui(import_parsers, main_window, mocker) -> None:
+    from PySide6 import QtWidgets
 
-    settings = _ini_settings(tmp_path)
-    settings.setValue("experimental/enable_step_3d", False)
-    win = MainWindow(settings=settings)
-    try:
-        mocker.patch.object(
-            QtWidgets.QInputDialog, "getText", return_value=("alpha", True)
-        )
-        win._on_profile_new_clicked()
-        assert win.profile_combo.currentText() == "alpha"
-        raw = str(settings.value("profiles/alpha/state_json", "") or "")
-        data = json.loads(raw)
-        assert data.get("v") == 1
-        assert "ui" in data
-        assert "bom" in data
-    finally:
-        win.close()
+    mocker.patch.object(
+        QtWidgets.QInputDialog, "getText", return_value=("alpha", True)
+    )
+    main_window._on_profile_new_clicked()
+    assert main_window.profile_combo.currentText() == "alpha"
+    settings = main_window._settings
+    raw = str(settings.value("profiles/alpha/state_json", "") or "")
+    data = json.loads(raw)
+    assert data.get("v") == 1
+    assert "ui" in data
+    assert "bom" in data
+    # Clean up
+    settings.remove("profiles/alpha")
+    main_window.profile_combo.setCurrentIndex(0)
 
 
 def test_profile_clone_copies_stored_blob(
-    import_parsers, qapp, tmp_path, mocker
+    import_parsers, main_window, mocker
 ) -> None:
-    from app.window import MainWindow
+    from PySide6 import QtWidgets
 
-    settings = _ini_settings(tmp_path)
-    settings.setValue("experimental/enable_step_3d", False)
-    win = MainWindow(settings=settings)
-    try:
-        blob = json.dumps({"v": 1, "marker": "cloned-src"})
-        settings.setValue("profiles/default/state_json", blob)
-        mocker.patch.object(
-            QtWidgets.QInputDialog, "getText", return_value=("beta", True)
-        )
-        win._on_profile_clone_clicked()
-        assert win.profile_combo.currentText() == "beta"
-        copied = str(settings.value("profiles/beta/state_json", "") or "")
-        assert json.loads(copied)["marker"] == "cloned-src"
-    finally:
-        win.close()
+    settings = main_window._settings
+    blob = json.dumps({"v": 1, "marker": "cloned-src"})
+    settings.setValue("profiles/default/state_json", blob)
+    mocker.patch.object(
+        QtWidgets.QInputDialog, "getText", return_value=("beta", True)
+    )
+    main_window._on_profile_clone_clicked()
+    assert main_window.profile_combo.currentText() == "beta"
+    copied = str(settings.value("profiles/beta/state_json", "") or "")
+    assert json.loads(copied)["marker"] == "cloned-src"
+    # Clean up
+    settings.remove("profiles/default")
+    settings.remove("profiles/beta")
+    main_window.profile_combo.setCurrentIndex(0)
