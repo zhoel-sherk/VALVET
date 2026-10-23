@@ -639,6 +639,7 @@ class MergeTabMixin:
                 "info",
             )
             self._warn_merge_missing_from_bom(include_dnp)
+            self._warn_designator_issues()
             self._refresh_pcb_preview_from_ui(force=False)
         except SMTProcessorError as e:
             self._log(f"Merge error: {e}", "error")
@@ -663,6 +664,27 @@ class MergeTabMixin:
             f"{len(missing)} placement(s) are not in the BOM and were NOT merged: "
             f"{shown}. Check the BOM for missing rows"
             + ("" if include_dnp else " (they stay out until the BOM is fixed)."),
+            "warning",
+        )
+
+    def _warn_designator_issues(self) -> None:
+        """Surface designator normalization issues from BOM/PnP loading.
+
+        When designators have formatting issues (missing commas, sticky refs, etc.),
+        they are automatically normalized but the user should be informed so they
+        can fix the source files.
+        """
+        warnings = list(getattr(self.processor, "last_designator_warnings", []))
+        if not warnings:
+            return
+        # Show first few warnings to avoid overwhelming the log
+        shown = "\n  • ".join(warnings[:8])
+        if len(warnings) > 8:
+            shown += f"\n  • ... (+{len(warnings) - 8} more)"
+        self._log(
+            f"Designator formatting issues detected and auto-corrected ({len(warnings)} total):\n"
+            f"  • {shown}\n"
+            f"These were normalized automatically, but consider fixing the source files.",
             "warning",
         )
 
