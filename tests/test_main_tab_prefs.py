@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore
 
 from themes.colour_prefs import DEFAULT_TAB_COLOURS, merge_tab_colours
 from themes.main_tab_prefs import (
@@ -64,13 +64,9 @@ def test_merge_tab_colours_defaults_and_override() -> None:
 
 
 def test_apply_main_tab_order_and_icons(import_parsers, main_window) -> None:
-    from PySide6 import QtCore
 
     from themes.main_tab_prefs import (
         TAB_ORDER_KEY,
-        TAB_SHOW_ICONS_KEY,
-        apply_all_main_tab_prefs,
-        write_main_tab_order,
     )
 
     settings = main_window._settings
@@ -96,7 +92,6 @@ def test_apply_main_tab_order_and_icons(import_parsers, main_window) -> None:
 
 
 def test_settings_tabs_page_present(import_parsers, main_window) -> None:
-    from PySide6 import QtCore
 
     from themes.equal_tab_bar import EqualWidthTabBar
 

@@ -329,7 +329,7 @@ class PackageTab(QtWidgets.QWidget):
         self._load_selected_outline()
 
     def _import_kicad(self) -> None:
-        from ui.dialog_paths import open_file_dialog, directory_dialog
+        from ui.dialog_paths import directory_dialog, open_file_dialog
 
         path, _ = open_file_dialog(
             self,

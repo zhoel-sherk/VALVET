@@ -8,7 +8,6 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6 import QtWidgets
 
 from ui.machine_lib.footprint_preview import FootprintPreviewWidget
 from ui.package_tab import PackageTab

@@ -50,6 +50,7 @@ def _qapp():
 def main_window(qapp, tmp_path):
     """Function-scoped MainWindow for tests that modify window state."""
     from PySide6 import QtCore
+
     from app.window import MainWindow
 
     settings = QtCore.QSettings(
@@ -193,16 +194,18 @@ def _check_logger_exception_in_except() -> list[str]:
                 and sub.func.value.id == "logger"
             ):
                 seen.append((sub.lineno, sub.func.attr))
-    
+
     violations = []
     errors_in_except = [(ln, a) for ln, a in seen if a == "error"]
     if errors_in_except:
         violations.append(f"logger.error in except blocks: {errors_in_except}")
-    
+
     exception_count = [a for _, a in seen].count("exception")
     if exception_count < 2:
-        violations.append(f"Expected at least 2 logger.exception calls, found {exception_count}")
-    
+        violations.append(
+            f"Expected at least 2 logger.exception calls, found {exception_count}"
+        )
+
     return violations
 
 
@@ -215,7 +218,7 @@ def _check_logger_error_outside_except() -> list[str]:
                 line = getattr(sub, "lineno", None)
                 if line is not None:
                     in_except_lines.add(line)
-    
+
     outside = [
         node.lineno
         for node in ast.walk(_tree())
@@ -226,11 +229,13 @@ def _check_logger_error_outside_except() -> list[str]:
         and node.func.attr == "error"
         and node.lineno not in in_except_lines
     ]
-    
+
     violations = []
     if len(outside) < 3:
-        violations.append(f"Expected at least 3 logger.error calls outside except, found {len(outside)}")
-    
+        violations.append(
+            f"Expected at least 3 logger.error calls outside except, found {len(outside)}"
+        )
+
     return violations
 
 
@@ -305,14 +310,10 @@ def test_convert_failure_log_keeps_traceback(main_window, monkeypatch, caplog) -
     monkeypatch.setattr(clean_tab, "clean_preview", boom)
     with caplog.at_level(logging.ERROR):
         main_window._run_clean_preview()
-    record = next(
-        r for r in caplog.records if "clean_preview failed" in r.getMessage()
-    )
+    record = next(r for r in caplog.records if "clean_preview failed" in r.getMessage())
     assert record.levelno == logging.ERROR
     assert record.exc_info is not None
-    assert "ValueError: kaboom" in logging.Formatter().formatException(
-        record.exc_info
-    )
+    assert "ValueError: kaboom" in logging.Formatter().formatException(record.exc_info)
 
 
 def test_save_excel_failure_log_keeps_traceback(
@@ -345,13 +346,9 @@ def test_save_excel_failure_log_keeps_traceback(
     monkeypatch.setattr(pd.DataFrame, "to_excel", boom)
     with caplog.at_level(logging.ERROR):
         main_window._clean_save_excel()
-    record = next(
-        r for r in caplog.records if "save Excel failed" in r.getMessage()
-    )
+    record = next(r for r in caplog.records if "save Excel failed" in r.getMessage())
     assert record.exc_info is not None
-    assert "OSError: disk full" in logging.Formatter().formatException(
-        record.exc_info
-    )
+    assert "OSError: disk full" in logging.Formatter().formatException(record.exc_info)
     panel = "\n".join(lines)
     assert "Save Excel error" in panel
     assert str(tmp_path) not in panel
@@ -405,8 +402,10 @@ def test_clean_tab_module_imports() -> None:
 def test_clean_config_from_ui_surface(main_window) -> None:
     """use_pn_codecs, use_component_library and the pipeline settings still flow."""
     pytest.importorskip("PySide6")
-    
-    main_window._settings.setValue("clean/pipeline_order", json.dumps(["regex", "library"]))
+
+    main_window._settings.setValue(
+        "clean/pipeline_order", json.dumps(["regex", "library"])
+    )
     main_window._settings.setValue("clean/pipeline_disabled", json.dumps(["hanwha"]))
 
     main_window.gb_clean_pn.setChecked(True)

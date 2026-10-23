@@ -1,11 +1,9 @@
 """Tests for ui.dialog_paths module."""
-import os
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
-from PySide6 import QtCore, QtWidgets
+import os
+from unittest.mock import patch
+
+from PySide6 import QtCore
 
 from ui.dialog_paths import (
     directory_dialog,
@@ -24,17 +22,19 @@ class TestOpenFileDialog:
         ) as mock_dialog:
             mock_dialog.return_value = ("/path/to/file.txt", "Text Files (*.txt)")
 
-            path, selected = open_file_dialog(
-                None, "Open File", "Text Files (*.txt)"
-            )
+            path, selected = open_file_dialog(None, "Open File", "Text Files (*.txt)")
 
             assert path == "/path/to/file.txt"
             assert selected == "Text Files (*.txt)"
-            mock_dialog.assert_called_once_with(None, "Open File", "", "Text Files (*.txt)")
+            mock_dialog.assert_called_once_with(
+                None, "Open File", "", "Text Files (*.txt)"
+            )
 
     def test_open_file_dialog_with_settings(self, qtbot, tmp_path):
         """Test dialog saves last directory to settings."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/last_dir"
 
         with patch(
@@ -55,7 +55,9 @@ class TestOpenFileDialog:
 
     def test_open_file_dialog_restores_last_dir(self, qtbot, tmp_path):
         """Test dialog restores last directory from settings."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/last_dir"
         settings.setValue(history_key, "/previous/dir")
 
@@ -78,7 +80,9 @@ class TestOpenFileDialog:
 
     def test_open_file_dialog_cancelled(self, qtbot, tmp_path):
         """Test dialog doesn't save when cancelled."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/last_dir"
         settings.setValue(history_key, "/old/dir")
 
@@ -111,16 +115,16 @@ class TestSaveFileDialog:
         ) as mock_dialog:
             mock_dialog.return_value = ("/path/to/save.txt", "Text Files (*.txt)")
 
-            path, selected = save_file_dialog(
-                None, "Save File", "Text Files (*.txt)"
-            )
+            path, selected = save_file_dialog(None, "Save File", "Text Files (*.txt)")
 
             assert path == "/path/to/save.txt"
             assert selected == "Text Files (*.txt)"
 
     def test_save_file_dialog_with_settings(self, qtbot, tmp_path):
         """Test dialog saves last directory to settings."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/save_dir"
 
         with patch(
@@ -141,7 +145,9 @@ class TestSaveFileDialog:
 
     def test_save_file_dialog_with_default_name(self, qtbot, tmp_path):
         """Test dialog uses default name when provided."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/save_dir"
         settings.setValue(history_key, "/saved/dir")
 
@@ -197,7 +203,9 @@ class TestDirectoryDialog:
 
     def test_directory_dialog_with_settings(self, qtbot, tmp_path):
         """Test dialog saves last directory to settings."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/dir_path"
 
         with patch(
@@ -217,7 +225,9 @@ class TestDirectoryDialog:
 
     def test_directory_dialog_restores_last_dir(self, qtbot, tmp_path):
         """Test dialog restores last directory from settings."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/dir_path"
         settings.setValue(history_key, "/previous/dir")
 
@@ -238,7 +248,9 @@ class TestDirectoryDialog:
 
     def test_directory_dialog_cancelled(self, qtbot, tmp_path):
         """Test dialog doesn't save when cancelled."""
-        settings = QtCore.QSettings(str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat)
+        settings = QtCore.QSettings(
+            str(tmp_path / "test.ini"), QtCore.QSettings.Format.IniFormat
+        )
         history_key = "test/dir_path"
         settings.setValue(history_key, "/old/dir")
 
