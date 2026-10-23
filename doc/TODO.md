@@ -4,7 +4,7 @@ Desktop-first SMT prep: BOM/PnP on disk, mapping, Clean, cross-check, merge/expo
 
 **Core vs GUI:** parsers, cleaning, merge, machine-library I/O stay Qt-free (`src/smt_processor.py`, `src/pcb_preview/`, `src/machine_library/`, `src/step_3d/occ_load.py`, `src/services/`). PySide6 orchestrates threads, `QSettings`, and dialogs (`src/app/window.py`, `src/ui/`).
 
-BETA **0.5.3.2** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
+BETA **0.5.3.3** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
 
 **Shipped (one line):** profiles + per-path mapping; Clean/Merge including `.mmd`; PCB Preview Gerber+PnP overlay (nudge, not 2-point auto-align); Step 3D optional (default off); Machine lib Hanwha + Wave 1 footprint preview from UPD vision tables (SQLite cache after Open); PyInstaller `valvet.spec`.
 
@@ -57,6 +57,31 @@ document (`1R5` = 1.5 pF). Pinned in
 If a real BOM part ever turns up in that form, the fix belongs in a shared
 capacitance decoder (currently each codec open-codes the same two lines) rather
 than in three separate regexes.
+
+## Known parser gaps (confirmed on 0.5.3.3)
+
+- **Eyang 008004 (`A8A4`).** `C8A4C0G100J500NTA` is refused: the land-grid size
+  group is not four digits wide, so the four-digit size alternative cannot reach
+  it. Needs the size table from `eyang_mlcc_ultra_small_spec_2017.pdf`.
+- **Ralec `005` (01005) and K/M tolerances.** `RTT005000JTH` returns `None`;
+  the catalogue's 01005 size code and the K/M tolerance letters are not decoded.
+  Source: `ralec_resistor_catalog_2022.pdf`.
+- **Taiyo `_RE_GENERAL` has no end anchor.** A malformed tail is accepted rather
+  than refused. Real parts decode correctly, so this is a precision issue.
+- **TCC is still UNVERIFIED.** `tcc_capacitor.py` assumes the V/10 voltage form;
+  the manufacturer PDF is image-only, so the rule rests on the corpus, not on a
+  readable table.
+- **`walsin_chipr.pdf` is truncated** (21 KB, no `%%EOF`), so the WR chip
+  resistor codec cannot be re-verified beyond its existing samples.
+
+### Parser branches with no direct test
+
+- `murata_capacitor` (67 %): the legacy `_RE_R71C` path (199–207), the GRM21
+  heuristics (210–224) and the `J(\d{3})M` fallback (228–230).
+- `yageo_capacitor` (85 %): the 4-digit `BB` value branch (136–140) and the
+  tolerance fallback (145–146).
+
+Each one needs either a datasheet row or a deletion, not a guess.
 
 ## Vocabulary
 

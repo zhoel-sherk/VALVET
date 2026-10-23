@@ -3,7 +3,7 @@
 Notable changes to VALVET. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.3.3] - BETA - 2026-10-23
 
 ### Added
 
@@ -17,6 +17,22 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Murata GRM033 (0201) part numbers now reach the codec.** The size table
+  only knew `155`/`188`/`21x`/`31M`/`32E`, so every `GRM033…` row fell through
+  to the regex phase and lost its codec-derived voltage and dielectric. C02E21
+  p.1/p.2 defines 0201 as size `03` + thickness `3` (key `033`); the same table
+  maps the class-1 `5C` line. The four `GRM033R6…` rows in the operator corpus
+  now decode (`0201_10nF_6.3V_X5R_10%` etc.).
+- **Murata class-1 decimal values keep their absolute tolerance.**
+  `GRM1555C1H5R0CA01D` is 5.0 pF ±0.25 pF, but the old `1555` heuristic
+  hard-coded 5 %; it also hard-coded `C1H`/50 V, so `GRM1555C1E…` (25 V) was
+  refused. The `5C` branch now reads the published two-character voltage and
+  the B/C/D/F/G/J/K/M/W tolerance letters (C02E21 p.3), and a shared
+  `cap_code_to_str` decodes `R50`/`1R0`/`\d{3}`.
+- **Yageo NP0/NPO now cleans to C0G.** `CC0402JRNPO9BN150` used to emit `NP0`
+  while Darfon/Eyang/Fenghua/Walsin emitted `C0G` for the same class-1
+  dielectric. The codec applies `canonicalize_cap_dielectric` like the rest of
+  the package (`0402_15pF_50V_C0G_5%`).
 - **Clean BOM: a description containing `/` no longer shadows the MPN.** In a
   double-comment row such as `10K/1% | RC0603FR-0710KL` the leading value
   (`10K/1%`) was taken as the multi-PN list, the actual part number was never
@@ -39,6 +55,13 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Multi-vendor Clean BOM tests assert exact literals.** The six tests in
+  `tests/test_multi_vendor_pn.py` checked substrings (`"10" in cleaned`,
+  `"C0G" or "NPO"`), which let a wrong dielectric or token order pass. They now
+  compare the full `(cleaned, type_tag, part_code)` tuple.
+- **`captured_root` is a fixture, not a conftest import.** `from conftest import
+  captured_root` only resolves under pytest's default `prepend` import mode; the
+  five call sites now take the fixture.
 - **Step 3D tests are skipped while the feature is on hold.** `tests/test_step_3d.py`
   carries a module-level `pytest.mark.skip` pointing at `doc/TODO.md`; the tab
   stays off by default (`experimental/enable_step_3d=false`). Remove the mark
