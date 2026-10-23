@@ -19,6 +19,7 @@ import ast
 import json
 import logging
 from pathlib import Path
+from typing import Callable
 
 import pytest
 
@@ -128,41 +129,139 @@ def _closes_over_path_variable(node: ast.AST, names: set[str]) -> bool:
     return False
 
 
-# ---------------------------------------------------------------------------
-# 1. no absolute path in any log call
-# ---------------------------------------------------------------------------
-
-
-def test_no_log_call_resolves_an_absolute_path() -> None:
+def _check_no_absolute_paths() -> list[str]:
+    """Check that no log call resolves an absolute path."""
     offenders = []
     for node in ast.walk(_tree()):
         if not isinstance(node, ast.Call) or not _is_log_call(node):
             continue
         for arg in node.args:
             if _mentions_absolute_path(arg):
-                offenders.append((node.lineno, ast.unparse(arg)))
-    assert not offenders, f"absolute path logged from Clean tab: {offenders}"
+                offenders.append(f"line {node.lineno}: {ast.unparse(arg)}")
+    return offenders
 
 
-def test_no_log_call_prints_a_bare_path_variable() -> None:
-    """The other shape of the same leak: a path object interpolated directly."""
+def _check_no_bare_path_variables() -> list[str]:
+    """Check that no log call prints a bare path variable."""
     offenders = []
     for node in ast.walk(_with_parents(_tree())):
         if not isinstance(node, ast.Call) or not _is_log_call(node):
             continue
         for arg in node.args:
             if _closes_over_path_variable(arg, {"path", "lib_path", "lib_dir"}):
-                offenders.append((node.lineno, ast.unparse(arg)))
-    assert not offenders, f"path variable logged verbatim from Clean tab: {offenders}"
+                offenders.append(f"line {node.lineno}: {ast.unparse(arg)}")
+    return offenders
 
 
-def test_clean_tab_still_logs_paths_by_name_somewhere() -> None:
-    """The positive half: file names stay logged, the directory does not."""
+def _check_still_logs_paths_by_name() -> list[str]:
+    """Positive check: file names are still logged."""
     text = SRC.read_text(encoding="utf-8")
-    assert "os.path.abspath" not in text
-    assert "os.path.realpath" not in text
-    assert 'self._log(f"Clean BOM: saved {name}"' in text
-    assert "Learned component saved to {path.name}" in text
+    violations = []
+    if "os.path.abspath" in text:
+        violations.append("os.path.abspath found")
+    if "os.path.realpath" in text:
+        violations.append("os.path.realpath found")
+    if 'self._log(f"Clean BOM: saved {name}"' not in text:
+        violations.append("saved file name log not found")
+    if "Learned component saved to {path.name}" not in text:
+        violations.append("component saved log not found")
+    return violations
+
+
+def _check_no_truncated_comments() -> list[str]:
+    """Check that no truncated comment echoes in logs."""
+    text = SRC.read_text(encoding="utf-8")
+    violations = []
+    if "sample row {i}: {one}" in text:
+        violations.append("truncated sample row format found")
+    if "one[:70]" in text:
+        violations.append("sliced comment variable found")
+    return violations
+
+
+def _check_logger_exception_in_except() -> list[str]:
+    """Check that logger.error is not used inside except blocks."""
+    seen = []
+    for node in ast.walk(_tree()):
+        if not isinstance(node, ast.ExceptHandler):
+            continue
+        for sub in ast.walk(node):
+            if (
+                isinstance(sub, ast.Call)
+                and isinstance(sub.func, ast.Attribute)
+                and isinstance(sub.func.value, ast.Name)
+                and sub.func.value.id == "logger"
+            ):
+                seen.append((sub.lineno, sub.func.attr))
+    
+    violations = []
+    errors_in_except = [(ln, a) for ln, a in seen if a == "error"]
+    if errors_in_except:
+        violations.append(f"logger.error in except blocks: {errors_in_except}")
+    
+    exception_count = [a for _, a in seen].count("exception")
+    if exception_count < 2:
+        violations.append(f"Expected at least 2 logger.exception calls, found {exception_count}")
+    
+    return violations
+
+
+def _check_logger_error_outside_except() -> list[str]:
+    """Check that logger.error outside except blocks is preserved."""
+    in_except_lines = set()
+    for node in ast.walk(_tree()):
+        if isinstance(node, ast.ExceptHandler):
+            for sub in ast.walk(node):
+                line = getattr(sub, "lineno", None)
+                if line is not None:
+                    in_except_lines.add(line)
+    
+    outside = [
+        node.lineno
+        for node in ast.walk(_tree())
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "logger"
+        and node.func.attr == "error"
+        and node.lineno not in in_except_lines
+    ]
+    
+    violations = []
+    if len(outside) < 3:
+        violations.append(f"Expected at least 3 logger.error calls outside except, found {len(outside)}")
+    
+    return violations
+
+
+# ---------------------------------------------------------------------------
+# 1. no absolute path in any log call
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "check_name,check_func",
+    [
+        ("no_absolute_paths", _check_no_absolute_paths),
+        ("no_bare_path_variables", _check_no_bare_path_variables),
+        ("still_logs_paths_by_name", _check_still_logs_paths_by_name),
+        ("no_truncated_comments", _check_no_truncated_comments),
+        ("logger_exception_in_except", _check_logger_exception_in_except),
+        ("logger_error_outside_except", _check_logger_error_outside_except),
+    ],
+    ids=[
+        "no-absolute-paths",
+        "no-bare-path-variables",
+        "still-logs-paths-by-name",
+        "no-truncated-comments",
+        "logger-exception-in-except",
+        "logger-error-outside-except",
+    ],
+)
+def test_ast_log_checks(check_name: str, check_func: Callable) -> None:
+    """Parameterized AST checks for clean_tab.py logging."""
+    violations = check_func()
+    assert not violations, f"{check_name} failed: {violations}"
 
 
 # ---------------------------------------------------------------------------
@@ -192,60 +291,6 @@ def test_import_log_does_not_print_comment_text(main_window) -> None:
     assert "sample row 1" in panel
     assert "char(s) imported" in panel
     assert "imported 1 row(s)" in panel
-
-
-def test_import_log_has_no_truncated_comment_echo() -> None:
-    """No sliced copy of a sample row may reach the log either."""
-    text = SRC.read_text(encoding="utf-8")
-    assert "sample row {i}: {one}" not in text
-    assert "one[:70]" not in text
-
-
-# ---------------------------------------------------------------------------
-# 3. logger.exception instead of logger.error(str(e))
-# ---------------------------------------------------------------------------
-
-
-def test_no_logger_error_inside_except_blocks() -> None:
-    seen: list[tuple[int, str]] = []
-    for node in ast.walk(_tree()):
-        if not isinstance(node, ast.ExceptHandler):
-            continue
-        for sub in ast.walk(node):
-            if (
-                isinstance(sub, ast.Call)
-                and isinstance(sub.func, ast.Attribute)
-                and isinstance(sub.func.value, ast.Name)
-                and sub.func.value.id == "logger"
-            ):
-                seen.append((sub.lineno, sub.func.attr))
-    assert not [(ln, a) for ln, a in seen if a == "error"], (
-        f"logger.error left inside an except block: {seen}"
-    )
-    assert [a for _, a in seen].count("exception") >= 2
-
-
-def test_state_only_logger_errors_were_left_alone() -> None:
-    """logger.error outside except logs a state, not an exception: untouched."""
-    in_except_lines: set[int] = set()
-    for node in ast.walk(_tree()):
-        if isinstance(node, ast.ExceptHandler):
-            for sub in ast.walk(node):
-                line = getattr(sub, "lineno", None)
-                if line is not None:
-                    in_except_lines.add(line)
-    outside = [
-        node.lineno
-        for node in ast.walk(_tree())
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and isinstance(node.func.value, ast.Name)
-        and node.func.value.id == "logger"
-        and node.func.attr == "error"
-        and node.lineno not in in_except_lines
-    ]
-    # PN column not configured / no comments imported / comment column missing.
-    assert len(outside) >= 3
 
 
 def test_convert_failure_log_keeps_traceback(main_window, monkeypatch, caplog) -> None:
