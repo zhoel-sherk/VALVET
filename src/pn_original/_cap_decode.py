@@ -16,6 +16,29 @@ Walsin voltage numeric helper:
 See vendor modules for full PN structures.
 """
 
+import re
+
+
+def cap_code_to_str(code: str) -> str | None:
+    r"""Decode a capacitance code: EIA-3 digits, or ``R`` as the decimal point.
+
+    Murata C02E21 p.3 (and the Walsin/Fenghua sheets) define the unit as pF:
+    the first two digits are significant and the third is the number of zeros.
+    A decimal point is written with ``R``, and *every* digit is significant:
+    ``R50`` = 0.50 pF, ``1R0`` = 1.0 pF, ``5R0`` = 5.0 pF. The leading-``R``
+    form (``R50``) only appears in the Murata numbering, which is why the older
+    ``^(\d)R(\d)$`` helpers could not read it.
+    """
+    raw = str(code or "").strip().upper()
+    if not raw:
+        return None
+    decimal = re.fullmatch(r"(\d*)R(\d+)", raw)
+    if decimal:
+        whole, frac = decimal.groups()
+        value = f"{whole or '0'}.{frac}"
+        return f"{float(value):g}pF"
+    return pf_eia_3_to_str(raw)
+
 
 def pf_eia_3_to_str(abc: str) -> str | None:
     """

@@ -5,6 +5,13 @@ Source: [`src/pn_original/murata_capacitor.py`](../src/pn_original/murata_capaci
 ## samples
 
 | mpn_or_bom | ctype | expected | path |
+| GRM0335C1H100JA01D | CAP | 0201_10pF_50V_C0G_5% | vendor |
+| GRM033R60J103KA01D | CAP | 0201_10nF_6.3V_X5R_10% | vendor |
+| GRM033R60J224KE15D | CAP | 0201_220nF_6.3V_X5R_10% | vendor |
+| GRM033R61C224KE14D | CAP | 0201_220nF_16V_X5R_10% | vendor |
+| GRM033R61A225KE47D | CAP | 0201_2.2uF_10V_X5R_10% | vendor |
+| GRM1555C1E100JA01D | CAP | 0402_10pF_25V_C0G_5% | vendor |
+| GRM1555C1H5R0CA01D | CAP | 0402_5pF_50V_C0G_0.25pF | vendor |
 | GRM1555C1H100JA01D | CAP | 0402_10pF_50V_C0G_5% | vendor |
 | GRM155R71C104KA88D | CAP | 0402_100nF_16V_X7R_10% | vendor |
 | GRM188R71H102KA01D | CAP | 0603_1nF_50V_X7R_10% | vendor |
@@ -20,6 +27,15 @@ Source: [`src/pn_original/murata_capacitor.py`](../src/pn_original/murata_capaci
 | GRM155R70J104KA01D | CAP | 0402_100nF_6.3V_X7R_10% | vendor |
 | GRM155R71K104KA01D | CAP | 0402_100nF_80V_X7R_10% | vendor |
 | GRM188R73D104KA01D | CAP | 0603_100nF_2kV_X7R_10% | vendor |
+
+## Size field
+
+C02E21 p.1/p.2 lists the L×W dimension by EIA name and gives a **two-digit**
+code (`02` 01005, `03` 0201, `15` 0402, `18` 0603, `21` 0805, `31` 1206,
+`32` 1210). The part number appends a one-digit thickness, so the parser's
+three-character keys are size+thickness: `033` = 0201, `155` = 0402,
+`188` = 0603. The class-1 line adds the temperature-characteristic code `5C`
+after that key (`GRM0335C…`, `GRM1555C…`).
 
 ## Rated voltage codes
 
