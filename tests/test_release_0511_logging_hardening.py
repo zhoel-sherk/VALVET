@@ -17,7 +17,8 @@ import session_file_log
 from clean_alerts import append_missing_tokens_log, missing_tokens_log_path
 
 # Import shared logging utilities from conftest
-from conftest import captured_root
+# The logging helpers are exposed as fixtures by conftest.py; importing them
+# from here would only work under pytest's default `prepend` import mode.
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -61,7 +62,9 @@ def _owned_file_handlers() -> list[logging.FileHandler]:
 # ---------------------------------------------------------------------------
 
 
-def test_config_survives_unwritable_logs_dir(monkeypatch, isolated_logging) -> None:
+def test_config_survives_unwritable_logs_dir(
+    monkeypatch, isolated_logging, captured_root
+) -> None:
     def _boom(*_a, **_k):
         raise PermissionError(13, "denied")
 
@@ -70,9 +73,11 @@ def test_config_survives_unwritable_logs_dir(monkeypatch, isolated_logging) -> N
 
     assert logger.debug_mode_enabled() is True
     assert _owned_file_handlers() == []
-    with captured_root() as cap:
-        logger.info("console only, still alive")
-    assert [r.getMessage() for r in cap.records] == ["console only, still alive"]
+    captured_root.records.clear()
+    logger.info("console only, still alive")
+    assert [r.getMessage() for r in captured_root.records] == [
+        "console only, still alive"
+    ]
 
 
 def test_package_still_imports_after_failed_logger_init(
@@ -160,32 +165,30 @@ def test_disable_file_logging_closes_and_releases_handler(
 
 
 def test_module_level_logger_is_captured(
-    monkeypatch, isolated_logging, tmp_path
+    monkeypatch, isolated_logging, tmp_path, captured_root
 ) -> None:
     """getLogger(__name__) modules were invisible to the old private logger."""
     monkeypatch.setattr(logger, "__get_logs_directory", lambda: str(tmp_path / "logs"))
     logger.config(use_color_logs=False)
-    with captured_root() as cap:
-        logging.getLogger("machine_library.yamaha_devlib").info("from a module logger")
-    assert "from a module logger" in [r.getMessage() for r in cap.records]
+    captured_root.records.clear()
+    logging.getLogger("machine_library.yamaha_devlib").info("from a module logger")
+    assert "from a module logger" in [r.getMessage() for r in captured_root.records]
 
 
-def test_record_pathname_is_the_real_caller(isolated_logging) -> None:
-    with captured_root() as cap:
-        logger.warning("before config")
-    record = cap.records[-1]
+def test_record_pathname_is_the_real_caller(isolated_logging, captured_root) -> None:
+    logger.warning("before config")
+    record = captured_root.records[-1]
     assert record.pathname == __file__
     assert record.funcName == "test_record_pathname_is_the_real_caller"
 
 
 def test_record_pathname_is_the_real_caller_after_config(
-    monkeypatch, isolated_logging, tmp_path
+    monkeypatch, isolated_logging, tmp_path, captured_root
 ) -> None:
     monkeypatch.setattr(logger, "__get_logs_directory", lambda: str(tmp_path / "logs"))
     logger.config(use_color_logs=False)
-    with captured_root() as cap:
-        logger.info("after config")
-    record = cap.records[-1]
+    logger.info("after config")
+    record = captured_root.records[-1]
     assert record.pathname == __file__
     assert record.lineno > 0
 
@@ -393,14 +396,13 @@ def test_missing_tokens_log_write_failure_does_not_raise(
 # ---------------------------------------------------------------------------
 
 
-def test_exception_carries_traceback(isolated_logging) -> None:
-    with captured_root() as cap:
-        try:
-            raise ValueError("kaboom")
-        except ValueError as exc:
-            logger.exception("convert failed: %s", exc)
+def test_exception_carries_traceback(isolated_logging, captured_root) -> None:
+    try:
+        raise ValueError("kaboom")
+    except ValueError as exc:
+        logger.exception("convert failed: %s", exc)
 
-    record = cap.records[-1]
+    record = captured_root.records[-1]
     assert record.levelno == logging.ERROR
     assert record.exc_info is not None
     assert "ValueError: kaboom" in logging.Formatter().formatException(record.exc_info)

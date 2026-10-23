@@ -37,44 +37,6 @@ _LOG_FUNCS = {
 }
 
 
-def _qapp():
-    from PySide6 import QtWidgets
-
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
-
-@pytest.fixture
-def main_window(qapp, tmp_path):
-    """Function-scoped MainWindow for tests that modify window state."""
-    from PySide6 import QtCore
-
-    from app.window import MainWindow
-
-    settings = QtCore.QSettings(
-        str(tmp_path / "clean_log.ini"), QtCore.QSettings.Format.IniFormat
-    )
-    settings.setValue("experimental/enable_step_3d", False)
-    win = MainWindow(settings=settings)
-    yield win
-    win.close()
-    win.deleteLater()
-
-
-def _main_window(tmp_path: Path):
-    from PySide6 import QtCore
-
-    from app.window import MainWindow
-
-    settings = QtCore.QSettings(
-        str(tmp_path / "clean_log.ini"), QtCore.QSettings.Format.IniFormat
-    )
-    settings.setValue("experimental/enable_step_3d", False)
-    return MainWindow(settings=settings)
-
-
 def _tree() -> ast.Module:
     return ast.parse(SRC.read_text(encoding="utf-8"))
 

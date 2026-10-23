@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-from contextlib import contextmanager
 
 import pytest
 
@@ -47,14 +46,13 @@ def log_capture():
         root.removeHandler(capture)
 
 
-@contextmanager
+@pytest.fixture
 def captured_root():
-    """Context manager that captures all records from the root logger.
+    """Capture every record on the root logger for the duration of the test.
 
-    Usage:
-        with captured_root() as cap:
-            logger.info("test message")
-        assert len(cap.records) == 1
+    A fixture rather than a context manager so modules do not need
+    ``from conftest import ...`` - that import only resolves under pytest's
+    default ``prepend`` import mode and breaks under ``--import-mode=importlib``.
     """
     root = logging.getLogger()
     capture = LogCapture()
