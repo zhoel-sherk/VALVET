@@ -70,6 +70,7 @@ class ReportTabMixin:
             settings=self._settings,
             history_key="report/last_save_html_dir",
             default_name=suggest,
+            initial_dir=start_dir,
         )
         if not path:
             return
