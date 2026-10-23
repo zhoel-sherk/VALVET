@@ -18,7 +18,7 @@ BETA **0.5.3.2** — [TESTING.md](info/TESTING.md). This file is the live backlo
 ## Parked (not this vector)
 
 - **Wave 2 — Hanwha footprints in PCB Preview** — `FootprintStore` MDB import, overlay lookup, QGraphicsView instancing/LOD. Start only after Wave 1 visual OK.
-- **Step 3D B/C** and a default STEP→OBJ CLI: later. Tab is **off by default** (`experimental/enable_step_3d=false`). Do not expand freeze for VTK/pythonocc.
+- **Step 3D B/C** and a default STEP→OBJ CLI: later. Tab is **off by default** (`experimental/enable_step_3d=false`). Do not expand freeze for VTK/pythonocc. **On hold:** `tests/test_step_3d.py` carries a module-level `pytest.mark.skip` and is not part of the CI signal — remove that mark together with the freeze.
 - **User Parts DB / SQLite / learn-all bulk:** far corner; txt + Learn selected is enough.
 - **First/Last row in GUI:** removed; do not restore. `read_file(..., first_row, last_row)` remains for tests/API only.
 - **CSV column presets / vendor export profiles:** not needed for current machine CSV/XLSX/MMD.

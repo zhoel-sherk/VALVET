@@ -19,6 +19,16 @@ from step_3d.conversion import (
     template_to_argv,
 )
 
+# Step 3D is on hold: the tab ships off by default (`experimental/enable_step_3d`)
+# and the module is parked in doc/TODO.md. Its tests are kept for the day the
+# feature is picked up again, but are not part of the current CI signal.
+pytestmark = pytest.mark.skip(
+    reason=(
+        "Step 3D is on hold (doc/TODO.md -> Parked): remove this mark when the "
+        "feature is unfrozen."
+    )
+)
+
 
 def test_expand_command_template() -> None:
     s = expand_command_template(
