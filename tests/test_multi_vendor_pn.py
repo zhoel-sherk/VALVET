@@ -34,27 +34,12 @@ def test_multi_vendor_pn_cap_without_description():
 
     cleaned, type_tag, part_code, source = clean_component.clean_one(raw, cfg)
 
-    # Should be a CAP
-    assert type_tag == "CAP", f"Expected CAP, got {type_tag}"
-    assert part_code == "CAP", f"Expected part_code CAP, got {part_code}"
-
-    # Should come from vendor parser, not regex fallback
+    assert (cleaned, type_tag, part_code) == (
+        "0402_10nF_50V_X7R_10%",
+        "CAP",
+        "CAP",
+    )
     assert source in ("vendor", "pn"), f"Expected vendor/pn source, got {source}"
-
-    # Should contain 10nF (103 = 10 * 10^3 pF = 10nF)
-    assert "10nF" in cleaned or "10" in cleaned, f"Expected 10nF in cleaned: {cleaned}"
-
-    # Should contain 0402 package
-    assert "0402" in cleaned, f"Expected 0402 package in cleaned: {cleaned}"
-
-    # Should contain X7R dielectric
-    assert "X7R" in cleaned, f"Expected X7R dielectric in cleaned: {cleaned}"
-
-    # Should contain 50V voltage
-    assert "50V" in cleaned, f"Expected 50V in cleaned: {cleaned}"
-
-    # Should be ONE value, not a concatenation
-    assert "|" not in cleaned, f"Expected single value, got concatenation: {cleaned}"
 
 
 def test_multi_vendor_pn_cap_with_description():
@@ -73,29 +58,12 @@ def test_multi_vendor_pn_cap_with_description():
 
     cleaned, type_tag, part_code, source = clean_component.clean_one(raw, cfg)
 
-    # Should be a CAP
-    assert type_tag == "CAP", f"Expected CAP, got {type_tag}"
-    assert part_code == "CAP", f"Expected part_code CAP, got {part_code}"
-
-    # Should come from vendor parser, not regex fallback
-    assert source in ("vendor", "pn"), f"Expected vendor/pn source, got {source}"
-
-    # Should contain 10pF (100 = 10 * 10^0 pF = 10pF)
-    assert "10pF" in cleaned or "10" in cleaned, f"Expected 10pF in cleaned: {cleaned}"
-
-    # Should contain 0201 package
-    assert "0201" in cleaned, f"Expected 0201 package in cleaned: {cleaned}"
-
-    # Should contain C0G (or NPO) dielectric
-    assert "C0G" in cleaned or "NPO" in cleaned, (
-        f"Expected C0G/NPO dielectric in cleaned: {cleaned}"
+    assert (cleaned, type_tag, part_code) == (
+        "0201_10pF_50V_C0G_5%",
+        "CAP",
+        "CAP",
     )
-
-    # Should contain 50V voltage
-    assert "50V" in cleaned, f"Expected 50V in cleaned: {cleaned}"
-
-    # Should be ONE value, not a concatenation
-    assert "|" not in cleaned, f"Expected single value, got concatenation: {cleaned}"
+    assert source in ("vendor", "pn"), f"Expected vendor/pn source, got {source}"
 
 
 def test_multi_vendor_pn_resistor():
@@ -114,23 +82,8 @@ def test_multi_vendor_pn_resistor():
 
     cleaned, type_tag, part_code, source = clean_component.clean_one(raw, cfg)
 
-    # Should be a RESISTOR
-    assert type_tag == "RESISTOR", f"Expected RESISTOR, got {type_tag}"
-    assert part_code == "RES", f"Expected part_code RES, got {part_code}"
-
-    # Should come from vendor parser, not regex fallback
+    assert (cleaned, type_tag, part_code) == ("0201_0R_5%", "RESISTOR", "RES")
     assert source in ("vendor", "pn"), f"Expected vendor/pn source, got {source}"
-
-    # Should contain 0R (0 ohm)
-    assert "0R" in cleaned or cleaned == "0" or "0.0R" in cleaned, (
-        f"Expected 0R in cleaned: {cleaned}"
-    )
-
-    # Should contain 0201 package
-    assert "0201" in cleaned, f"Expected 0201 package in cleaned: {cleaned}"
-
-    # Should be ONE value, not a concatenation
-    assert "|" not in cleaned, f"Expected single value, got concatenation: {cleaned}"
 
 
 def test_multi_vendor_pn_picks_best_not_last():
@@ -154,11 +107,12 @@ def test_multi_vendor_pn_picks_best_not_last():
 
     # All 5 PNs are 10nF 50V X7R 0402 caps, so they should all parse to the same value
     # The important thing is that we get ONE valid result, not the last PN as-is
-    assert type_tag == "CAP"
+    assert (cleaned, type_tag, part_code) == (
+        "0402_10nF_50V_X7R_10%",
+        "CAP",
+        "CAP",
+    )
     assert source in ("vendor", "pn")
-    assert "10" in cleaned  # 10nF
-    assert "0402" in cleaned
-    assert "|" not in cleaned
 
 
 def test_single_vendor_pn_still_works():
@@ -174,10 +128,12 @@ def test_single_vendor_pn_still_works():
     raw = "GRM155R71H103KA88D"
     cleaned, type_tag, part_code, source = clean_component.clean_one(raw, cfg)
 
-    assert type_tag == "CAP"
+    assert (cleaned, type_tag, part_code) == (
+        "0402_10nF_50V_X7R_10%",
+        "CAP",
+        "CAP",
+    )
     assert source in ("vendor", "pn")
-    assert "10nF" in cleaned or "10" in cleaned
-    assert "0402" in cleaned
 
 
 def test_multi_vendor_pn_with_regex_master_enabled():
@@ -192,11 +148,12 @@ def test_multi_vendor_pn_with_regex_master_enabled():
 
     cleaned, type_tag, part_code, source = clean_component.clean_one(raw, cfg)
 
-    assert type_tag == "CAP"
+    assert (cleaned, type_tag, part_code) == (
+        "0402_10nF_50V_X7R_10%",
+        "CAP",
+        "CAP",
+    )
     assert source in ("vendor", "pn")
-    assert "10" in cleaned
-    assert "0402" in cleaned
-    assert "|" not in cleaned
 
 
 def test_value_with_slash_does_not_hide_the_resistor_mpn():
