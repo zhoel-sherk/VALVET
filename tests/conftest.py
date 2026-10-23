@@ -31,7 +31,7 @@ class LogCapture(logging.Handler):
 @pytest.fixture
 def log_capture():
     """Fixture that captures all log records from the root logger.
-    
+
     Usage:
         def test_something(log_capture):
             logger.info("test message")
@@ -50,7 +50,7 @@ def log_capture():
 @contextmanager
 def captured_root():
     """Context manager that captures all records from the root logger.
-    
+
     Usage:
         with captured_root() as cap:
             logger.info("test message")
@@ -105,11 +105,12 @@ def corpus_cfg():
 @pytest.fixture(scope="module")
 def main_window(qapp, tmp_path_factory):
     """Module-scoped MainWindow instance to avoid repeated creation.
-    
+
     Creates a single MainWindow per test module, reducing test time by ~10s per test.
     Uses tmp_path_factory to create a module-level temporary directory for settings.
     """
     from PySide6 import QtCore
+
     from app.window import MainWindow
 
     tmp_path = tmp_path_factory.mktemp("main_window")
@@ -124,18 +125,39 @@ def main_window(qapp, tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
-def _reset_main_window_state(main_window):
-    """Reset MainWindow state between tests to prevent cross-test contamination."""
+def _reset_main_window_state(request):
+    """Reset MainWindow state between tests, but only where it is used.
+
+    Resolving ``main_window`` unconditionally made every test module - parser
+    and pure-logic ones included - construct a full MainWindow (~11 s each).
+    Reading the fixture lazily keeps the reset for GUI modules without paying
+    that cost everywhere. The value is captured during setup because the
+    module-scoped fixture may already be finalized by teardown time.
+    """
+    main_window = (
+        request.getfixturevalue("main_window")
+        if "main_window" in request.fixturenames
+        else None
+    )
     yield
-    # Reset state after each test
-    # Disconnect all signal handlers (only if there are connections)
+    if main_window is None:
+        return
+    # Disconnect test-local slots so they cannot fire after their test ends.
+    # ``disconnect()`` also drops the window's own log-panel wiring, so the
+    # production handler is attached again right after.
     try:
         if main_window.log_message.receivers() > 0:
             main_window.log_message.disconnect()
     except (RuntimeError, TypeError, AttributeError):
         pass  # No connections to disconnect or method not available
+    handler = getattr(main_window, "_on_log_message", None)
+    if handler is not None:
+        try:
+            main_window.log_message.connect(handler)
+        except (RuntimeError, TypeError):
+            pass
     # Reset BOM data but keep bom_model instance
-    if hasattr(main_window, '_bom_df'):
+    if hasattr(main_window, "_bom_df"):
         main_window._bom_df = None
-    if hasattr(main_window, '_clean_imported_comments'):
+    if hasattr(main_window, "_clean_imported_comments"):
         main_window._clean_imported_comments = []
