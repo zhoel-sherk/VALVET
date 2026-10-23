@@ -17,30 +17,12 @@ import logger
 import session_file_log
 from clean_alerts import append_missing_tokens_log, missing_tokens_log_path
 
+# Import shared logging utilities from conftest
+from conftest import captured_root
+
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
-
-
-class _Capture(logging.Handler):
-    def __init__(self) -> None:
-        super().__init__(level=logging.DEBUG)
-        self.records: list[logging.LogRecord] = []
-
-    def emit(self, record: logging.LogRecord) -> None:
-        self.records.append(record)
-
-
-@contextmanager
-def captured_root():
-    """Collect every record that reaches root, whatever emitted it."""
-    root = logging.getLogger()
-    cap = _Capture()
-    root.addHandler(cap)
-    try:
-        yield cap
-    finally:
-        root.removeHandler(cap)
 
 
 @pytest.fixture

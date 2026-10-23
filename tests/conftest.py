@@ -2,12 +2,67 @@
 
 from __future__ import annotations
 
+import logging
 import os
+from contextlib import contextmanager
 
 import pytest
 
 # Must run before any PySide6 import (avoids abort without a display).
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+
+# ---------------------------------------------------------------------------
+# Logging capture utilities (shared across test modules)
+# ---------------------------------------------------------------------------
+
+
+class LogCapture(logging.Handler):
+    """Logging handler that captures all records for inspection in tests."""
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.DEBUG)
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
+
+
+@pytest.fixture
+def log_capture():
+    """Fixture that captures all log records from the root logger.
+    
+    Usage:
+        def test_something(log_capture):
+            logger.info("test message")
+            assert len(log_capture.records) == 1
+            assert log_capture.records[0].getMessage() == "test message"
+    """
+    root = logging.getLogger()
+    capture = LogCapture()
+    root.addHandler(capture)
+    try:
+        yield capture
+    finally:
+        root.removeHandler(capture)
+
+
+@contextmanager
+def captured_root():
+    """Context manager that captures all records from the root logger.
+    
+    Usage:
+        with captured_root() as cap:
+            logger.info("test message")
+        assert len(cap.records) == 1
+    """
+    root = logging.getLogger()
+    capture = LogCapture()
+    root.addHandler(capture)
+    try:
+        yield capture
+    finally:
+        root.removeHandler(capture)
 
 
 @pytest.fixture(autouse=True)
