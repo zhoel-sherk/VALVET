@@ -1952,10 +1952,12 @@ def normalize_designators(designator_string: str) -> tuple[list[str], list[str]]
     tokens = [t.strip() for t in tokens if t.strip()]
 
     for token in tokens:
-        # Split sticky designators by detecting digit-to-letter boundaries.
-        # Pattern: digit(s) followed by letter(s) indicate a new designator start.
-        # Examples: "C29C30" → ["C29", "C30"], "R259R261" → ["R259", "R261"]
-        parts = re.split(r"(?<=\d)(?=[A-Z])", token)
+        # Split sticky designators by detecting digit-to-letter boundaries only
+        # when the letters start another designator (letters followed by a
+        # digit). A trailing letter run is a multi-unit suffix, not a new
+        # designator: "U1A"/"J1A" must stay intact while "C29C30" splits.
+        # Lowercase input uses the same rule: "c29c30" → ["C29", "C30"].
+        parts = re.split(r"(?<=\d)(?=[A-Z]{1,4}\d)", token, flags=re.IGNORECASE)
 
         if len(parts) == 1:
             # Single designator, no splitting needed

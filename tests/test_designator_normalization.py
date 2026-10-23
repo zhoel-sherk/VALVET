@@ -1,6 +1,5 @@
 """Tests for designator normalization in BOM/PnP files."""
 
-import pytest
 from smt_processor import normalize_designators
 
 
@@ -104,7 +103,9 @@ class TestNormalizeDesignators:
 
     def test_real_world_example_1(self):
         """Test real-world example from BOM file."""
-        result, warnings = normalize_designators("C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C18,C19,C21,C22,C25,C27,C29C30,C32,C34,C38,C45,C46,C47,C54,C116,C117,C61,C64,C65,C69,C72 C83,C84,C104,C123")
+        result, warnings = normalize_designators(
+            "C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C18,C19,C21,C22,C25,C27,C29C30,C32,C34,C38,C45,C46,C47,C54,C116,C117,C61,C64,C65,C69,C72 C83,C84,C104,C123"
+        )
         assert "C29" in result
         assert "C30" in result
         assert "C72" in result
@@ -127,3 +128,69 @@ class TestNormalizeDesignators:
         result, warnings = normalize_designators("C1,C1,C2")
         # Function should keep duplicates (user can decide later)
         assert result == ["C1", "C1", "C2"]
+
+    def test_multi_unit_suffix_is_not_split(self):
+        """Altium multi-part refs (U1A/U1B) are single designators.
+
+        Splitting them into ``U1`` + ``A`` made the merge treat the real PnP
+        placement as "not in BOM" and drop it.
+        """
+        result, warnings = normalize_designators("U1A,U1B")
+        assert result == ["U1A", "U1B"]
+        assert warnings == []
+
+    def test_sticky_split_keeps_multi_unit_suffix(self):
+        """Sticky pairs still split while a trailing letter suffix survives."""
+        result, warnings = normalize_designators("C29C30,U1A")
+        assert result == ["C29", "C30", "U1A"]
+        assert len(warnings) == 1
+
+    def test_lowercase_sticky_designators_split(self):
+        """Lowercase input follows the same rule as uppercase input."""
+        result, warnings = normalize_designators("c29c30")
+        assert result == ["C29", "C30"]
+        assert len(warnings) == 1
+
+
+def test_merge_keeps_multi_unit_designator():
+    """BOM ``U1A`` and PnP ``U1A`` are one reference and must merge.
+
+    The merge used to normalize the BOM side only; once ``U1A`` was split into
+    ``U1`` + ``A`` the PnP row no longer matched and was reported as "not in
+    BOM" (and dropped when the caller deletes such placements).
+    """
+    import pandas as pd
+
+    from smt_processor import ColumnConfig, ProcessorConfig, SMTDataProcessor
+
+    bom = pd.DataFrame({"Designator": ["U1A"], "Comment": ["LM358"]})
+    pnp = pd.DataFrame(
+        {
+            "Designator": ["U1A"],
+            "Comment": [""],
+            "X": [1.0],
+            "Y": [2.0],
+            "Rotation": [0],
+            "Layer": ["Top"],
+        }
+    )
+    proc = SMTDataProcessor(ProcessorConfig())
+    proc.set_dataframes(
+        bom,
+        pnp,
+        ColumnConfig(designator="Designator", comment="Comment"),
+        ColumnConfig(
+            designator="Designator",
+            comment="Comment",
+            coord_x="X",
+            coord_y="Y",
+            rotation="Rotation",
+            layer="Layer",
+        ),
+    )
+
+    merged = proc.merge_bom_pnp(include_dnp=True)
+
+    assert merged["Ref"].tolist() == ["U1A"]
+    assert merged["Value"].tolist() == ["LM358"]
+    assert proc.last_merge_not_in_bom_refs == []
