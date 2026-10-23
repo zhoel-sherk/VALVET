@@ -5,6 +5,16 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Multiple vendor PNs support in Clean BOM.** Clean BOM now handles BOM cells containing multiple alternative vendor part numbers separated by `/` (e.g., `C0201C0G100J500NTA/0201CG100J500NT/GRM0335C1H100JA01D/CC0201JRNPO9BN100`). The vendor parser now tries each alternative separately and lets the arbiter pick the best match, preventing fallback to raw regex parsing. Added comprehensive test coverage (6 tests).
+
+- **Designator normalization for BOM/PnP parsing errors.** Implemented `normalize_designators()` to automatically handle common formatting errors in supplier BOM files:
+  - Sticky designators without commas (e.g., `C29C30` → `C29, C30`)
+  - Spaces instead of commas (e.g., `C72 C83` → `C72, C83`)
+  - Mixed separators
+  - The normalization is applied in 3 critical locations (BOM parsing, PnP parsing, merge logic) and shows UI warnings to inform users about auto-corrected issues. Added comprehensive test suite (19 tests).
+
 ## [0.5.3.2] - BETA - 2026-10-13
 
 ### Changed
