@@ -8,13 +8,15 @@ NP0 lines: …NPO{digit}BN{EIA3}… (no BB block)
 Examples:
 - CC0402KRX7R9BB102 → CAP_0402_1nF_50V_X7R_10%
 - CC0603ZRY5V7BB105 → CAP_0603_1uF_16V_Y5V_20%
-- CC0402JRNPO9BN150 → CAP_0402_15pF_50V_NP0_5%
+- CC0402JRNPO9BN150 → CAP_0402_15pF_50V_C0G_5%
 
 Size codes:
 0201, 0402, 0603, 0805, 1206, 1210 (digits after CC|CH)
 
 Temp / dielectric codes:
-X7R, X5R, X7U, Y5V, Y5U, COG, NPO→NP0, X6S
+X7R, X5R, X7U, Y5V, Y5U, X6S; the class-1 block is spelled COG/NPO in the
+part number and always normalises to ``C0G`` (``canonicalize_cap_dielectric``),
+like Darfon/Eyang/Fenghua/Walsin.
 
 Voltage codes:
 Digit (or letter) immediately before ``BB`` in …X7R9BB… pattern; table voltage_before_bb + voltage_letter in code
@@ -28,6 +30,7 @@ Note:
 ``pn_original.parse_pn`` arbiter, which logs it with a traceback and names the vendor.
 """
 
+from parsers.bom_text_utils import canonicalize_cap_dielectric
 from parsers.regex_api import I, match, search, sub
 
 from ._cap_decode import pf_eia_3_to_str
@@ -63,8 +66,8 @@ def parse(pn: str, component_type: str) -> str | None:
         "X7U": "X7U",
         "Y5V": "Y5V",
         "Y5U": "Y5U",
-        "COG": "COG",
-        "NPO": "NP0",
+        "COG": "C0G",
+        "NPO": "C0G",
     }
 
     # Yageo CC/CH: letter codes (and digits before BB) for rated voltage
@@ -153,7 +156,8 @@ def parse(pn: str, component_type: str) -> str | None:
     if voltage:
         parts.append(voltage)
     if temp:
-        parts.append(temp)
+        # NP0/NPO/COG are the same class-1 dielectric; the repo writes C0G.
+        parts.append(canonicalize_cap_dielectric(temp))
     if tol:
         parts.append(tol)
 
