@@ -22,8 +22,8 @@ size  type  ohm  tol pack term
 
 All rows below are part numbers printed in the sheets' own catalogue sections.
 
-`WW12` is **deliberately not decoded**: `WW12R.PDF` states `WW12: 0603` while
-`WW12R_V.PDF` states `WW12: 1206`. The two sheets contradict each other, so the
+`WW12` is **deliberately not decoded**: `walsin_ww12r_datasheet.pdf` states `WW12: 0603` while
+`walsin_ww12r_v_datasheet.pdf` states `WW12: 1206`. The two sheets contradict each other, so the
 codec returns `None` rather than attach a guessed imperial size to a
 current-sense resistor. The `WW…C` family (0201…1206, no separate type letter)
 is likewise not decoded — its sheets print no type code.

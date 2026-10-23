@@ -298,7 +298,7 @@ def test_ww_series_number_is_not_the_size() -> None:
 
 
 def test_ww12_is_refused_because_the_datasheets_disagree() -> None:
-    """WW12R.PDF says 0603, WW12R_V.PDF says 1206.
+    """walsin_ww12r_datasheet.pdf says 0603, walsin_ww12r_v_datasheet.pdf says 1206.
 
     Rather than pick one, a WW12 part returns None so the part falls through.
     Guessing would silently attach the wrong imperial size to a current-sense

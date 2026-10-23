@@ -1,6 +1,6 @@
 """TDK automotive MLCC codec — CGA series.
 
-From ``doc/info/TDK_mlcc_automotive_general_en.pdf`` (Multilayer Ceramic Chip
+From ``datasheet/pdf/tdk_mlcc_automotive_general_en.pdf`` (Multilayer Ceramic Chip
 Capacitors, automotive grade general, **up to 75 V**, June 2019).
 
 The layout is fixed-width and every part number in the catalogue is exactly 20

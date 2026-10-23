@@ -19,7 +19,7 @@ approval sheets (retrieved 2026-10-04; local copies under the gitignored
   Neither carries electrical meaning, but they are validated.
 
 ``12`` is deliberately **absent** from the size table. Two sheets disagree about
-it: ``WW12R.PDF`` prints ``WW12: 0603`` while ``WW12R_V.PDF`` prints
+it: ``walsin_ww12r_datasheet.pdf`` prints ``WW12: 0603`` while ``walsin_ww12r_v_datasheet.pdf`` prints
 ``WW12: 1206``. Rather than pick one, a ``WW12…`` part returns ``None`` and falls
 through, because guessing would silently attach the wrong imperial size to a
 current-sense resistor.
@@ -49,7 +49,7 @@ COMPONENT_TYPES = ["RES"]
 PARSER_PRIORITY = 75
 
 # Series number -> imperial size, from each sheet's own "Size code" line.
-# ``12`` is intentionally missing: WW12R.PDF says 0603, WW12R_V.PDF says 1206.
+# ``12`` is intentionally missing: walsin_ww12r_datasheet.pdf says 0603, walsin_ww12r_v_datasheet.pdf says 1206.
 _SIZE = {
     "06": "0603",
     "08": "0805",

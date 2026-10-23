@@ -2,10 +2,10 @@
 
 Samsung MLCC part-number format, from the two catalogues in ``doc/info``:
 
-* ``Samsung_MLCC_2512.pdf`` — *Part I. Commercial/Industrial*, December 2025.
-* ``MLCC_Automotive_2512.pdf`` — *Part II. Automotive*, December 2025.
+* ``samsung_mlcc_catalog_commercial_2025.pdf`` — *Part I. Commercial/Industrial*, December 2025.
+* ``samsung_mlcc_catalog_automotive_2025.pdf`` — *Part II. Automotive*, December 2025.
 
-Both print the same layout (``Samsung_MLCC_2512.pdf`` p.6)::
+Both print the same layout (``samsung_mlcc_catalog_commercial_2025.pdf`` p.6)::
 
     CL 10 A 106 M Q 8 N N N C
     1 2 3 4 5 6 7 8 9 10 11
@@ -60,7 +60,7 @@ VENDOR_NAME = "Samsung"
 COMPONENT_TYPES = ["CAP"]
 PARSER_PRIORITY = 95
 
-# 2 SIZE CODE - Samsung_MLCC_2512.pdf p.6, Automotive p.4. Keyed to the repo's
+# 2 SIZE CODE - samsung_mlcc_catalog_commercial_2025.pdf p.6, Automotive p.4. Keyed to the repo's
 # vocabulary, which is the inch name. The four land-grid sizes have no entry
 # there yet, so they register under the code the sheet prints; tracked in
 # doc/TODO.md.
@@ -82,7 +82,7 @@ _SIZE = {
     "L5": "0510",  # 0204/0510
 }
 
-# 3 DIELECTRIC CODE - Samsung_MLCC_2512.pdf p.6 + Automotive p.4, unioned.
+# 3 DIELECTRIC CODE - samsung_mlcc_catalog_commercial_2025.pdf p.6 + Automotive p.4, unioned.
 # ``C`` is the sheet's symbol for C0G and is normalised like every other codec
 # here does, so a Samsung C0G part cleans the same as a Murata one.
 _DIEL = {
@@ -102,7 +102,7 @@ _DIEL = {
     "J": "JIS-B",
 }
 
-# 6 RATED VOLTAGE CODE - Samsung_MLCC_2512.pdf p.7 + Automotive p.5, unioned.
+# 6 RATED VOLTAGE CODE - samsung_mlcc_catalog_commercial_2025.pdf p.7 + Automotive p.5, unioned.
 # 3kV/2kV/1kV are spelled the way the sheet spells them.
 _VOLT = {
     "S": "2.5V",
@@ -127,7 +127,7 @@ _VOLT = {
     "K": "3kV",
 }
 
-# 5 CAPACITANCE TOLERANCE CODE - Samsung_MLCC_2512.pdf p.7, Automotive p.4.
+# 5 CAPACITANCE TOLERANCE CODE - samsung_mlcc_catalog_commercial_2025.pdf p.7, Automotive p.4.
 # The absolute grades are class 1 (pF, not a percentage) and render as a bare
 # magnitude, matching walsin/viiyong/eyang for the same two tolerance classes.
 # ``F`` is not here: the sheet's footnote makes it mean +-1 pF below 10 pF and
@@ -157,7 +157,7 @@ _TOL_ASYM = {
 def _capacitance(code: str) -> tuple[float | None, str]:
     """EIA 3-digit or ``dRd`` pF code -> (value in pF, cleaned string).
 
-    ``1R5`` is 1.5 pF (Samsung_MLCC_2512.pdf p.6, "For values <10 pF, letter R
+    ``1R5`` is 1.5 pF (samsung_mlcc_catalog_commercial_2025.pdf p.6, "For values <10 pF, letter R
     denotes the decimal point"). ``pf_eia_3_to_str`` only knows the 3-digit
     form, so the decimal one used to drop the capacitance from the whole part.
     """

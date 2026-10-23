@@ -30,17 +30,17 @@ is wrong. Page numbers are the PDF page of the gitignored local copy under
 Datasheet sources
 -----------------
 * Darfon - "MLCC Catalogue / General Purpose", Rev. 202510.
-  ``datasheet/pdf/darfon_101 MLCC Catalogue_General Purpose.pdf`` (67 pp.).
+  ``datasheet/pdf/darfon_mlcc_catalog_general_purpose.pdf`` (67 pp.).
 * Eyang - "Multilayer Ceramic Chip Capacitors for General Purpose / Model
   selection reference book", SPEC-CAC20260331.
-  ``datasheet/pdf/eyang_cap.pdf`` (65 pp.).
+  ``datasheet/pdf/eyang_mlcc_catalog_general.pdf`` (65 pp.).
 * Fenghua - "MLCC - NPO (COG)" and "Multilayer Ceramic Capacitors - X7R".
-  ``datasheet/pdf/Fenghua _MLCC-NPO.pdf`` (5 pp.) and
-  ``datasheet/pdf/Fenghua _MLCC-X7R.pdf`` (6 pp.).
+  ``datasheet/pdf/fenghua_mlcc_npo_datasheet.pdf`` (5 pp.) and
+  ``datasheet/pdf/fenghua_mlcc_x7r_datasheet.pdf`` (6 pp.).
 * Viiyong - "Multi-layer Ceramic Chip Capacitor - Product Specification for
   General Purpose (Reference Sheet)", V2, 2023-11-10
-  (``viiyong_v180j0201c0g500nat_new.pdf``, 14 pp.) and the Version A / 2019-08-07
-  sheet that prints the code tables (``viiyong_v180j0201c0g500nat.pdf``,
+  (``viiyong_v180j0201c0g500nat_spec_new.pdf``, 14 pp.) and the Version A / 2019-08-07
+  sheet that prints the code tables (``viiyong_v180j0201c0g500nat_spec.pdf``,
   10 pp.).
 
 One unresolved disagreement with the Darfon datasheet is recorded rather than

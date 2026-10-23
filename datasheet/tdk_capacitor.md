@@ -1,7 +1,7 @@
 # TDK automotive MLCC — CGA series
 
 Source: [`src/pn_original/tdk_capacitor.py`](../src/pn_original/tdk_capacitor.py),
-from `doc/info/TDK_mlcc_automotive_general_en.pdf` (automotive grade, general,
+from `datasheet/pdf/tdk_mlcc_automotive_general_en.pdf` (automotive grade, general,
 **up to 75 V**, June 2019).
 
 ## field positions

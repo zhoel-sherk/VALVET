@@ -32,13 +32,13 @@ Do not pin stale pass counts here. Daily/PR: [TESTING.md](info/TESTING.md).
 ### Samsung land-grid size codes have no repo vocabulary entry
 
 `samsung_capacitor` registers `L6`=0610, `01`=0816, `19`=1209 and `L5`=0510
-under the code `Samsung_MLCC_2512.pdf` p.6 prints, so `clean` keeps returning a
+under the code `samsung_mlcc_catalog_commercial_2025.pdf` p.6 prints, so `clean` keeps returning a
 value rather than refusing the part. The size is real but not yet a footprint:
 `src/parsers/constants.py` knows 01005/0201/0402/0603/0805/1206/1210/1812/2010/2512
 and nothing here. Decide whether these get proper names and land patterns, or
 stay sheet-codes.
 
-`samsung_automative_mlcc.pdf` is also unparsed — it is a third Samsung document
+`samsung_cl10b104kb8wpnc_spec.pdf` is also unparsed — it is a third Samsung document
 whose part-number tables have not been transcribed, so the two catalogues in
 `datasheet/samsung_capacitor.md` are not yet confirmed to cover it.
 
