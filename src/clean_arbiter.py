@@ -36,18 +36,6 @@ class ParserCandidate:
     slots: Dict[str, str]
 
 
-@dataclass
-class ArbiterOutcome:
-    """Winner + per-candidate scores for optional UI."""
-
-    cleaned: str
-    type_tag: str
-    part_code: str
-    source_note: str
-    win_score: float
-    score_breakdown: str  # compact text / tooltip
-
-
 def vendor_pn_slots_from_string(cleaned: str, sep: str) -> Dict[str, str]:
     parts = [p for p in str(cleaned).split(sep) if str(p).strip()]
     return {f"p{i}": p for i, p in enumerate(parts)}

@@ -1217,6 +1217,8 @@ class SMTDataProcessor:
         # two exclusion reasons separately instead of losing placements quietly.
         self.last_merge_not_in_bom_refs: list[str] = []
         self.last_merge_dnp_refs: list[str] = []
+        # Designator normalization warnings from BOM/PnP loading
+        self.last_designator_warnings: list[str] = []
 
     # --------------------------------------------------------------------------
     # Loading Methods
@@ -1571,7 +1573,8 @@ class SMTDataProcessor:
             if designator_col is None or pd.isna(row[designator_col]):
                 continue
 
-            designators = str(row[designator_col]).split(",")
+            designators, warnings = normalize_designators(str(row[designator_col]))
+            self.last_designator_warnings.extend(warnings)
             comment = (
                 str(row[comment_col])
                 if comment_col and not pd.isna(row[comment_col])
@@ -1635,7 +1638,8 @@ class SMTDataProcessor:
             if designator_col is None or pd.isna(row[designator_col]):
                 continue
 
-            designators = str(row[designator_col]).split(",")
+            designators, warnings = normalize_designators(str(row[designator_col]))
+            self.last_designator_warnings.extend(warnings)
             comment = (
                 str(row[comment_col])
                 if comment_col and not pd.isna(row[comment_col])
@@ -1788,16 +1792,15 @@ class SMTDataProcessor:
         for _, row in self._bom_df.iterrows():
             if bom_designator_col is None or pd.isna(row[bom_designator_col]):
                 continue
-            designators = str(row[bom_designator_col]).split(",")
+            designators, warnings = normalize_designators(str(row[bom_designator_col]))
+            self.last_designator_warnings.extend(warnings)
             comment = (
                 str(row[bom_comment_col])
                 if bom_comment_col and not pd.isna(row[bom_comment_col])
                 else ""
             )
             for d in designators:
-                d = d.strip()
-                if d:
-                    bom_map[_ref_key(d)] = comment
+                bom_map[_ref_key(d)] = comment
 
         # Build merged frame
         merged = []
@@ -1907,6 +1910,68 @@ class SMTDataProcessor:
 # ==============================================================================
 # Helper Functions
 # ==============================================================================
+
+
+def normalize_designators(designator_string: str) -> tuple[list[str], list[str]]:
+    """
+    Normalize designator string by splitting and fixing common formatting errors.
+
+    Handles common BOM/PnP file errors:
+    - Missing commas (sticky designators): "C29C30" → ["C29", "C30"]
+    - Spaces instead of commas: "C72 C83" → ["C72", "C83"]
+    - Mixed separators: "C1,C2 C3" → ["C1", "C2", "C3"]
+
+    Designators are NOT validated for format — any non-empty token is kept.
+
+    Args:
+        designator_string: Raw designator string from BOM/PnP file
+
+    Returns:
+        Tuple of (normalized_designators, warnings):
+        - normalized_designators: List of designators in original order
+        - warnings: List of warning messages for fixed issues
+
+    Example:
+        >>> normalize_designators("C25,C27,C29C30,C32")
+        (["C25", "C27", "C29", "C30", "C32"], ["Split sticky designator: C29C30 → C29, C30"])
+    """
+    if not designator_string or not designator_string.strip():
+        return [], []
+
+    warnings = []
+    result = []
+
+    # Check if string uses spaces as separators (not just at boundaries).
+    # Pattern: designator-like tokens separated by spaces (e.g., "C72 C83").
+    space_separator_pattern = re.compile(r"([A-Z]+\d+)\s+([A-Z]+\d+)", re.IGNORECASE)
+    if space_separator_pattern.search(designator_string):
+        warnings.append(f"Spaces used as separators: {designator_string}")
+
+    # Split by commas, semicolons, and whitespace
+    tokens = re.split(r"[,;\s]+", designator_string.strip())
+    tokens = [t.strip() for t in tokens if t.strip()]
+
+    for token in tokens:
+        # Split sticky designators by detecting digit-to-letter boundaries only
+        # when the letters start another designator (letters followed by a
+        # digit). A trailing letter run is a multi-unit suffix, not a new
+        # designator: "U1A"/"J1A" must stay intact while "C29C30" splits.
+        # Lowercase input uses the same rule: "c29c30" → ["C29", "C30"].
+        parts = re.split(r"(?<=\d)(?=[A-Z]{1,4}\d)", token, flags=re.IGNORECASE)
+
+        if len(parts) == 1:
+            # Single designator, no splitting needed
+            result.append(parts[0].strip().upper())
+        else:
+            # Multiple designators stuck together
+            normalized_parts = [p.strip().upper() for p in parts if p.strip()]
+            if len(normalized_parts) > 1:
+                warnings.append(
+                    f"Split sticky designator: {token} → {', '.join(normalized_parts)}"
+                )
+            result.extend(normalized_parts)
+
+    return result, warnings
 
 
 def designator_key(value: object) -> str:

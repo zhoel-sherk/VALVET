@@ -639,6 +639,7 @@ class MergeTabMixin:
                 "info",
             )
             self._warn_merge_missing_from_bom(include_dnp)
+            self._warn_designator_issues()
             self._refresh_pcb_preview_from_ui(force=False)
         except SMTProcessorError as e:
             self._log(f"Merge error: {e}", "error")
@@ -663,6 +664,27 @@ class MergeTabMixin:
             f"{len(missing)} placement(s) are not in the BOM and were NOT merged: "
             f"{shown}. Check the BOM for missing rows"
             + ("" if include_dnp else " (they stay out until the BOM is fixed)."),
+            "warning",
+        )
+
+    def _warn_designator_issues(self) -> None:
+        """Surface designator normalization issues from BOM/PnP loading.
+
+        When designators have formatting issues (missing commas, sticky refs, etc.),
+        they are automatically normalized but the user should be informed so they
+        can fix the source files.
+        """
+        warnings = list(getattr(self.processor, "last_designator_warnings", []))
+        if not warnings:
+            return
+        # Show first few warnings to avoid overwhelming the log
+        shown = "\n  • ".join(warnings[:8])
+        if len(warnings) > 8:
+            shown += f"\n  • ... (+{len(warnings) - 8} more)"
+        self._log(
+            f"Designator formatting issues detected and auto-corrected ({len(warnings)} total):\n"
+            f"  • {shown}\n"
+            f"These were normalized automatically, but consider fixing the source files.",
             "warning",
         )
 
@@ -906,8 +928,15 @@ class MergeTabMixin:
             )
             return
         default_name = f"merge_{side}_{selected.lower().replace(' ', '_')}.csv"
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, f"Export {side.upper()} CSV", default_name, "CSV (*.csv);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            f"Export {side.upper()} CSV",
+            "CSV (*.csv);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_csv_dir",
+            default_name=default_name,
         )
         if not path:
             return
@@ -939,8 +968,15 @@ class MergeTabMixin:
             )
             return
         default_name = f"merge_{side}_{selected.lower().replace(' ', '_')}.mmd"
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, f"Export {side.upper()} MMD", default_name, "MMD (*.mmd);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            f"Export {side.upper()} MMD",
+            "MMD (*.mmd);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_mmd_dir",
+            default_name=default_name,
         )
         if not path:
             return
@@ -964,8 +1000,14 @@ class MergeTabMixin:
         if self._last_merge_df is None or self._last_merge_df.empty:
             self._log("No merge data to save — run Merge first", "warning")
             return
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save merged CSV", "", "CSV (*.csv);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            "Save merged CSV",
+            "CSV (*.csv);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_csv_dir",
         )
         if not path:
             return
@@ -982,8 +1024,14 @@ class MergeTabMixin:
         if self._last_merge_df is None or self._last_merge_df.empty:
             self._log("No merge data to save — run Merge first", "warning")
             return
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save merged Excel", "", "Excel (*.xlsx);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            "Save merged Excel",
+            "Excel (*.xlsx);;All (*.*)",
+            settings=self._settings,
+            history_key="merge/last_save_excel_dir",
         )
         if not path:
             return

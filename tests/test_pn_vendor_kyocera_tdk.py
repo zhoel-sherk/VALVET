@@ -7,10 +7,10 @@ that render as a bare pF magnitude — which is why they live in one file.
 What is *not* shared is the set of codes each catalogue publishes, and each is
 transcribed from its own sheet rather than borrowed:
 
-* ``Kyocera_KAM_Series.pdf`` (KAM, 15 characters) prints 7 dielectrics and 16
+* ``datasheet/pdf/kyocera_kam_series_automotive_mlcc.pdf`` (KAM, 15 characters) prints 7 dielectrics and 16
   voltages. Its ``0G`` is the 4 V *voltage* code sitting next to ``CG`` in the
   same row, not an eighth dielectric, and it prints no X5R code at all.
-* ``TDK_mlcc_automotive_general_en.pdf`` (CGA, 20 characters, **up to 75 V**)
+* ``datasheet/pdf/tdk_mlcc_automotive_general_en.pdf`` (CGA, 20 characters, **up to 75 V**)
   prints 5 dielectrics, spells them out in full, and prints 8 voltages because
   the document is scoped to 75 V and under. A 100 V+ TDK part is not claimed.
 

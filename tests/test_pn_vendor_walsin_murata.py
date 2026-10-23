@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pn_original
 from pn_original import murata_capacitor, walsin_mlcc_capacitor, walsin_ww_resistor
+from pn_original._cap_decode import cap_code_to_str
 
 
 def _parse(pn: str, ctype: str) -> str | None:
@@ -97,8 +98,7 @@ def test_walsin_every_catalog_dielectric_decodes() -> None:
     }
     for letter, film in expected.items():
         got = _parse(f"0805{letter}104K500CT", "CAP")
-        assert got is not None, f"{letter} ({film}) did not parse"
-        assert f"_{film}_" in got, got
+        assert got == f"0805_100nF_{film}_50V_10%", (letter, film, got)
 
 
 def test_walsin_absolute_and_asymmetric_tolerances() -> None:
@@ -196,6 +196,35 @@ def test_murata_r71_and_c1h_forms_match_published_codes() -> None:
     assert _parse("GRM188R73D104KA01D", "CAP") == "0603_100nF_2kV_X7R_10%"
     # NP0/C0G line, where 1H really is 50V.
     assert _parse("GRM1555C1H100JA01D", "CAP") == "0402_10pF_50V_C0G_5%"
+
+
+def test_murata_0201_size_field_decodes() -> None:
+    """C02E21 p.1/p.2: 0201 is size ``03`` + thickness ``3`` -> key ``033``.
+
+    The parser only knew 155/188/21x/31M/32E, so every GRM033 part fell through
+    to the regex phase and lost its codec-derived voltage/dielectric. The five
+    part numbers below are the 0201 rows the operator BOM carries.
+    """
+    assert _parse("GRM0335C1H100JA01D", "CAP") == "0201_10pF_50V_C0G_5%"
+    assert _parse("GRM033R60J103KA01D", "CAP") == "0201_10nF_6.3V_X5R_10%"
+    assert _parse("GRM033R60J224KE15D", "CAP") == "0201_220nF_6.3V_X5R_10%"
+    assert _parse("GRM033R61C224KE14D", "CAP") == "0201_220nF_16V_X5R_10%"
+    assert _parse("GRM033R61A225KE47D", "CAP") == "0201_2.2uF_10V_X5R_10%"
+
+
+def test_murata_class1_decimal_value_and_absolute_tolerance() -> None:
+    """C02E21 p.3: ``R`` is the decimal point, B/C/D/W are absolute pF.
+
+    ``GRM1555C1H5R0CA01D`` is 5.0 pF +/-0.25 pF, but the old ``1555`` heuristic
+    hard-coded 5 %; the same branch hard-coded ``C1H``/50 V, so the 25 V part
+    ``GRM1555C1E…`` was refused outright. ``R50`` (0.50 pF) is the sheet's own
+    example of the leading-R spelling.
+    """
+    assert _parse("GRM1555C1H5R0CA01D", "CAP") == "0402_5pF_50V_C0G_0.25pF"
+    assert _parse("GRM1555C1E100JA01D", "CAP") == "0402_10pF_25V_C0G_5%"
+    assert cap_code_to_str("R50") == "0.5pF"
+    assert cap_code_to_str("1R0") == "1pF"
+    assert cap_code_to_str("104") == "100nF"
 
 
 def test_murata_unknown_letter_series_is_not_mislabelled() -> None:
@@ -298,7 +327,7 @@ def test_ww_series_number_is_not_the_size() -> None:
 
 
 def test_ww12_is_refused_because_the_datasheets_disagree() -> None:
-    """WW12R.PDF says 0603, WW12R_V.PDF says 1206.
+    """walsin_ww12r_datasheet.pdf says 0603, walsin_ww12r_v_datasheet.pdf says 1206.
 
     Rather than pick one, a WW12 part returns None so the part falls through.
     Guessing would silently attach the wrong imperial size to a current-sense

@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore
 
 from themes.colour_prefs import DEFAULT_TAB_COLOURS, merge_tab_colours
 from themes.main_tab_prefs import (
@@ -21,22 +21,21 @@ from themes.main_tab_prefs import (
 )
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    app = QtWidgets.QApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication([])
-    return app
-
-
-@pytest.fixture
-def import_parsers():
-    import parsers  # noqa: F401
-
-
 def _ini_settings(tmp_path: Path) -> QtCore.QSettings:
     ini = tmp_path / "valvet.ini"
     return QtCore.QSettings(str(ini), QtCore.QSettings.Format.IniFormat)
+
+
+@pytest.fixture
+def main_window(qapp, tmp_path):
+    """Function-scoped MainWindow for tests that modify window state."""
+    from app.window import MainWindow
+
+    settings = _ini_settings(tmp_path)
+    settings.setValue("experimental/enable_step_3d", False)
+    win = MainWindow(settings=settings)
+    yield win
+    win.close()
 
 
 def test_read_main_tab_order_skips_unknown_appends_missing() -> None:
@@ -64,47 +63,45 @@ def test_merge_tab_colours_defaults_and_override() -> None:
     assert over["bar_bg"] == DEFAULT_TAB_COLOURS["bar_bg"]
 
 
-def test_apply_main_tab_order_and_icons(import_parsers, qapp, tmp_path) -> None:
-    from app.window import MainWindow
+def test_apply_main_tab_order_and_icons(import_parsers, main_window) -> None:
 
-    settings = _ini_settings(tmp_path)
-    settings.setValue("experimental/enable_step_3d", False)
+    from themes.main_tab_prefs import (
+        TAB_ORDER_KEY,
+    )
+
+    settings = main_window._settings
     write_main_tab_order(settings, ["settings", "project"])
-    win = MainWindow(settings=settings)
-    try:
-        keys = win._tab_keys_in_order
-        assert keys[0] == "settings"
-        assert keys[1] == "project"
-        assert win.tabs.widget(0) is win.tabs.widget(win._tab_index("settings"))
-        assert not win.tabs.tabIcon(win._tab_index("project")).isNull()
-        settings.setValue(TAB_SHOW_ICONS_KEY, False)
-        apply_all_main_tab_prefs(win)
-        assert win.tabs.tabIcon(win._tab_index("project")).isNull()
-        settings.setValue(TAB_SHOW_ICONS_KEY, True)
-        apply_all_main_tab_prefs(win)
-        assert not win.tabs.tabIcon(win._tab_index("project")).isNull()
-    finally:
-        win.close()
+    # Apply the new tab order
+    apply_all_main_tab_prefs(main_window)
+    keys = main_window._tab_keys_in_order
+    assert keys[0] == "settings"
+    assert keys[1] == "project"
+    assert main_window.tabs.widget(0) is main_window.tabs.widget(
+        main_window._tab_index("settings")
+    )
+    assert not main_window.tabs.tabIcon(main_window._tab_index("project")).isNull()
+    settings.setValue(TAB_SHOW_ICONS_KEY, False)
+    apply_all_main_tab_prefs(main_window)
+    assert main_window.tabs.tabIcon(main_window._tab_index("project")).isNull()
+    settings.setValue(TAB_SHOW_ICONS_KEY, True)
+    apply_all_main_tab_prefs(main_window)
+    assert not main_window.tabs.tabIcon(main_window._tab_index("project")).isNull()
+    # Clean up
+    settings.remove(TAB_ORDER_KEY)
+    settings.remove(TAB_SHOW_ICONS_KEY)
 
 
-def test_settings_tabs_page_present(import_parsers, qapp, tmp_path) -> None:
-    from app.window import MainWindow
+def test_settings_tabs_page_present(import_parsers, main_window) -> None:
 
-    settings = _ini_settings(tmp_path)
-    settings.setValue("experimental/enable_step_3d", False)
-    win = MainWindow(settings=settings)
-    try:
-        pages = win._settings_pages
-        assert pages.page_tabs is not None
-        assert pages._tabs_order_list.count() == win.tabs.count()
-        pages._chk_tab_icons.setChecked(False)
-        pages._spin_tab_height.setValue(36)
-        pages._on_tabs_apply_clicked()
-        assert win.tabs.tabIcon(win._tab_index("project")).isNull()
-        from themes.equal_tab_bar import EqualWidthTabBar
+    from themes.equal_tab_bar import EqualWidthTabBar
 
-        bar = win.tabs.tabBar()
-        assert isinstance(bar, EqualWidthTabBar)
-        assert bar.tabSizeHint(0).height() >= 36
-    finally:
-        win.close()
+    pages = main_window._settings_pages
+    assert pages.page_tabs is not None
+    assert pages._tabs_order_list.count() == main_window.tabs.count()
+    pages._chk_tab_icons.setChecked(False)
+    pages._spin_tab_height.setValue(36)
+    pages._on_tabs_apply_clicked()
+    assert main_window.tabs.tabIcon(main_window._tab_index("project")).isNull()
+    bar = main_window.tabs.tabBar()
+    assert isinstance(bar, EqualWidthTabBar)
+    assert bar.tabSizeHint(0).height() >= 36

@@ -5,13 +5,16 @@ Murata MLCC (GRM…) Part Number Format (subset — several regex families in co
 GRM + size key + R71|R72|R61|R60|R6Y… + voltage/dielectric letters + EIA capacitance(3) + tolerance + suffix
 
 Examples:
+- GRM0335C1H100JA01D → CAP_0201_10pF_50V_C0G_5%
 - GRM155R71C104KA88D → CAP_0402_100nF_16V_X7R_10%
 - GRM188R71H102KA01D → CAP_0603_1nF_50V_X7R_10%
 - GRM1555C1H100JA01D → CAP_0402_10pF_50V_C0G_5%
 - GRM188R6YA106MA73D → CAP_0603_10uF_35V_X5R_20%
 
 Size keys (fragment):
-155=0402, 188=0603, 21A/21B/216=0805, 31M=1206, 32E=1210, 1555/1885/2160=C0G series keys
+033=0201, 155=0402, 188=0603, 21A/21B/216=0805, 31M=1206, 32E=1210.
+The key is two size digits + one thickness digit (C02E21 p.1/p.2), e.g. 0201
+is "03" + "3"; the class-1 line appends "5C" (0335/1555/1885).
 
 Dielectric / series:
 X7R vs X5R from R71 vs R72 and branch-specific patterns; C1H + C0G for NP0-class lines.
@@ -29,7 +32,7 @@ from __future__ import annotations
 
 from parsers.regex_api import I, compile, match, search, sub
 
-from ._cap_decode import pf_eia_3_to_str
+from ._cap_decode import cap_code_to_str, pf_eia_3_to_str
 
 VENDOR_NAME = "Murata"
 COMPONENT_TYPES = ["CAP"]
@@ -58,6 +61,20 @@ _R6X_FOLLOW_VOL = {
     "P": "10V",
 }
 _TOL = {"J": "5%", "K": "10%", "M": "20%", "Z": "+80/-20%"}
+# Class-1 (C0G) tolerance letters, C02E21 p.3: B/C/D/W are absolute pF,
+# F/G/J/K/M are percentages. ``C`` is what the 5 pF part in the corpus uses
+# (GRM1555C1H5R0CA01D = +/-0.25 pF), so it must not fall back to the 5 % default.
+_TOL_C0G = {
+    "B": "0.1pF",
+    "C": "0.25pF",
+    "D": "0.5pF",
+    "F": "1%",
+    "G": "2%",
+    "J": "5%",
+    "K": "10%",
+    "M": "20%",
+    "W": "0.05pF",
+}
 # Two-character rated-voltage codes, exactly as published in the Murata GRM
 # series datasheet C02E21 ("Chip Multilayer Ceramic Capacitors for General"),
 # "Rated Voltage" table. This is the general-purpose GRM numbering, where the
@@ -104,6 +121,7 @@ _R6_LETTER_SERIES_VOL = {
     "Y": "35V",
 }
 _SIZE = {
+    "033": "0201",
     "155": "0402",
     "188": "0603",
     "21A": "0805",
@@ -124,14 +142,21 @@ _VOLT = {
 
 _RE_R71C = compile(r"^GRM(155|188)R(71|72)C(10[0-9]|[0-1][0-9]{2})([A-Z0-9]+)$", I)
 _RE_R7V = compile(
-    r"^GRM(155|188|21A|21B|216|31M|32E)R7([0-9])([A-Z])([0-9]{3})(J|K|M|Z)([A-Z0-9]+)$",
+    r"^GRM(033|155|188|21A|21B|216|31M|32E)R7([0-9])([A-Z])([0-9]{3})(J|K|M|Z)([A-Z0-9]+)$",
+    I,
+)
+# Class-1 (C0G) line: mark "5C" + the published two-character voltage + an EIA-3
+# or R-decimal capacitance + a class-1 tolerance letter. 0201 is "033" exactly
+# like 0402 is "155": size two digits + thickness one digit (C02E21 p.1/p.2).
+_RE_5C = compile(
+    r"^GRM(033|155|188)5C([0-9][A-Z])(\d{3}|R\d{2}|\dR\d)([BCDFGJKMW])([A-Z0-9]+)$",
     I,
 )
 _RE_61E = compile(r"R61([A-Z])(\d{3})M[0-9A-Z]", I)  # R61E226ME39L
 # Series code is 1 or 2 chars: R60/R61 keep a separate voltage letter (A/B/…), a
 # letter series such as R6Y absorbs the char after it (GRM188R6YA106MA73D).
 _RE_R6V = compile(
-    r"^GRM(155|188|21A|21B|216|31M|32E)R6([0-9A-Z]{1,2})([A-Z])([0-9]{3})(J|K|M|Z)([A-Z0-9]*)$",
+    r"^GRM(033|155|188|21A|21B|216|31M|32E)R6([0-9A-Z]{1,2})([A-Z])([0-9]{3})(J|K|M|Z)([A-Z0-9]*)$",
     I,
 )
 _RE_60J = compile(r"R60J(\d{3})M[0-9A-Z]", I)
@@ -206,6 +231,17 @@ def parse(pn: str, component_type: str) -> str | None:
             return None
         return "_".join(p for p in (size, cap, vol, diel, tol) if p)
 
+    m5c = _RE_5C.match(pn0)
+    if m5c:
+        scc, vpair, craw, tcode, _tail = m5c.groups()
+        size = _SIZE.get(scc.upper(), "")
+        cap = cap_code_to_str(craw) or ""
+        vol = _VOLT_2CH.get(vpair.upper(), "")
+        tol = _TOL_C0G.get(tcode.upper(), "")
+        if not (size and cap and vol and tol):
+            return None
+        return "_".join((size, cap, vol, "C0G", tol))
+
     if search(r"^GRM21", pn0) or search(r"GRM21B", pn0):
         m61 = _RE_61E.search(pn0)
         if m61 and len(m61.group(2)) == 3:
@@ -229,14 +265,8 @@ def parse(pn: str, component_type: str) -> str | None:
         if cap:
             return "_".join(p for p in ("0805", cap, "6.3V", "X5R", "20%") if p)
 
-    if "1555" in pn0[:8] or pn0[3:6] == "155":
-        mr0 = search(r"([0-9])R([0-9])(?:C|A|D|L)", pn0, I)
-        if mr0 and ("C0" in pn0 or "C1H" in pn0 or "5R0" in pn0):
-            cap = f"{mr0.group(1)}.{mr0.group(2)}pF"
-            tol = "5%" if search(r"J[A0-9]*D|JA", pn0) else "5%"
-            return "_".join(p for p in ("0402", cap, "50V", "C0G", tol) if p)
-
-    # GRM1555C1H270JA01D, GRM1885C1H104KA… — C0G/NP0, C1H 50V, J=5% / K=10% in PN
+    # Legacy 4-digit size keys (2160/1632) still resolve through the old
+    # 50 V-only path; the 033/155/188 forms are handled by _RE_5C above.
     m1h = match(r"^GRM(1555|1885|2160|1632)C1H([0-9]{3})(J|K)([A-Z0-9]+)$", pn0, I)
     if m1h:
         skey, c3, tj, _tail = m1h.group(1), m1h.group(2), m1h.group(3), m1h.group(4)

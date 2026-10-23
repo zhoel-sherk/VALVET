@@ -329,15 +329,21 @@ class PackageTab(QtWidgets.QWidget):
         self._load_selected_outline()
 
     def _import_kicad(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        from ui.dialog_paths import directory_dialog, open_file_dialog
+
+        path, _ = open_file_dialog(
             self,
             "Select .kicad_mod",
-            "",
             "KiCad footprint (*.kicad_mod);;All (*.*)",
+            settings=self._settings,
+            history_key="package/last_kicad_dir",
         )
         if not path:
-            folder = QtWidgets.QFileDialog.getExistingDirectory(
-                self, "Or select a folder of .kicad_mod files"
+            folder = directory_dialog(
+                self,
+                "Or select a folder of .kicad_mod files",
+                settings=self._settings,
+                history_key="package/last_kicad_dir",
             )
             paths = []
             if folder:

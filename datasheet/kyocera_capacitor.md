@@ -1,7 +1,7 @@
 # Kyocera AVX automotive MLCC — KAM series
 
 Source: [`src/pn_original/kyocera_capacitor.py`](../src/pn_original/kyocera_capacitor.py),
-from `doc/info/Kyocera_KAM_Series.pdf` ("HOW TO ORDER", p.1).
+from `datasheet/pdf/kyocera_kam_series_automotive_mlcc.pdf` ("HOW TO ORDER", p.1).
 
 ## field positions
 

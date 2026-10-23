@@ -31,7 +31,7 @@ from parsers.thermistors import extract_thermistor_mpn
 from parsers.vendor_context_merge import enrich_vendor_cleaned_from_bom
 
 if TYPE_CHECKING:
-    import pandas as pd
+    pass
 
 
 def _default_config(config: Optional[CleanConfig]) -> CleanConfig:
@@ -419,21 +419,61 @@ def _try_parse_vendor_pn(
         return None
 
 
+def _vendor_pn_alternatives(s: str, config: CleanConfig) -> List[str]:
+    """Vendor part numbers to try for one Clean BOM cell, best source first.
+
+    A joined row (``10K/1% | RC0603FR-0710KL``) carries the part number in the
+    trailing segment, and the leading description may itself contain slashes
+    (``10K/1%``, ``0.1uF/50V``) that must never be mistaken for the PN list.
+    A bare multi-PN cell (``PN1/PN2/PN3``) has no trailing segment, so the
+    first segment is used instead. Both sources are offered in that order and
+    the first one a codec accepts wins.
+    """
+    from parsers.bom_text_utils import split_joined_clean_comment
+
+    sep = config.double_comment_separator
+    bom, _label, mpn = split_joined_clean_comment(s, sep)
+    sources: List[str] = []
+    if (mpn or "").strip():
+        sources.append(mpn.strip())
+    if bom and "/" in bom and " " not in bom and "_" not in bom:
+        sources.append(bom.strip())
+    if not sources:
+        sources.append(str(s).strip())
+
+    alternatives: List[str] = []
+    for source in sources:
+        for part in source.split("/"):
+            part = part.strip()
+            if part and part not in alternatives:
+                alternatives.append(part)
+    return alternatives
+
+
 def _try_parse_vendor_pn_res_cap_any(
     orig: str, config: CleanConfig, hint: str
 ) -> Optional[Tuple[str, str]]:
+    """Try to parse vendor PN, handling multiple alternatives separated by '/'.
+
+    When the MPN contains '/' (e.g., 'PN1/PN2/PN3'), try each alternative
+    and return the first successful parse (legacy first-match-wins behavior).
+    """
     if not config.use_pn_codecs:
         return None
     if extract_thermistor_mpn(str(orig).strip()):
         return None
-    if hint in ("RESISTOR", "CAP"):
-        order = [hint, "CAP" if hint == "RESISTOR" else "RESISTOR"]
-    else:
-        order = ["CAP", "RESISTOR"]
-    for cls in order:
-        out = _try_parse_vendor_pn(orig, cls, config)
-        if out:
-            return (out, cls)
+
+    for alt in _vendor_pn_alternatives(orig, config):
+        if hint in ("RESISTOR", "CAP"):
+            order = [hint, "CAP" if hint == "RESISTOR" else "RESISTOR"]
+        else:
+            order = ["CAP", "RESISTOR"]
+
+        for cls in order:
+            out = _try_parse_single_vendor_pn(alt, cls, config)
+            if out:
+                return (out, cls)
+
     return None
 
 
@@ -702,31 +742,73 @@ def _collect_hanwha_partial_arbiter_candidate(
     )
 
 
-def _collect_vendor_arbiter_candidate(
+def _collect_vendor_arbiter_candidates(
     s: str, eff_vendor: str, cfg: CleanConfig, disabled: frozenset[str]
-) -> Optional[ParserCandidate]:
-    if "vendor" in disabled or not cfg.use_pn_codecs:
-        return None
-    if eff_vendor not in ("RESISTOR", "CAP", "OTHER"):
-        return None
-    pnr = _try_parse_vendor_pn_res_cap_any(s, cfg, eff_vendor)
-    if not pnr:
-        return None
-    pnv, eff = pnr[0], pnr[1]
+) -> List[ParserCandidate]:
+    """Collect vendor PN candidates, trying each "/" alternative separately.
 
-    pnv = enrich_vendor_cleaned_from_bom(s, pnv, eff, cfg)
-    pnv = reformat_cleaned_pn(pnv, eff, cfg)
-    src_note = "vendor" if cfg.use_vendor_pn else "pn"
-    slots = vendor_pn_slots_from_string(pnv, cfg.output_separator)
-    return ParserCandidate(
-        name="vendor_pn",
-        tier="vendor",
-        cleaned=str(pnv).strip(),
-        type_tag=_type_tag_for_classify(eff),
-        part_code=_map_classify_to_part_code(eff),
-        source_note=src_note,
-        slots=slots,
-    )
+    When a BOM row contains multiple alternative vendor PNs separated by "/"
+    (e.g., "PN1/PN2/PN3"), we try each one and let the arbiter pick the best.
+    """
+    if "vendor" in disabled or not cfg.use_pn_codecs:
+        return []
+    if eff_vendor not in ("RESISTOR", "CAP", "OTHER"):
+        return []
+    # Thermistor PNs are owned by the thermistor pass-through, not by a chip
+    # codec; keep that guard identical to the legacy vendor entry point.
+    if extract_thermistor_mpn(str(s).strip()):
+        return []
+
+    candidates = []
+    for idx, alt in enumerate(_vendor_pn_alternatives(s, cfg)):
+        # Try to parse this alternative
+        if eff_vendor in ("RESISTOR", "CAP"):
+            order = [eff_vendor, "CAP" if eff_vendor == "RESISTOR" else "RESISTOR"]
+        else:
+            order = ["CAP", "RESISTOR"]
+
+        for cls in order:
+            parsed = _try_parse_single_vendor_pn(alt, cls, cfg)
+            if parsed:
+                pnv = enrich_vendor_cleaned_from_bom(s, parsed, cls, cfg)
+                pnv = reformat_cleaned_pn(pnv, cls, cfg)
+                src_note = "vendor" if cfg.use_vendor_pn else "pn"
+                slots = vendor_pn_slots_from_string(pnv, cfg.output_separator)
+                candidates.append(
+                    ParserCandidate(
+                        name=f"vendor_pn_{idx}",
+                        tier="vendor",
+                        cleaned=str(pnv).strip(),
+                        type_tag=_type_tag_for_classify(cls),
+                        part_code=_map_classify_to_part_code(cls),
+                        source_note=src_note,
+                        slots=slots,
+                    )
+                )
+                break  # First successful type for this PN
+
+    return candidates
+
+
+def _try_parse_single_vendor_pn(
+    bare_pn: str, classify_type: str, config: CleanConfig
+) -> Optional[str]:
+    """Parse a single bare PN (no "/" splitting, no double-comment extraction)."""
+    if not config.use_pn_codecs or classify_type not in ("RESISTOR", "CAP"):
+        return None
+    if classify_type == "RESISTOR" and not config.parse_resistors:
+        return None
+    if classify_type == "CAP" and not config.parse_capacitors:
+        return None
+    ct = "RES" if classify_type == "RESISTOR" else "CAP"
+    try:
+        _ensure_src_on_path()
+        from pn_original import parse_pn
+
+        return parse_pn(bare_pn.strip(), ct, config)
+    except Exception:
+        logger.error("parse_pn failed for %r (%s)", bare_pn, ct, exc_info=True)
+        return None
 
 
 def _collect_regex_arbiter_candidates(
@@ -830,9 +912,9 @@ def _clean_one_regex_master(
                 _collect_inferit_arbiter_candidates(s, ctype, cfg, disabled)
             )
         elif sid == "vendor":
-            vc = _collect_vendor_arbiter_candidate(s, eff_vendor, cfg, disabled)
-            if vc:
-                master_candidates.append(vc)
+            master_candidates.extend(
+                _collect_vendor_arbiter_candidates(s, eff_vendor, cfg, disabled)
+            )
         elif sid == "library":
             lib_hit = _clean_one_try_library(s, cfg)
             if lib_hit:
@@ -1007,13 +1089,6 @@ def clean_one(
         return quad[0], quad[1], quad[2], quad[3]
 
     return _clean_one_pipeline_legacy(s, ctype, eff_vendor, cfg)
-
-
-def clean_bom_column(
-    comments: list[str], config: Optional[CleanConfig] = None
-) -> List[Tuple[str, str, str, str]]:
-    """List of (cleaned, type_tag, part_code, vendor_note) per row."""
-    return [clean_one(c, config) for c in comments]
 
 
 #: Template token -> the role name clean_alerts reports it as. Roles the alert
@@ -1198,21 +1273,3 @@ def clean_preview(
                     row[1],
                 )
     return results
-
-
-def clean_bom_dataframe(
-    df: "pd.DataFrame", comment_col: str, config: Optional[CleanConfig] = None
-) -> "pd.DataFrame":
-    """
-    Add columns: Comment_cleaned (or {comment_col}_cleaned), clean_type, clean_part_code, clean_vendor.
-    """
-
-    if comment_col not in df.columns:
-        raise ValueError(f"Column {comment_col!r} not in DataFrame")
-    series = [clean_one(x, config) for x in df[comment_col].astype(str).tolist()]
-    out = df.copy()
-    out[f"{comment_col}_cleaned"] = [r[0] for r in series]
-    out["clean_type"] = [r[1] for r in series]
-    out["clean_part_code"] = [r[2] for r in series]
-    out["clean_vendor"] = [r[3] for r in series]
-    return out

@@ -1,6 +1,6 @@
 """Kyocera AVX automotive MLCC codec — KAM series.
 
-From ``doc/info/Kyocera_KAM_Series.pdf`` (Automotive MLCC, KAM Series General
+From ``datasheet/pdf/kyocera_kam_series_automotive_mlcc.pdf`` (Automotive MLCC, KAM Series General
 Specifications), "HOW TO ORDER" on p.1::
 
     KAM 31 G R7 1H 475 K U

@@ -49,14 +49,14 @@ Two catalogues are needed, because neither is a superset of the other:
 
 | field | source | adds |
 |---|---|---|
-| size | `Samsung_MLCC_2512.pdf` p.6 (Automotive p.4 has a 9-code subset) | `R1` 0201, `42` 1808, `55` 2220, `L6`/`01`/`19`/`L5` land-grid |
-| dielectric | `Samsung_MLCC_2512.pdf` p.6 + `MLCC_Automotive_2512.pdf` p.4 | Commercial adds `W` X6T, `K` X7R(S), `F` Y5V, `J` JIS-B; Automotive adds `D` X8R |
-| tolerance | `Samsung_MLCC_2512.pdf` p.7 | — |
-| voltage | `Samsung_MLCC_2512.pdf` p.7 + `MLCC_Automotive_2512.pdf` p.5 | Commercial adds `F` 350V, `K` 3kV; Automotive adds `T` 75V, `X` 1250V, `V` 1500V |
+| size | `samsung_mlcc_catalog_commercial_2025.pdf` p.6 (Automotive p.4 has a 9-code subset) | `R1` 0201, `42` 1808, `55` 2220, `L6`/`01`/`19`/`L5` land-grid |
+| dielectric | `samsung_mlcc_catalog_commercial_2025.pdf` p.6 + `samsung_mlcc_catalog_automotive_2025.pdf` p.4 | Commercial adds `W` X6T, `K` X7R(S), `F` Y5V, `J` JIS-B; Automotive adds `D` X8R |
+| tolerance | `samsung_mlcc_catalog_commercial_2025.pdf` p.7 | — |
+| voltage | `samsung_mlcc_catalog_commercial_2025.pdf` p.7 + `samsung_mlcc_catalog_automotive_2025.pdf` p.5 | Commercial adds `F` 350V, `K` 3kV; Automotive adds `T` 75V, `X` 1250V, `V` 1500V |
 
 Where both catalogues print a letter they agree on its value, so the union is
-unambiguous. `Samsung_MLCC_2512.pdf` is *Part I. Commercial/Industrial* and
-`MLCC_Automotive_2512.pdf` is *Part II. Automotive*, both December 2025.
+unambiguous. `samsung_mlcc_catalog_commercial_2025.pdf` is *Part I. Commercial/Industrial* and
+`samsung_mlcc_catalog_automotive_2025.pdf` is *Part II. Automotive*, both December 2025.
 
 Notes:
 

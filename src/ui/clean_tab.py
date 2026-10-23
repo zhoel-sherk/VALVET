@@ -1549,8 +1549,14 @@ class CleanTabMixin:
         if self._bom_df is None or self._bom_df.empty:
             self._log("Clean BOM: no BOM to save", "warning")
             return
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save cleaned BOM as Excel", "", "Excel (*.xlsx);;All (*.*)"
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
+            self,
+            "Save cleaned BOM as Excel",
+            "Excel (*.xlsx);;All (*.*)",
+            settings=self._settings,
+            history_key="clean/last_save_excel_dir",
         )
         if not path:
             return

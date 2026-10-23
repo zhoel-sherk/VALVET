@@ -4,7 +4,7 @@ Desktop-first SMT prep: BOM/PnP on disk, mapping, Clean, cross-check, merge/expo
 
 **Core vs GUI:** parsers, cleaning, merge, machine-library I/O stay Qt-free (`src/smt_processor.py`, `src/pcb_preview/`, `src/machine_library/`, `src/step_3d/occ_load.py`, `src/services/`). PySide6 orchestrates threads, `QSettings`, and dialogs (`src/app/window.py`, `src/ui/`).
 
-BETA **0.5.3.0** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
+BETA **0.5.3.3** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
 
 **Shipped (one line):** profiles + per-path mapping; Clean/Merge including `.mmd`; PCB Preview Gerber+PnP overlay (nudge, not 2-point auto-align); Step 3D optional (default off); Machine lib Hanwha + Wave 1 footprint preview from UPD vision tables (SQLite cache after Open); PyInstaller `valvet.spec`.
 
@@ -18,7 +18,7 @@ BETA **0.5.3.0** — [TESTING.md](info/TESTING.md). This file is the live backlo
 ## Parked (not this vector)
 
 - **Wave 2 — Hanwha footprints in PCB Preview** — `FootprintStore` MDB import, overlay lookup, QGraphicsView instancing/LOD. Start only after Wave 1 visual OK.
-- **Step 3D B/C** and a default STEP→OBJ CLI: later. Tab is **off by default** (`experimental/enable_step_3d=false`). Do not expand freeze for VTK/pythonocc.
+- **Step 3D B/C** and a default STEP→OBJ CLI: later. Tab is **off by default** (`experimental/enable_step_3d=false`). Do not expand freeze for VTK/pythonocc. **On hold:** `tests/test_step_3d.py` carries a module-level `pytest.mark.skip` and is not part of the CI signal — remove that mark together with the freeze.
 - **User Parts DB / SQLite / learn-all bulk:** far corner; txt + Learn selected is enough.
 - **First/Last row in GUI:** removed; do not restore. `read_file(..., first_row, last_row)` remains for tests/API only.
 - **CSV column presets / vendor export profiles:** not needed for current machine CSV/XLSX/MMD.
@@ -32,13 +32,13 @@ Do not pin stale pass counts here. Daily/PR: [TESTING.md](info/TESTING.md).
 ### Samsung land-grid size codes have no repo vocabulary entry
 
 `samsung_capacitor` registers `L6`=0610, `01`=0816, `19`=1209 and `L5`=0510
-under the code `Samsung_MLCC_2512.pdf` p.6 prints, so `clean` keeps returning a
+under the code `samsung_mlcc_catalog_commercial_2025.pdf` p.6 prints, so `clean` keeps returning a
 value rather than refusing the part. The size is real but not yet a footprint:
 `src/parsers/constants.py` knows 01005/0201/0402/0603/0805/1206/1210/1812/2010/2512
 and nothing here. Decide whether these get proper names and land patterns, or
 stay sheet-codes.
 
-`samsung_automative_mlcc.pdf` is also unparsed — it is a third Samsung document
+`samsung_cl10b104kb8wpnc_spec.pdf` is also unparsed — it is a third Samsung document
 whose part-number tables have not been transcribed, so the two catalogues in
 `datasheet/samsung_capacitor.md` are not yet confirmed to cover it.
 
@@ -57,6 +57,31 @@ document (`1R5` = 1.5 pF). Pinned in
 If a real BOM part ever turns up in that form, the fix belongs in a shared
 capacitance decoder (currently each codec open-codes the same two lines) rather
 than in three separate regexes.
+
+## Known parser gaps (confirmed on 0.5.3.3)
+
+- **Eyang 008004 (`A8A4`).** `C8A4C0G100J500NTA` is refused: the land-grid size
+  group is not four digits wide, so the four-digit size alternative cannot reach
+  it. Needs the size table from `eyang_mlcc_ultra_small_spec_2017.pdf`.
+- **Ralec `005` (01005) and K/M tolerances.** `RTT005000JTH` returns `None`;
+  the catalogue's 01005 size code and the K/M tolerance letters are not decoded.
+  Source: `ralec_resistor_catalog_2022.pdf`.
+- **Taiyo `_RE_GENERAL` has no end anchor.** A malformed tail is accepted rather
+  than refused. Real parts decode correctly, so this is a precision issue.
+- **TCC is still UNVERIFIED.** `tcc_capacitor.py` assumes the V/10 voltage form;
+  the manufacturer PDF is image-only, so the rule rests on the corpus, not on a
+  readable table.
+- **`walsin_chipr.pdf` is truncated** (21 KB, no `%%EOF`), so the WR chip
+  resistor codec cannot be re-verified beyond its existing samples.
+
+### Parser branches with no direct test
+
+- `murata_capacitor` (67 %): the legacy `_RE_R71C` path (199–207), the GRM21
+  heuristics (210–224) and the `J(\d{3})M` fallback (228–230).
+- `yageo_capacitor` (85 %): the 4-digit `BB` value branch (136–140) and the
+  tolerance fallback (145–146).
+
+Each one needs either a datasheet row or a deletion, not a guess.
 
 ## Vocabulary
 

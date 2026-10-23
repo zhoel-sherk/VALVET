@@ -5,7 +5,13 @@
 # code and datasheet/*.md describe the decoding rules in prose instead, and cite
 # the catalogue by name and section rather than by path. Keep your own copies
 # locally if you want to re-verify something.
+#
+# The local library lives in datasheet/pdf/ (see datasheet/README.md for the
+# naming scheme). Both cases are listed because git matches *.pdf
+# case-sensitively on case-sensitive filesystems.
 *.pdf
+*.PDF
+datasheet/pdf/
 
 # Byte-compiled / caches
 __pycache__/
@@ -33,3 +39,5 @@ dist/
 # These are scratch analysis for a release; the durable record is CHANGELOG.md.
 PLAN_*.md
 AUDIT_*.md
+doc/PLAN_*.md
+doc/AUDIT_*.md

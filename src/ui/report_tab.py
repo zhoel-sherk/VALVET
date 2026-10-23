@@ -61,11 +61,16 @@ class ReportTabMixin:
                 suggest = f"{path_obj.stem}_cross_check_report.html"
                 break
 
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+        from ui.dialog_paths import save_file_dialog
+
+        path, _ = save_file_dialog(
             self,
             "Save HTML report",
-            os.path.join(start_dir, suggest),
             "HTML files (*.html);;All files (*)",
+            settings=self._settings,
+            history_key="report/last_save_html_dir",
+            default_name=suggest,
+            initial_dir=start_dir,
         )
         if not path:
             return

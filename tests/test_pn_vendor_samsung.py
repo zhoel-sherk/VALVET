@@ -1,7 +1,7 @@
 """Samsung CL field tables, transcribed from the two catalogues in ``doc/info``.
 
-* ``Samsung_MLCC_2512.pdf`` — *Part I. Commercial/Industrial*, December 2025
-* ``MLCC_Automotive_2512.pdf`` — *Part II. Automotive*, December 2025
+* ``samsung_mlcc_catalog_commercial_2025.pdf`` — *Part I. Commercial/Industrial*, December 2025
+* ``samsung_mlcc_catalog_automotive_2025.pdf`` — *Part II. Automotive*, December 2025
 
 Both are needed because neither is a superset of the other. Every letter below
 appears in at least one sheet, and where both print it they agree — so these
@@ -24,7 +24,7 @@ import pytest
 
 from pn_original import samsung_capacitor as sc
 
-# 6 RATED VOLTAGE CODE - Samsung_MLCC_2512.pdf p.7, Automotive p.5.
+# 6 RATED VOLTAGE CODE - samsung_mlcc_catalog_commercial_2025.pdf p.7, Automotive p.5.
 SAMSUNG_VOLTAGES = [
     ("S", "2.5V"),
     ("R", "4.0V"),
@@ -48,7 +48,7 @@ SAMSUNG_VOLTAGES = [
     ("K", "3kV"),
 ]
 
-# 3 DIELECTRIC CODE - Samsung_MLCC_2512.pdf p.6, Automotive p.4.
+# 3 DIELECTRIC CODE - samsung_mlcc_catalog_commercial_2025.pdf p.6, Automotive p.4.
 SAMSUNG_DIELECTRICS = [
     ("C", "C0G"),
     ("G", "X8G"),
@@ -66,7 +66,7 @@ SAMSUNG_DIELECTRICS = [
     ("J", "JIS-B"),
 ]
 
-# 5 CAPACITANCE TOLERANCE CODE - Samsung_MLCC_2512.pdf p.7, Automotive p.4.
+# 5 CAPACITANCE TOLERANCE CODE - samsung_mlcc_catalog_commercial_2025.pdf p.7, Automotive p.4.
 # Absolute class-1 grades render as a bare pF magnitude.
 SAMSUNG_TOLERANCES = [
     ("N", "0.03pF"),
@@ -85,7 +85,7 @@ SAMSUNG_TOLERANCES = [
     ("Z", "+80%/-20%"),
 ]
 
-# 2 SIZE CODE - Samsung_MLCC_2512.pdf p.6, Automotive p.4. Keyed to the repo's
+# 2 SIZE CODE - samsung_mlcc_catalog_commercial_2025.pdf p.6, Automotive p.4. Keyed to the repo's
 # inch vocabulary. The last four are land-grid sizes with no entry there yet and
 # register under the code the sheet prints.
 SAMSUNG_SIZES = [
