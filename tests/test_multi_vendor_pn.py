@@ -197,3 +197,55 @@ def test_multi_vendor_pn_with_regex_master_enabled():
     assert "10" in cleaned
     assert "0402" in cleaned
     assert "|" not in cleaned
+
+
+def test_value_with_slash_does_not_hide_the_resistor_mpn():
+    """``10K/1% | RC0603FR-0710KL`` must clean the MPN, not return it raw.
+
+    RC0603FR-0710KL is 0603, 10 kOhm, +/-1% (Yageo RC series), so the only
+    correct cleaned value is ``0603_10K_1%``. Before the fix the leading
+    description was taken as the PN list, every alternative failed, and the row
+    fell through to ``OTHER`` with the raw MPN as its value.
+    """
+    cfg = clean_component.CleanConfig()
+
+    cleaned, type_tag, part_code, source = clean_component.clean_one(
+        "10K/1% | RC0603FR-0710KL", cfg
+    )
+
+    assert (cleaned, type_tag, part_code) == ("0603_10K_1%", "RESISTOR", "RES")
+    assert source in ("pn", "vendor")
+
+
+def test_value_with_slash_does_not_hide_the_capacitor_mpn():
+    """``0.1uF/50V | GRM155R71H104KA88D`` is 0402 100nF 50V X7R +/-10%."""
+    cfg = clean_component.CleanConfig()
+
+    cleaned, type_tag, part_code, source = clean_component.clean_one(
+        "0.1uF/50V | GRM155R71H104KA88D", cfg
+    )
+
+    assert (cleaned, type_tag, part_code) == (
+        "0402_100nF_50V_X7R_10%",
+        "CAP",
+        "CAP",
+    )
+    assert source in ("pn", "vendor")
+
+
+def test_five_alternatives_agree_on_one_cleaned_value():
+    """Every listed alternative is a 0402 10nF 50V X7R cap; the row must say so."""
+    cfg = clean_component.CleanConfig()
+
+    cleaned, type_tag, part_code, source = clean_component.clean_one(
+        "C0402X7R103K500NTB/C1005X7R103KGTS/GRM155R71H103KA88D"
+        "/CC0402KRX7R9BB103/0402B103K500NT",
+        cfg,
+    )
+
+    assert (cleaned, type_tag, part_code) == (
+        "0402_10nF_50V_X7R_10%",
+        "CAP",
+        "CAP",
+    )
+    assert source in ("pn", "vendor")

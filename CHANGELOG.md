@@ -15,6 +15,35 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Mixed separators
   - The normalization is applied in 3 critical locations (BOM parsing, PnP parsing, merge logic) and shows UI warnings to inform users about auto-corrected issues. Added comprehensive test suite (19 tests).
 
+### Fixed
+
+- **Clean BOM: a description containing `/` no longer shadows the MPN.** In a
+  double-comment row such as `10K/1% | RC0603FR-0710KL` the leading value
+  (`10K/1%`) was taken as the multi-PN list, the actual part number was never
+  tried, and the row came back as raw `RC0603FR-0710KL` / `OTHER`. The MPN
+  segment is now tried first; the description segment is only used when the
+  cell has no MPN segment at all.
+- **Designator normalization keeps multi-unit suffixes.** `U1A`/`J1A`/`SW1A`
+  are single references (Altium multi-part symbols); splitting them into
+  `U1` + `A` made the merge report the real placement as "not in BOM" and
+  drop it. Sticky pairs are now split only when the letters start another
+  designator (`C29C30` → `C29`, `C30`), and lowercase input (`c3c4`) follows
+  the same rule instead of staying glued.
+- **Module-scoped `MainWindow` is only built by modules that use it.** The
+  autouse reset fixture resolved `main_window` for every test module,
+  parser-only ones included, which cost about 11 s per module. It now
+  resolves the fixture lazily and re-attaches the window's own
+  `log_message` handler after disconnecting test-local slots (the old
+  `disconnect()` silently removed the app's log-panel wiring for the rest of
+  the module).
+
+### Changed
+
+- **Step 3D tests are skipped while the feature is on hold.** `tests/test_step_3d.py`
+  carries a module-level `pytest.mark.skip` pointing at `doc/TODO.md`; the tab
+  stays off by default (`experimental/enable_step_3d=false`). Remove the mark
+  when the feature is unfrozen.
+
 ## [0.5.3.2] - BETA - 2026-10-13
 
 ### Changed

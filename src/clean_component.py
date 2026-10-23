@@ -419,6 +419,37 @@ def _try_parse_vendor_pn(
         return None
 
 
+def _vendor_pn_alternatives(s: str, config: CleanConfig) -> List[str]:
+    """Vendor part numbers to try for one Clean BOM cell, best source first.
+
+    A joined row (``10K/1% | RC0603FR-0710KL``) carries the part number in the
+    trailing segment, and the leading description may itself contain slashes
+    (``10K/1%``, ``0.1uF/50V``) that must never be mistaken for the PN list.
+    A bare multi-PN cell (``PN1/PN2/PN3``) has no trailing segment, so the
+    first segment is used instead. Both sources are offered in that order and
+    the first one a codec accepts wins.
+    """
+    from parsers.bom_text_utils import split_joined_clean_comment
+
+    sep = config.double_comment_separator
+    bom, _label, mpn = split_joined_clean_comment(s, sep)
+    sources: List[str] = []
+    if (mpn or "").strip():
+        sources.append(mpn.strip())
+    if bom and "/" in bom and " " not in bom and "_" not in bom:
+        sources.append(bom.strip())
+    if not sources:
+        sources.append(str(s).strip())
+
+    alternatives: List[str] = []
+    for source in sources:
+        for part in source.split("/"):
+            part = part.strip()
+            if part and part not in alternatives:
+                alternatives.append(part)
+    return alternatives
+
+
 def _try_parse_vendor_pn_res_cap_any(
     orig: str, config: CleanConfig, hint: str
 ) -> Optional[Tuple[str, str]]:
@@ -432,35 +463,7 @@ def _try_parse_vendor_pn_res_cap_any(
     if extract_thermistor_mpn(str(orig).strip()):
         return None
 
-    from parsers.bom_text_utils import (
-        joined_clean_comment_mpn,
-        split_joined_clean_comment,
-    )
-
-    # Determine which segment contains the part numbers
-    # BOM file case: "PN1/PN2/PN3 | specifications" - bom contains multiple PNs (no spaces, no "_")
-    # Other cases: "description | vendor | PN" or "description | PN" - bom is description (has spaces or "_")
-    bom, _label, _mpn = split_joined_clean_comment(
-        orig, config.double_comment_separator
-    )
-    if bom and "/" in bom and " " not in bom and "_" not in bom:
-        # bom contains multiple vendor PNs (BOM file case)
-        mpn_full = bom.strip()
-    else:
-        # Original behavior: use last segment
-        mpn_full = joined_clean_comment_mpn(
-            orig, config.double_comment_separator
-        ).strip()
-
-    # Split on "/" to get alternative PNs
-    alternatives = (
-        [p.strip() for p in mpn_full.split("/") if p.strip()]
-        if "/" in mpn_full
-        else [mpn_full]
-    )
-
-    # Try each alternative
-    for alt in alternatives:
+    for alt in _vendor_pn_alternatives(orig, config):
         if hint in ("RESISTOR", "CAP"):
             order = [hint, "CAP" if hint == "RESISTOR" else "RESISTOR"]
         else:
@@ -751,32 +754,13 @@ def _collect_vendor_arbiter_candidates(
         return []
     if eff_vendor not in ("RESISTOR", "CAP", "OTHER"):
         return []
-
-    from parsers.bom_text_utils import (
-        split_joined_clean_comment,
-    )
-
-    # Determine which segment contains the part numbers
-    # BOM file case: "PN1/PN2/PN3 | specifications" - bom contains multiple PNs (no spaces, no "_")
-    # Other cases: "description | vendor | PN" or "description | PN" - bom is description (has spaces or "_")
-    bom, _label, mpn = split_joined_clean_comment(s, cfg.double_comment_separator)
-    if bom and "/" in bom and " " not in bom and "_" not in bom:
-        # bom contains multiple vendor PNs (BOM file case)
-        mpn_full = bom.strip()
-    else:
-        # Original behavior: use last segment
-        mpn_full = (mpn or str(s).strip()).strip()
-
-    # Split on "/" to get alternative PNs
-    # If no "/", alternatives will be a single-element list
-    alternatives = (
-        [p.strip() for p in mpn_full.split("/") if p.strip()]
-        if "/" in mpn_full
-        else [mpn_full]
-    )
+    # Thermistor PNs are owned by the thermistor pass-through, not by a chip
+    # codec; keep that guard identical to the legacy vendor entry point.
+    if extract_thermistor_mpn(str(s).strip()):
+        return []
 
     candidates = []
-    for idx, alt in enumerate(alternatives):
+    for idx, alt in enumerate(_vendor_pn_alternatives(s, cfg)):
         # Try to parse this alternative
         if eff_vendor in ("RESISTOR", "CAP"):
             order = [eff_vendor, "CAP" if eff_vendor == "RESISTOR" else "RESISTOR"]
