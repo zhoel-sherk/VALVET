@@ -71,18 +71,30 @@ def test_save_creates_backup_and_csv_sidecar(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
-def test_load_wide_has_at_least_enriched_columns() -> None:
+def test_load_wide_has_at_least_enriched_columns(monkeypatch) -> None:
+    from hanwha_mdb_edit.core import part_enriched
     from hanwha_mdb_edit.core.part_enriched import (
         load_enriched_parts_dataframe,
         load_wide_editor_dataframe,
     )
 
     skip_if_mdb_unreadable(_UPD_MDB)
+
+    # The property under test is the merge, not how many tables MDB holds.
+    # Scanning the whole library means one mdbtools export per table (~2s
+    # each, 68 tables here); pin the scan to three real tables so this stays
+    # an integration test without paying for the full sweep.
+    tables = ["PART_Det", "RANK_Det", "OPTICALALIGNER_Det"]
+    monkeypatch.setattr(part_enriched.mdbtools, "list_mdb_tables", lambda _mdb: tables)
+
     wide = load_wide_editor_dataframe(_UPD_MDB)
     base = load_enriched_parts_dataframe(_UPD_MDB)
     assert len(wide.columns) >= len(base.columns)
     for c in base.columns:
         assert c in wide.columns
+    # The extra tables really were merged, not silently skipped.
+    assert any(c.startswith("RANK_Det__") for c in wide.columns)
+    assert any(c.startswith("OPTICALALIGNER_Det__") for c in wide.columns)
 
 
 @pytest.mark.skipif(_UPD_MDB is None, reason="UPD.MDB not present")
