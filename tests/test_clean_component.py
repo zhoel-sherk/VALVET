@@ -1020,6 +1020,56 @@ def test_clean_one_preview_classify_parity_joined_comment():
     assert one[3] == prev[4]
 
 
+#: Real order rows joined with the quantity column (``" | 1"``). Before the
+#: fix the joined tail was handed to ``clean_other`` as if it were a part
+#: number, so ``Cleaned`` showed the quantity.
+_QUANTITY_JOINED_ROWS = (
+    "EC IT5570VG-128/CX Ver:C VFBGA 128 RoHS - 007 | 1",
+    "MOSFET N-CHANNEL MDV1524URH 30V 24A 8.1mΩ PDFN33 LEAD-FREE - 527 | 3",
+    "ESD protection diodes Bidirectional TT0501SB ±25KV(air) ±20KV(contact) "
+    "0.35pF UDFN-2L RoHS - 820 | 30",
+)
+
+
+@pytest.mark.parametrize("master", [False, True], ids=["legacy", "regex_master"])
+@pytest.mark.parametrize("joined", _QUANTITY_JOINED_ROWS)
+def test_joined_quantity_never_becomes_the_cleaned_value(
+    joined: str, master: bool
+) -> None:
+    """A joined quantity tail must not surface as ``Cleaned``.
+
+    The tail is only a parse target when it actually looks like an MPN; a bare
+    quantity falls back to the description, where the real part number lives.
+    """
+    cfg = clean_component.CleanConfig(
+        use_pn_codecs=True,
+        use_hanwha_mdb=False,
+        use_component_library=False,
+        regex_master_enabled=master,
+        double_comment_separator="|",
+    )
+    cleaned = clean_component.clean_one(joined, cfg)[0]
+    quantity = joined.rsplit("|", 1)[-1].strip()
+    assert cleaned != quantity, (cleaned, joined)
+    assert not cleaned.isdigit(), (cleaned, joined)
+    assert len(cleaned) >= 5, (cleaned, joined)
+
+
+@pytest.mark.parametrize("master", [False, True], ids=["legacy", "regex_master"])
+def test_joined_mpn_tail_still_wins_over_the_description(master: bool) -> None:
+    """The MPN-first behaviour is preserved for a real part number tail."""
+    cfg = clean_component.CleanConfig(
+        use_pn_codecs=True,
+        use_hanwha_mdb=False,
+        use_component_library=False,
+        regex_master_enabled=master,
+        double_comment_separator="|",
+    )
+    row = "FERRITE BEAD(0603)120OHM/2A | MURATA/BLM18PG121SN1D"
+    cleaned = clean_component.clean_one(row, cfg)[0]
+    assert "BLM18PG121SN1D" in cleaned
+
+
 def test_res_nominal_gets_r_suffix_in_regex_path():
     cfg = clean_component.CleanConfig(
         use_pn_codecs=False,
