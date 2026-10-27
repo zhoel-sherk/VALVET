@@ -108,12 +108,16 @@ def profile_colour_qss(
 ) -> str:
     """QSS appended after qdarkstyle; fixes alternate row contrast for item views.
 
-    The ``QTableView::item`` rules deliberately set only ``color``. A
-    ``background-color`` there would take priority over the model's
-    ``BackgroundRole`` and silently suppress every per-cell tint in the app
-    (row highlighting, and the Clean preview score shading). Row colours
-    therefore come from ``background-color`` / ``alternate-background-color`` on
-    the view itself, which the delegate still applies per row.
+    The non-selected ``QTableView::item`` rules must not declare ``color`` or
+    ``background-color``. A stylesheet style paints the item itself as soon as
+    either property is present, which discards the model's ``ForegroundRole``
+    and ``BackgroundRole`` for that cell. Declaring ``color`` there made the
+    Clean preview score tint keep its pale green fill but lose the dark text
+    paired with it, so the arbiter-highlighted ``Cleaned`` values rendered as
+    white-on-light-green and became unreadable. Item text colour therefore
+    comes from the view-level ``color`` rule below, and per-cell colours from
+    the model. Only the ``:selected`` rule overrides both, because the
+    selection highlight must win over a tint.
     """
 
     u = ui
@@ -230,12 +234,6 @@ def profile_colour_qss(
         gridline-color: {gr};
         selection-background-color: {sb};
         selection-color: {sf};
-    }}
-    QTableView::item:!alternate:!selected, QTreeView::item:!alternate:!selected {{
-        color: {tx};
-    }}
-    QTableView::item:alternate:!selected, QTreeView::item:alternate:!selected {{
-        color: {tx};
     }}
     QTableView::item:selected, QTreeView::item:selected {{
         background-color: {sb};
