@@ -353,6 +353,66 @@ def test_save_excel_success_logs_only_the_file_name(
 # ---------------------------------------------------------------------------
 
 
+def test_convert_warns_when_machine_library_import_is_running(
+    main_window, monkeypatch
+) -> None:
+    """Convert! must not present stale Hanwha matches as final.
+
+    The partname set only refreshes when the ``.mdb`` → SQLite import finishes,
+    so a Convert! before that matches the previous library (or nothing).
+    """
+    main_window.clean_from_hanwha_mdb.setChecked(True)
+    monkeypatch.setattr(
+        main_window._machine_library_tab,
+        "mdb_import_in_progress",
+        lambda: True,
+        raising=False,
+    )
+    lines: list[str] = []
+    main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
+
+    main_window._warn_if_machine_library_is_importing()
+
+    panel = "\n".join(lines)
+    assert "still importing" in panel
+    assert "Convert! again" in panel
+
+
+def test_convert_does_not_warn_after_import_finishes(main_window, monkeypatch) -> None:
+    main_window.clean_from_hanwha_mdb.setChecked(True)
+    monkeypatch.setattr(
+        main_window._machine_library_tab,
+        "mdb_import_in_progress",
+        lambda: False,
+        raising=False,
+    )
+    lines: list[str] = []
+    main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
+
+    main_window._warn_if_machine_library_is_importing()
+
+    assert not [line for line in lines if "still importing" in line]
+
+
+def test_convert_does_not_warn_without_hanwha_matching(
+    main_window, monkeypatch
+) -> None:
+    """The warning only makes sense when Clean BOM reads the Hanwha partnames."""
+    main_window.clean_from_hanwha_mdb.setChecked(False)
+    monkeypatch.setattr(
+        main_window._machine_library_tab,
+        "mdb_import_in_progress",
+        lambda: True,
+        raising=False,
+    )
+    lines: list[str] = []
+    main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
+
+    main_window._warn_if_machine_library_is_importing()
+
+    assert not [line for line in lines if "still importing" in line]
+
+
 def test_clean_tab_module_imports() -> None:
     pytest.importorskip("PySide6")
     import importlib
