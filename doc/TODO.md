@@ -4,7 +4,7 @@ Desktop-first SMT prep: BOM/PnP on disk, mapping, Clean, cross-check, merge/expo
 
 **Core vs GUI:** parsers, cleaning, merge, machine-library I/O stay Qt-free (`src/smt_processor.py`, `src/pcb_preview/`, `src/machine_library/`, `src/step_3d/occ_load.py`, `src/services/`). PySide6 orchestrates threads, `QSettings`, and dialogs (`src/app/window.py`, `src/ui/`).
 
-BETA **0.5.4.0** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
+BETA **0.5.5.0** — [TESTING.md](info/TESTING.md). This file is the live backlog only.
 
 **Shipped (one line):** profiles + per-path mapping; Clean/Merge including `.mmd`; PCB Preview Gerber+PnP overlay (nudge, not 2-point auto-align); Step 3D optional (default off); Machine lib Hanwha + Wave 1 footprint preview from UPD vision tables (SQLite cache after Open); PyInstaller `valvet.spec`.
 
@@ -58,7 +58,7 @@ If a real BOM part ever turns up in that form, the fix belongs in a shared
 capacitance decoder (currently each codec open-codes the same two lines) rather
 than in three separate regexes.
 
-## Known parser gaps (confirmed on 0.5.4.0)
+## Known parser gaps (confirmed on 0.5.5.0)
 
 - **Eyang 008004 (`A8A4`).** `C8A4C0G100J500NTA` is refused: the land-grid size
   group is not four digits wide, so the four-digit size alternative cannot reach

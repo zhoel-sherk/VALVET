@@ -3,6 +3,29 @@
 Notable changes to VALVET. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5.0] - BETA - 2026-10-28
+
+### Added
+
+- **Hidden Scan tab: reel barcode → feeder position.** Merge has a **Scan**
+  button that opens an operator screen (not present in the tab bar). The
+  operator scans the reel barcode (`IN-…`, stored in a Custom column), and the
+  screen shows the machine, the front/rear feeder base and the slot in a
+  25–72 px selector.
+  - The T-OLP export folder (`.eoj` + per-machine `.PCB` files) is parsed
+    offline: machine names/models come from the `.eoj`, feeder slots from the
+    `CFeeder` records in each `.PCB`. The `.eoj` alone cannot answer the
+    question — it has no slot table.
+  - Scanned code → BOM/Merge row → part name (merge `Value` or the BOM
+    comment) → every feeder holding that part, across all machines. Values are
+    compared after whitespace/case normalisation; the part problem is the
+    production `0201_10K_1%`, never the 1C code, so a mismatch is reported as
+    “part not found in T-OLP”, separately from “code not found in BOM”.
+  - Settings remembered: export folder, Custom column, font size, front/rear
+    swap (when the T-OLP job numbers the rear base first).
+  - Format notes and a probe: `doc/info/tolp_export_format.md`,
+    `python tools/tolp_probe.py C:\PCB`.
+
 ## [0.5.4.0] - BETA - 2026-10-28
 
 ### Added

@@ -1,4 +1,4 @@
-# VALVET — BETA v0.5.4.0
+# VALVET — BETA v0.5.5.0
 
 [English](README.md) | **Русский**
 
@@ -47,7 +47,7 @@
 
 ## Установка: Windows zip (без Python)
 
-1. Скачай [VALVET-0.5.4.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.4.0/VALVET-0.5.4.0-windows-x64.zip) с [релиза v0.5.4.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.4.0). Это дерево — **0.5.4.0 BETA**; пока релиз не опубликован, последняя доступная сборка — **0.2.0**.
+1. Скачай [VALVET-0.5.5.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.5.0/VALVET-0.5.5.0-windows-x64.zip) с [релиза v0.5.5.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.5.0). Это дерево — **0.5.5.0 BETA**; пока релиз не опубликован, последняя доступная сборка — **0.2.0**.
 2. Распакуй. Запусти `VALVET\VALVET.exe` (папка `_internal` должна лежать рядом с exe).
 3. На флешку копируй **всю** папку.
 
@@ -85,6 +85,7 @@ PYTHONPATH=src python src/main.py
 3. **TRANSFORM — Clean BOM** → при необходимости Parser Settings → Convert. Вернуть чистые имена в BOM.
 4. **OUTPUT — Report** → сверка (нет рефа, другой comment, одинаковые XY).
 5. **TRANSFORM — Merge / Export** → Merge → CSV/XLSX или **Export Top** / **Export Bot**.
+6. **Scan (экран оператора)** → кнопка **Scan** на Merge открывает скрытый экран. Выберите папку экспорта T-OLP (`.eoj` + `M1…Mn/*.PCB`), колонку **Custom**, сканируйте штрихкод катушки — станок, сторона (Front/Rear) и слот показываются крупным шрифтом. Настройки: папка, колонка, шрифт 25–72 px, перестановка Front/Rear.
 
 Другие образцы:
 
