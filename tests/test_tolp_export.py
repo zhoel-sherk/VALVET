@@ -142,7 +142,7 @@ def test_missing_path_raises() -> None:
 def test_folder_without_pcb_raises(tmp_path: Path) -> None:
     (tmp_path / "empty").mkdir()
     (tmp_path / "empty" / "job.eoj").write_bytes(_eoj([("M1", "DECANS2")], ["x.PCB"]))
-    with pytest.raises(TolpExportError, match="No .PCB"):
+    with pytest.raises(TolpExportError, match="No \\.mfb or \\.PCB"):
         load_tolp_export(tmp_path / "empty")
 
 

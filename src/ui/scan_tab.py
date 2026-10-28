@@ -262,6 +262,8 @@ class ScanTab(QtWidgets.QWidget):
         text = self._tr(
             "scan.export_loaded", feeders=len(export.feeders), machines=machines
         )
+        if export.source:
+            text += f" · {export.source.upper()}"
         if export.warnings:
             text += f" · {len(export.warnings)} warning(s)"
             self.source_status.setToolTip("\n".join(export.warnings[:10]))
@@ -452,10 +454,14 @@ class ScanTab(QtWidgets.QWidget):
             self._set_places(self._tr("scan.part_missing"), error=True)
             self.hint_label.setText("")
             return
-        lines = [
-            f"{feeder.machine} · {feeder.model} · {feeder.side} · {feeder.slot}"
-            for feeder in result.feeders
-        ]
+        lines = []
+        for feeder in result.feeders:
+            if feeder.model:
+                lines.append(
+                    f"{feeder.machine} · {feeder.model} · {feeder.side} · {feeder.slot}"
+                )
+            else:
+                lines.append(f"{feeder.machine} · {feeder.side} · {feeder.slot}")
         self._set_places("\n".join(lines), error=False)
         refs = ", ".join(r for e in result.entries for r in e.refs)
         self.hint_label.setText(refs)
@@ -477,7 +483,10 @@ class ScanTab(QtWidgets.QWidget):
             if len(result.feeders) > 1:
                 detail += f" +{len(result.feeders) - 1}"
             tooltip = "\n".join(
-                f"{f.machine} · {f.model} · {f.side} · {f.slot}" for f in result.feeders
+                f"{f.machine} · {f.model} · {f.side} · {f.slot}"
+                if f.model
+                else f"{f.machine} · {f.side} · {f.slot}"
+                for f in result.feeders
             )
         elif result.state == STATE_UNKNOWN_CODE:
             detail = self._tr("scan.unknown_code")

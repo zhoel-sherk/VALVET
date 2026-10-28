@@ -12,10 +12,12 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   operator scans the reel barcode (`IN-…`, stored in a Custom column), and the
   screen shows the machine, the front/rear feeder base and the slot in a
   25–72 px selector.
-  - The T-OLP export folder (`.eoj` + per-machine `.PCB` files) is parsed
-    offline: machine names/models come from the `.eoj`, feeder slots from the
-    `CFeeder` records in each `.PCB`. The `.eoj` alone cannot answer the
-    question — it has no slot table.
+  - The T-OLP **machine feeder base (`.mfb`)** is the primary source: machine
+    and side are explicit, and the slot is the attachment position (the T-OLP
+    `No.` column), advanced by the feeder width (8 mm = 1, 12/16 mm = 2,
+    24 mm = 3, 36/44 mm = 4, 56 mm = 5, 88 mm = 7, tray = 2). Per-machine
+    `.PCB` files remain the fallback and a cross-check; the `.eoj` only names
+    the machines/models and has no feeder table.
   - Scanned code → BOM/Merge row → part name (merge `Value` or the BOM
     comment) → every feeder holding that part, across all machines. Values are
     compared after whitespace/case normalisation; the part problem is the
@@ -24,7 +26,8 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Settings remembered: export folder, Custom column, font size, front/rear
     swap (when the T-OLP job numbers the rear base first).
   - Format notes and a probe: `doc/info/tolp_export_format.md`,
-    `python tools/tolp_probe.py C:\PCB`.
+    `python tools/tolp_probe.py C:\PCB`. Sample feeder-base files live in
+    `examples/tolp_mfb/`.
 
 ## [0.5.4.0] - BETA - 2026-10-28
 

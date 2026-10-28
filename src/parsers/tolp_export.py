@@ -1,18 +1,19 @@
-"""Read a Hanwha T-OLP export folder (``.eoj`` job + per-machine ``.PCB``).
+"""Read a Hanwha T-OLP export folder (``.mfb`` / ``.eoj`` / per-machine ``.PCB``).
 
-A T-OLP export is a folder with one ``.eoj`` file and one ``.PCB`` file per
-machine (``M1`` … ``Mn``). The ``.eoj`` is the CWorkShop job container: it
-names the machines and lists their PCB files, but it does **not** carry the
-feeder allocation. The allocation lives in the PCB files:
+The primary source is the machine feeder base (``.mfb``): it names the machine
+and side (Front/Rear) explicitly and lists the feeders in attachment order, so a
+feeder's slot is its position in the T-OLP ``No.`` column, advanced by the
+number of positions the feeder type occupies (8 mm = 1, 24 mm = 3, tray = 2 …).
 
-* the PCB header names the machine model (``DECANS2``, ``DECANF2FS``,
-  ``DECANL2``, ``SM485P`` …);
-* each feeder is a 204-byte record anchored by ``CFeeder`` + ``CBHeader``;
-* inside the record: ``slot`` is a little-endian ``uint16`` at +44, the side
-  (front/rear feeder base) is a byte at +46, and the part name is the first
-  printable run after +62.
+Fallbacks / companions:
 
-The format is proprietary and tied to the T-OLP version, so every field is
+* the ``.eoj`` is the CWorkShop job container: it names the machines/models and
+  lists their PCB files, but carries no feeder allocation and no ``IN-…`` codes;
+* each ``.PCB`` is a binary object stream with its own feeder records
+  (204-byte ``CFeeder`` objects) and is used when no ``.mfb`` is present, or to
+  cross-check a machine feeder base.
+
+The PCB format is proprietary and tied to the T-OLP version, so every field is
 validated before it is trusted and unknown layouts fail loudly instead of
 returning an empty list.
 """
@@ -44,6 +45,35 @@ _PRINTABLE_RUN = re.compile(rb"[\x20-\x7e]{2,}")
 _MODEL_TOKEN = re.compile(r"^[A-Z][A-Z0-9_]{2,15}$")
 _PCB_NAME = re.compile(rb"[\x20-\x7e]{4,}\.PCB")
 
+# --- .mfb: machine feeder base ------------------------------------------------
+# Sections are introduced by a length-prefixed machine name and side ("F"/"R").
+_MFB_SECTION = re.compile(rb"\x02M(\d).{4}\x01([FR])", re.S)
+# Feeder type tokens that carry the tape width in their name.
+_MFB_TYPE = re.compile(
+    rb"(?:TapeFeeder\d*mm[A-Z]*|TapeFeeder|STF-\d+[A-Z]?|TrayFeeder|Tray|StickFeeder|Stick)"
+)
+_MFB_PART = re.compile(r"[A-Za-z0-9_.%+/-]+")
+#: Physical slots consumed by one feeder of that width (user-confirmed).
+_TAPE_WIDTH = {8: 1, 12: 2, 16: 2, 24: 3, 36: 4, 44: 4, 56: 5, 88: 7}
+_TRAY_WIDTH = 2
+#: Tokens that look like parts but are feeder/nozzle/type names.
+_NON_PART_PREFIXES = (
+    "TapeFeeder",
+    "Tray",
+    "Stick",
+    "STF-",
+    "Return",
+    "Internal",
+    "SYSTEM",
+    "USER",
+    "Fix ",
+    "CN0",
+    "SMC0",
+    "SMR0",
+    "Camera",
+    "Nozzle",
+)
+
 
 class TolpExportError(Exception):
     """Raised when a folder/file cannot be read as a T-OLP export."""
@@ -68,6 +98,8 @@ class TolpExport:
     feeders: tuple[TolpFeeder, ...] = ()
     machines: dict[str, str] = field(default_factory=dict)
     warnings: tuple[str, ...] = ()
+    #: ``"mfb"`` (machine feeder base), ``"pcb"`` (per-machine PCB) or ``""``.
+    source: str = ""
     _by_part: dict[str, list[TolpFeeder]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
@@ -249,11 +281,233 @@ def _iter_pcb(folder: Path) -> list[Path]:
     return files
 
 
-def load_tolp_export(path: str | Path, *, front_is_one: bool = True) -> TolpExport:
-    """Parse a T-OLP export folder (or a single ``.eoj`` / ``.PCB``).
+def _is_part_name(text: str) -> bool:
+    if any(text.startswith(prefix) for prefix in _NON_PART_PREFIXES):
+        return False
+    if not 4 <= len(text) <= 48 or _MFB_PART.fullmatch(text) is None:
+        return False
+    if not any(ch.isdigit() for ch in text):
+        return False
+    if not any(ch.isalpha() for ch in text) and "_" not in text:
+        return False
+    if text.startswith("000"):
+        return False
+    return text not in {"1692", "1693", "1695", "333333", "ffffff"}
 
-    ``front_is_one`` maps the first feeder base (side byte 1) to Front; flip it
-    when the T-OLP job numbers the rear base first.
+
+def _mfb_part_names(data: bytes, start: int, end: int) -> list[tuple[int, str]]:
+    """Length-prefixed part names in one ``.mfb`` section, in file order."""
+    out: list[tuple[int, str]] = []
+    i = start
+    while i < end - 1:
+        length = data[i]
+        if 4 <= length <= 48:
+            raw = data[i + 1 : i + 1 + length]
+            if len(raw) == length and all(32 <= b < 127 for b in raw):
+                text = raw.decode("ascii")
+                if _is_part_name(text):
+                    out.append((i, text))
+                    i += 1 + length
+                    continue
+        i += 1
+    return out
+
+
+def _mfb_width(type_name: str) -> int:
+    if not type_name:
+        return 1
+    match = re.search(r"(\d+)mm", type_name)
+    if match:
+        return _TAPE_WIDTH.get(int(match.group(1)), 1)
+    if type_name.startswith("STF-") or "Tray" in type_name or "Stick" in type_name:
+        return _TRAY_WIDTH
+    return 1
+
+
+def _mfb_start_slot(
+    data: bytes,
+    part_offset: int,
+    type_name: str,
+) -> int | None:
+    """Explicit slot of the first feeder, when its record layout is known."""
+    if "8mm" in type_name:
+        offset, size = 273, 4
+    elif type_name.startswith("STF-") or "Tray" in type_name:
+        offset, size = 116, 4
+    else:
+        return None
+    pos = part_offset - offset
+    if pos < 0:
+        return None
+    value = int.from_bytes(data[pos : pos + size], "little")
+    return value if 1 <= value <= 999 else None
+
+
+def _specific_mfb_type(token: bytes) -> bool:
+    """A width-bearing type; the bare ``TapeFeeder`` token is a generic marker."""
+    text = token.decode("ascii", "ignore")
+    return "mm" in text or text.startswith("STF-") or "Tray" in text or "Stick" in text
+
+
+def _parse_mfb_file(
+    path: Path, *, front_is_one: bool
+) -> tuple[list[TolpFeeder], dict[str, str], list[str]]:
+    """Parse one ``.mfb`` feeder-base file."""
+    data = path.read_bytes()
+    sections = [
+        (m.start(), f"M{m.group(1).decode()}", m.group(2).decode())
+        for m in _MFB_SECTION.finditer(data)
+    ]
+    feeders: list[TolpFeeder] = []
+    machines: dict[str, str] = {}
+    warnings: list[str] = []
+    for index, (start, machine, raw_side) in enumerate(sections):
+        end = sections[index + 1][0] if index + 1 < len(sections) else len(data)
+        side = SIDE_FRONT if (raw_side == "F") == front_is_one else SIDE_REAR
+        parts = _mfb_part_names(data, start, end)
+        if not parts:
+            continue
+        types = list(_MFB_TYPE.finditer(data, start, end))
+        rows: list[tuple[int, str, str]] = []
+        for part_offset, part in parts:
+            before = [t for t in types if t.start() < part_offset]
+            specific = [t for t in before if _specific_mfb_type(t.group())]
+            chosen = specific[-1] if specific else (before[-1] if before else None)
+            type_name = chosen.group().decode("ascii") if chosen is not None else ""
+            rows.append((part_offset, part, type_name))
+        first_type = rows[0][2]
+        slot = _mfb_start_slot(data, rows[0][0], first_type) or 1
+        for part_offset, part, type_name in rows:
+            if "Camera" in type_name:
+                continue
+            feeders.append(
+                TolpFeeder(machine=machine, model="", side=side, slot=slot, part=part)
+            )
+            slot += _mfb_width(type_name)
+        machines.setdefault(machine, "")
+    return feeders, machines, warnings
+
+
+def _iter_mfb(folder: Path) -> list[Path]:
+    return sorted(
+        (p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() == ".mfb"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+
+def _load_mfb_export(
+    folder: Path,
+    *,
+    front_is_one: bool,
+    machines_eoj: Sequence[tuple[str, str]],
+) -> tuple[list[TolpFeeder], dict[str, str], list[str]]:
+    """Merge sections from the newest ``.mfb`` file (newest wins per side)."""
+    files = _iter_mfb(folder)
+    if not files:
+        return [], {}, []
+    by_name = {name: model for name, model in machines_eoj}
+    seen: set[tuple[str, str]] = set()
+    feeders: list[TolpFeeder] = []
+    machines: dict[str, str] = {}
+    warnings: list[str] = []
+    for path in files:
+        try:
+            file_feeders, file_machines, file_warnings = _parse_mfb_file(
+                path, front_is_one=front_is_one
+            )
+        except OSError as exc:
+            warnings.append(f"{path.name}: cannot read ({exc})")
+            continue
+        warnings.extend(file_warnings)
+        fresh = [f for f in file_feeders if (f.machine, f.side) not in seen]
+        if not fresh:
+            continue
+        for feeder in fresh:
+            feeders.append(
+                TolpFeeder(
+                    machine=feeder.machine,
+                    model=by_name.get(feeder.machine, feeder.model),
+                    side=feeder.side,
+                    slot=feeder.slot,
+                    part=feeder.part,
+                )
+            )
+        for feeder in fresh:
+            seen.add((feeder.machine, feeder.side))
+        machines.update(file_machines)
+    if not feeders:
+        warnings.append("no feeder sections found in .mfb files")
+    return feeders, machines, warnings
+
+
+def _parse_pcb_paths(
+    pcb_paths: Sequence[Path],
+    *,
+    folder: Path,
+    machines: Sequence[tuple[str, str]],
+    pcb_files: Sequence[str],
+    front_is_one: bool,
+    warnings: list[str],
+    version: str,
+) -> tuple[list[TolpFeeder], dict[str, str]]:
+    feeders: list[TolpFeeder] = []
+    machine_models: dict[str, str] = {}
+    for pcb in pcb_paths:
+        try:
+            data = pcb.read_bytes()
+        except OSError as exc:
+            warnings.append(f"{pcb.name}: cannot read ({exc})")
+            continue
+        machine, eoj_model = _machine_for_file(pcb, machines, pcb_files, folder)
+        model = _pcb_model(data) or eoj_model
+        machine_models.setdefault(machine, model)
+        records, rec_warnings = _feeder_records(
+            data, machine=machine, model=model, front_is_one=front_is_one
+        )
+        warnings.extend(rec_warnings)
+        if not records:
+            warnings.append(
+                f"{pcb.name}: no feeder records parsed "
+                f"(T-OLP version {version or 'unknown'})"
+            )
+        feeders.extend(records)
+    return feeders, machine_models
+
+
+def _compare_feeder_sets(
+    mfb_feeders: Sequence[TolpFeeder], pcb_feeders: Sequence[TolpFeeder]
+) -> list[str]:
+    """Warn when the two sources disagree on a part they both contain."""
+    mfb_map = {(f.machine, f.side, f.part): f.slot for f in mfb_feeders}
+    pcb_map = {(f.machine, f.side, f.part): f.slot for f in pcb_feeders}
+    common = set(mfb_map) & set(pcb_map)
+    diffs = [
+        (key, mfb_map[key], pcb_map[key])
+        for key in common
+        if mfb_map[key] != pcb_map[key]
+    ]
+    if not diffs:
+        return []
+    sample = ", ".join(
+        f"{machine}/{side} {part}: mfb {slot_a} vs pcb {slot_b}"
+        for (machine, side, part), slot_a, slot_b in diffs[:5]
+    )
+    return [
+        f".mfb and .PCB disagree on {len(diffs)} feeder slot(s); using .mfb ({sample})"
+    ]
+
+
+def load_tolp_export(path: str | Path, *, front_is_one: bool = True) -> TolpExport:
+    """Parse a T-OLP export folder (or a single ``.mfb`` / ``.eoj`` / ``.PCB``).
+
+    ``.mfb`` (machine feeder base) is the primary source: it names the machine
+    and side explicitly and lists the feeders in attachment order, so the slot
+    is the physical attachment position (wide feeders consume the following
+    positions). ``.PCB`` remains the fallback and a cross-check.
+
+    ``front_is_one`` maps side byte 1 to Front; flip it when the job numbers
+    the rear base first.
     """
     raw = Path(path).expanduser()
     if not raw.exists():
@@ -283,33 +537,54 @@ def load_tolp_export(path: str | Path, *, front_is_one: bool = True) -> TolpExpo
         pcb_paths = [raw]
     else:
         pcb_paths = _iter_pcb(folder)
-    if not pcb_paths:
-        raise TolpExportError(
-            f"No .PCB machine files found under {folder}. "
-            "Export the T-OLP job (eoj + per-machine PCB files) and pick that folder."
-        )
 
-    feeders: list[TolpFeeder] = []
-    machine_models: dict[str, str] = {}
-    for pcb in pcb_paths:
-        try:
-            data = pcb.read_bytes()
-        except OSError as exc:
-            warnings.append(f"{pcb.name}: cannot read ({exc})")
-            continue
-        machine, eoj_model = _machine_for_file(pcb, machines, pcb_files, folder)
-        model = _pcb_model(data) or eoj_model
-        machine_models.setdefault(machine, model)
-        records, rec_warnings = _feeder_records(
-            data, machine=machine, model=model, front_is_one=front_is_one
+    mfb_feeders: list[TolpFeeder] = []
+    mfb_machines: dict[str, str] = {}
+    mfb_warnings: list[str] = []
+    if raw.is_file() and raw.suffix.lower() == ".mfb":
+        mfb_feeders, mfb_machines, mfb_warnings = _parse_mfb_file(
+            raw, front_is_one=front_is_one
         )
-        warnings.extend(rec_warnings)
-        if not records:
-            warnings.append(
-                f"{pcb.name}: no feeder records parsed "
-                f"(T-OLP version {version or 'unknown'})"
+    elif not (raw.is_file() and raw.suffix.lower() == ".pcb"):
+        mfb_feeders, mfb_machines, mfb_warnings = _load_mfb_export(
+            folder, front_is_one=front_is_one, machines_eoj=machines
+        )
+    warnings.extend(mfb_warnings)
+
+    if mfb_feeders:
+        feeders = mfb_feeders
+        machine_models = dict(mfb_machines)
+        for name, model in machines:
+            if name in machine_models and model:
+                machine_models[name] = model
+        if pcb_paths:
+            pcb_feeders, _pcb_machines = _parse_pcb_paths(
+                pcb_paths,
+                folder=folder,
+                machines=machines,
+                pcb_files=pcb_files,
+                front_is_one=front_is_one,
+                warnings=warnings,
+                version=version,
             )
-        feeders.extend(records)
+            warnings.extend(_compare_feeder_sets(mfb_feeders, pcb_feeders))
+        source = "mfb"
+    else:
+        if not pcb_paths:
+            raise TolpExportError(
+                f"No .mfb or .PCB machine files found under {folder}. "
+                "Export the T-OLP job and pick that folder."
+            )
+        feeders, machine_models = _parse_pcb_paths(
+            pcb_paths,
+            folder=folder,
+            machines=machines,
+            pcb_files=pcb_files,
+            front_is_one=front_is_one,
+            warnings=warnings,
+            version=version,
+        )
+        source = "pcb"
 
     feeders.sort(key=lambda f: (f.machine, 0 if f.side == SIDE_FRONT else 1, f.slot))
     return TolpExport(
@@ -317,6 +592,7 @@ def load_tolp_export(path: str | Path, *, front_is_one: bool = True) -> TolpExpo
         feeders=tuple(feeders),
         machines=machine_models,
         warnings=tuple(warnings),
+        source=source,
     )
 
 

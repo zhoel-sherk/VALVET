@@ -1,5 +1,7 @@
 """Dump a Hanwha T-OLP export folder (machines, feeder slots, warnings).
 
+Reads ``.mfb`` (machine feeder base) first and falls back to ``.eoj`` + ``.PCB``.
+
 Usage:
     python tools/tolp_probe.py C:\\PCB
     python tools/tolp_probe.py C:\\PCB --json
@@ -63,6 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     print(f"Folder: {export.folder}")
+    print(f"Source: {export.source.upper() or '?'}")
     print(f"Machines: {export.machines}")
     print(f"Feeders: {len(export.feeders)}")
     for warning in export.warnings:
@@ -72,7 +75,8 @@ def main(argv: list[str] | None = None) -> int:
     for feeder in export.feeders:
         if (feeder.machine, feeder.side) != current:
             current = (feeder.machine, feeder.side)
-            print(f"[{feeder.machine} · {feeder.model} · {feeder.side}]")
+            model = f" · {feeder.model}" if feeder.model else ""
+            print(f"[{feeder.machine}{model} · {feeder.side}]")
         print(f"  {feeder.slot:>3}  {feeder.part}")
     return 0
 
