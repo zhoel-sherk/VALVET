@@ -1,4 +1,4 @@
-# VALVET — BETA v0.5.3.4
+# VALVET — BETA v0.5.4.0
 
 [English](README.md) | **Русский**
 
@@ -47,7 +47,7 @@
 
 ## Установка: Windows zip (без Python)
 
-1. Скачай [VALVET-0.5.3.4-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.3.4/VALVET-0.5.3.4-windows-x64.zip) с [релиза v0.5.3.4](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.3.4). Это дерево — **0.5.3.4 BETA**; пока релиз не опубликован, последняя доступная сборка — **0.2.0**.
+1. Скачай [VALVET-0.5.4.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.4.0/VALVET-0.5.4.0-windows-x64.zip) с [релиза v0.5.4.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.4.0). Это дерево — **0.5.4.0 BETA**; пока релиз не опубликован, последняя доступная сборка — **0.2.0**.
 2. Распакуй. Запусти `VALVET\VALVET.exe` (папка `_internal` должна лежать рядом с exe).
 3. На флешку копируй **всю** папку.
 
@@ -80,7 +80,7 @@ PYTHONPATH=src python src/main.py
 
 Файлы в `examples/example1/`.
 
-1. **DATA — BOM** → `Kaseta_2v1 BOM_results.txt`. В шапке: **REF** и **Comment** (имя компонента). **PnJoin** — только если вторую колонку надо приклеить к имени после Clean.
+1. **DATA — BOM** → `Kaseta_2v1 BOM_results.txt`. В шапке: **REF** и **Comment** (имя компонента). **PnJoin** — только если вторую колонку надо приклеить к имени после Clean. **Custom** — любая колонка, которую надо пронести в Merge/CSV/Excel без изменений (например, код 1С); Clean её не трогает.
 2. **DATA — PnP** → `Pick Place for Kaseta2v1(Standard).csv`. **REF**, **X**, **Y**, **Rotation**, **Layer** (плюс Comment / footprint, если есть).
 3. **TRANSFORM — Clean BOM** → при необходимости Parser Settings → Convert. Вернуть чистые имена в BOM.
 4. **OUTPUT — Report** → сверка (нет рефа, другой comment, одинаковые XY).
