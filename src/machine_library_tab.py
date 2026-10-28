@@ -342,6 +342,16 @@ class MachineLibraryTab(QtWidgets.QWidget):
             df, enabled_confidence_levels=self._enabled_confidence_levels()
         )
 
+    def mdb_import_in_progress(self) -> bool:
+        """True while a Hanwha ``.mdb`` → SQLite import thread is still running.
+
+        Until that thread lands, `hanwha_partname_set` describes the *previous*
+        library (or nothing at all on a fresh profile), so Clean BOM would
+        silently match nothing. Callers that consume the set should say so
+        instead of presenting stale results as final.
+        """
+        return bool(self._mdb_busy)
+
     def _enabled_confidence_levels(self) -> Set[int]:
         s: Set[int] = set()
         if self._cb_conf_0.isChecked():

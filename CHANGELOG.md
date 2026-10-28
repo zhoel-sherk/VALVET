@@ -3,6 +3,30 @@
 Notable changes to VALVET. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3.4] - BETA - 2026-10-27
+
+### Fixed
+
+- **Clean BOM: the arbiter score highlight no longer makes `Cleaned` unreadable.**
+  The app stylesheet declared `color` on the non-selected `QTableView::item`
+  rules. Qt's stylesheet style then paints the item itself and discards the
+  model's `ForegroundRole`, so the pale green score fill kept the dark theme's
+  near-white text while the dark text paired with that fill was dropped —
+  white-on-light-green for every arbiter-highlighted value. Item text colour is
+  now set once on the view rule and per-cell foreground/background stay with
+  the model. The same fix restores the orange `PARTIAL` marker in `Source`.
+- **Clean BOM: a joined quantity no longer lands in `Cleaned`.** Rows imported
+  as `Description | Qty` (`… RoHS - 007 | 1`) handed the trailing segment to
+  the generic parser even when it was just a quantity, so `Cleaned` showed `1`,
+  `2`, `30`. The tail is now used only when it actually looks like a part
+  number; otherwise the description is parsed, which recovers the real MPN
+  (`IT5570VG-128/CX`, `MDV1524URH`, `TT0501SB`, …).
+- **Clean BOM: `Convert!` warns when it runs during the Hanwha `.mdb` import.**
+  The partname set only refreshes when the import finishes (minutes for a large
+  library), so converting earlier matched the previous library or nothing at all
+  and the preview silently looked broken. The log now says the library is still
+  importing and asks to rerun `Convert!` afterwards.
+
 ## [0.5.3.3] - BETA - 2026-10-23
 
 ### Added

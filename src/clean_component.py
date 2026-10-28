@@ -524,16 +524,36 @@ def _clean_one_try_library(
     )
 
 
+def _other_type_parse_target(s: str, sep: str) -> str:
+    """Prose for an unknown type, unless the joined tail really is a part number.
+
+    A BOM joined with a quantity column («… | 1») leaves a tail that is not an
+    MPN. Taking it anyway made ``clean_other`` return the quantity, so the
+    preview showed «1» / «30» instead of the part. ``looks_like_part_number``
+    keeps the MPN-first behaviour for real part numbers (including MPN-first
+    joins, which ``split_joined_clean_comment`` already reorders) and falls back
+    to the description for everything else.
+    """
+    from parsers.bom_text_utils import (
+        joined_clean_comment_bom_prose,
+        joined_clean_comment_mpn,
+        looks_like_part_number,
+    )
+
+    prose = joined_clean_comment_bom_prose(s, sep)
+    tail = joined_clean_comment_mpn(s, sep)
+    if tail and tail != s and looks_like_part_number(tail):
+        return tail
+    return prose or s
+
+
 def _clean_one_regex_phase(
     s: str,
     ctype: str,
     cfg: CleanConfig,
     inferit_executed: bool,
 ) -> Tuple[str, str, str, str]:
-    from parsers.bom_text_utils import (
-        joined_clean_comment_bom_prose,
-        joined_clean_comment_mpn,
-    )
+    from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
     bom = joined_clean_comment_bom_prose(s, cfg.double_comment_separator)
     parse_target = bom or s
@@ -542,9 +562,7 @@ def _clean_one_regex_phase(
     # so the part number - the actual identity - wins instead. Single-segment input
     # makes both helpers return the same string, which keeps today's behaviour.
     if ctype == "OTHER":
-        tail = joined_clean_comment_mpn(s, cfg.double_comment_separator)
-        if tail and tail != s:
-            parse_target = tail
+        parse_target = _other_type_parse_target(s, cfg.double_comment_separator)
     if ctype == "RESISTOR" and not cfg.parse_resistors:
         return s, "RESISTOR", "RES", "off"
     if ctype == "CAP" and not cfg.parse_capacitors:
@@ -814,10 +832,7 @@ def _try_parse_single_vendor_pn(
 def _collect_regex_arbiter_candidates(
     s: str, ctype: str, cfg: CleanConfig
 ) -> List[ParserCandidate]:
-    from parsers.bom_text_utils import (
-        joined_clean_comment_bom_prose,
-        joined_clean_comment_mpn,
-    )
+    from parsers.bom_text_utils import joined_clean_comment_bom_prose
 
     # Mirror _clean_one_regex_phase: the regex parsers read values out of the
     # description, so feed them the prose rather than the raw joined cell - and let
@@ -825,9 +840,7 @@ def _collect_regex_arbiter_candidates(
     # it would only produce fragments.
     target = joined_clean_comment_bom_prose(s, cfg.double_comment_separator) or s
     if ctype == "OTHER":
-        tail = joined_clean_comment_mpn(s, cfg.double_comment_separator)
-        if tail and tail != s:
-            target = tail
+        target = _other_type_parse_target(s, cfg.double_comment_separator)
     cands: List[ParserCandidate] = []
     if ctype == "RESISTOR" and cfg.parse_resistors:
         sl, cleaned = parse_resistor_token_fields(target, cfg)

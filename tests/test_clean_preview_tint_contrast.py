@@ -7,6 +7,7 @@ unreadable on it once the QSS bug stopped hiding the fill.
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 import pandas as pd
@@ -227,6 +228,71 @@ def test_no_cleaned_column_leaves_other_columns_untinted() -> None:
     bg, fg = _roles(m, 0, "Win%")
     assert bg is None
     assert fg is None
+
+
+#: Selector states that legitimately paint the cell themselves. ``:selected``
+#: owns both colours, while ``:hover`` / ``:pressed`` always pair their own
+#: background with a matching text colour, so neither can leave a model tint
+#: wearing the theme's text colour.
+_STATE_SELECTORS = (":selected", ":hover", ":pressed")
+
+
+def test_profile_item_rules_do_not_shadow_model_colours() -> None:
+    """The profile overlay must not colour a non-selected item by default.
+
+    Qt's stylesheet style paints an item itself as soon as a rule declares
+    ``color`` or ``background-color``, and then ignores the model's
+    ``ForegroundRole`` and ``BackgroundRole``. That made the tint visible but
+    dropped its paired dark text, so arbiter-highlighted ``Cleaned`` cells
+    rendered white-on-green. Text colour belongs on the view rule, per-cell
+    colour in the model.
+    """
+    from themes.colour_prefs import (
+        merge_table_colours,
+        merge_ui_colours,
+        profile_colour_qss,
+    )
+
+    qss = profile_colour_qss(merge_ui_colours(None), merge_table_colours(None))
+    item_rules = re.findall(r"([^{}]*::item[^{}]*)\{([^}]*)\}", qss)
+    assert item_rules, "profile overlay no longer styles item views at all"
+
+    offenders = [
+        selector.strip()
+        for selector, body in item_rules
+        if not any(state in selector for state in _STATE_SELECTORS)
+        and re.search(r"(?<![-\w])(?:color|background-color)\s*:", body)
+    ]
+    assert not offenders, f"profile item rules shadow model colours: {offenders}"
+    assert re.search(r"QTableView::item:selected", qss), "selection rule disappeared"
+
+
+def test_composed_item_rules_only_paint_stateful_cells() -> None:
+    """qdarkstyle may colour ``:hover`` / ``:pressed`` / ``:selected`` only."""
+    from themes.stylesheet import compose_app_stylesheet
+
+    qss = compose_app_stylesheet(None, None)
+    item_rules = re.findall(r"([^{}]*QTableView::item[^{}]*)\{([^}]*)\}", qss)
+    assert item_rules, "item-view rules disappeared from the composed stylesheet"
+
+    offenders = [
+        selector.strip()
+        for selector, body in item_rules
+        if not any(state in selector for state in _STATE_SELECTORS)
+        and re.search(r"(?<![-\w])(?:color|background-color)\s*:", body)
+    ]
+    assert not offenders, f"item rules shadow model colours: {offenders}"
+
+
+def test_view_rule_still_sets_the_theme_text_colour() -> None:
+    """Removing the item colour rules must keep the theme text on the view."""
+    from themes.stylesheet import compose_app_stylesheet
+
+    qss = compose_app_stylesheet(None, {"text": "#123456"})
+    view_rule = qss.split("QTableView, QTreeView, QTableWidget, QTreeWidget {", 1)[
+        1
+    ].split("}", 1)[0]
+    assert "color: #123456;" in view_rule
 
 
 def test_out_of_range_index_does_not_raise() -> None:

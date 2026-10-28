@@ -1323,11 +1323,35 @@ class CleanTabMixin:
             )
         )
 
+    def _warn_if_machine_library_is_importing(self) -> None:
+        """Explain a Hanwha match miss that is only a race with the MDB import.
+
+        The partname set comes from the last finished import, so running
+        Convert! while a fresh ``.mdb`` is still landing matches against the
+        previous library - or nothing on a new profile - and the preview looks
+        broken for no visible reason.
+        """
+        ml = getattr(self, "_machine_library_tab", None)
+        if ml is None or not self.clean_from_hanwha_mdb.isChecked():
+            return
+        busy = getattr(ml, "mdb_import_in_progress", None)
+        if not callable(busy) or not busy():
+            return
+        self._log(
+            "Clean BOM: Hanwha .mdb is still importing — parts from it are not "
+            "matched yet. Wait for the import to finish, then run Convert! again.",
+            "warning",
+        )
+        logger.warning(
+            "Clean BOM: Convert! ran while the Hanwha MDB import was in progress"
+        )
+
     def _run_clean_preview(self) -> None:
         if not self._clean_imported_comments:
             self._log("Clean BOM: run Import from BOM first, then Convert!", "warning")
             logger.error("Clean BOM: no comments imported")
             return
+        self._warn_if_machine_library_is_importing()
         n = len(self._clean_imported_comments)
         logger.info("Generating clean preview for %d components…", n)
         self._log(f"Clean BOM: generating clean preview for {n} component(s)…", "info")
