@@ -85,7 +85,7 @@ Files in `examples/example1/`.
 3. **TRANSFORM — Clean BOM** → Parser Settings if needed → Convert. Apply cleaned names back to the BOM.
 4. **OUTPUT — Report** → cross-check (missing refs, comment mismatch, stacked XY).
 5. **TRANSFORM — Merge / Export** → Merge → Export CSV/XLSX or **Export Top** / **Export Bot**.
-6. **Scan (operator screen)** → the **Scan** button on Merge opens a hidden screen. Pick the T-OLP export folder (`.eoj` + `M1…Mn/*.PCB`), choose the **Custom** column, scan the reel barcode: the machine, front/rear feeder base and slot are shown in a large font. Settings: export folder, column, font 25–72 px, front/rear swap.
+6. **Scan (operator screen)** → the **Scan** button on Merge opens a hidden screen. Pick the T-OLP export folder (machine feeder base `.mfb`, with `.eoj`/`.PCB` as fallback/cross-check), choose the **Custom** column, scan the reel barcode: the machine, side and feeder attachment position are shown in a large font. Settings: export folder, column, font 25–72 px, front/rear swap.
 
 Other sample files:
 
