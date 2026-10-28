@@ -264,6 +264,7 @@
   "mapping.y": "Y",
   "mapping.rotation": "旋转",
   "mapping.layer": "层",
+  "mapping.custom": "自定义",
   "mapping.column_tooltip": "列 {n}",
   "table.delete_rows": "删除所选行",
   "table.delete_columns": "删除所选列",

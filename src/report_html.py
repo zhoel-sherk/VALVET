@@ -18,6 +18,7 @@ _ISSUE_LABELS: dict[str, str] = {
     "missing_in_pnp": "Missing in PnP",
     "missing_in_bom": "Missing in BOM",
     "mismatch": "Value mismatch",
+    "custom_mismatch": "Custom mismatch",
     "duplicate_coord": "Duplicate coordinates",
     "overlapping": "Overlapping placement",
 }

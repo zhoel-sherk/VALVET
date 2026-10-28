@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from services.column_mapping import (
     BOM_EXCLUSIVE_ROLES,
+    CUSTOM_ROLE,
+    PNP_EXCLUSIVE_ROLES,
+    custom_columns_in_order,
     guess_bom_role,
     is_designator_header,
     likely_ref_mapped_to_pn,
@@ -97,6 +100,56 @@ def test_pick_ref_column_skips_comment_orig() -> None:
     assert pick_ref_column(cols) == "Designator"
     assert pick_ref_column(cols, "Designator") == "Designator"
     assert pick_ref_column(["comment_orig", "comment"]) is None
+
+
+# ---------------------------------------------------------------------------
+# Custom role: unlimited columns, never cleaned, carried into Merge
+# ---------------------------------------------------------------------------
+
+
+def test_custom_role_is_not_exclusive() -> None:
+    """Custom is a pass-through role: any number of columns may carry it."""
+    assert CUSTOM_ROLE == "Custom"
+    assert CUSTOM_ROLE not in BOM_EXCLUSIVE_ROLES
+    assert CUSTOM_ROLE not in PNP_EXCLUSIVE_ROLES
+    assert uniquify_roles(
+        ["Custom", "Custom", "REF"], exclusive=BOM_EXCLUSIVE_ROLES, last_wins=()
+    ) == ["Custom", "Custom", "REF"]
+    assert uniquify_roles(["Custom", "Custom", "X"]) == ["Custom", "Custom", "X"]
+
+
+def test_custom_columns_are_numbered_in_table_order() -> None:
+    cols = ["0", "1", "2", "3", "4"]
+    roles = ["Custom", "Comment", "-", "Custom", "REF"]
+    assert custom_columns_in_order(cols, roles) == [
+        ("Custom 1", "0"),
+        ("Custom 2", "3"),
+    ]
+
+
+def test_custom_columns_ignore_other_roles() -> None:
+    assert custom_columns_in_order(["A", "B"], ["Comment", "PnJoin"]) == []
+    assert custom_columns_in_order([], []) == []
+
+
+def test_custom_columns_survive_clean_apply() -> None:
+    """Clean adds its own columns; the Custom role must stay on its column."""
+    preserved = ["Custom", "Comment", "REF"]
+    after_cols = ["0", "1", "2", "comment", "clean_type", "clean_part_code"]
+    out = roles_after_clean_apply(preserved, after_cols, comment_column="comment")
+    assert out[0] == "Custom"
+    assert out[2] == "REF"
+    assert out[3] == "Comment"
+    assert custom_columns_in_order(after_cols, out) == [("Custom 1", "0")]
+
+
+def test_merge_result_pnp_roles_marks_extra_columns_custom() -> None:
+    """Merge output carries custom columns; Replace PnP must keep them mapped."""
+    roles = merge_result_pnp_roles(
+        ["Ref", "Value", "Footprint", "X", "Y", "Rotation", "Layer", "Custom 1"]
+    )
+    assert roles[-1] == "Custom"
+    assert roles[:7] == ["REF", "Comment", "Footprint", "X", "Y", "Rotation", "Layer"]
 
 
 def test_likely_ref_mapped_to_pn_hdmi_pattern() -> None:

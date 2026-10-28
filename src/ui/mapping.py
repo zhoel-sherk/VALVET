@@ -14,6 +14,7 @@ from app.constants import (
 )
 from services.column_mapping import (
     BOM_EXCLUSIVE_ROLES,
+    PNP_EXCLUSIVE_ROLES,
     guess_bom_role,
     guess_pnp_role,
     uniquify_roles,
@@ -291,7 +292,14 @@ class MappingMixin:
     def _on_pnp_col_mapping_changed(self, col_idx, mapping):
         """Per-column PnP role dropdown changed."""
         if getattr(self, "pnp_col_combos", None):
-            self._exclusive_mapping_role(self.pnp_col_combos, col_idx, mapping)
+            # Every PnP role is exclusive except Custom: several pass-through
+            # columns are allowed and must not clear each other.
+            self._exclusive_mapping_role(
+                self.pnp_col_combos,
+                col_idx,
+                mapping,
+                exclusive_roles=frozenset(PNP_EXCLUSIVE_ROLES),
+            )
         self._log(f"PnP col {col_idx} -> {mapping}", "debug")
         self._schedule_save_pnp_tab_settings()
 

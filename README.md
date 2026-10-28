@@ -1,4 +1,4 @@
-# VALVET — BETA v0.5.3.4
+# VALVET — BETA v0.5.4.0
 
 **English** | [Русский](README.ru.md)
 
@@ -47,7 +47,7 @@ Repo: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Own project (
 
 ## Install: Windows zip (no Python)
 
-1. Download [VALVET-0.5.3.4-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.3.4/VALVET-0.5.3.4-windows-x64.zip) from [release v0.5.3.4](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.3.4). This tree is **0.5.3.4 BETA**; until that release is published, the newest download is still **0.2.0**.
+1. Download [VALVET-0.5.4.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.4.0/VALVET-0.5.4.0-windows-x64.zip) from [release v0.5.4.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.4.0). This tree is **0.5.4.0 BETA**; until that release is published, the newest download is still **0.2.0**.
 2. Unzip. Run `VALVET\VALVET.exe` (keep the `_internal` folder next to the exe).
 3. Copy the whole folder if you put it on a USB stick.
 
@@ -80,7 +80,7 @@ PYTHONPATH=src python src/main.py
 
 Files in `examples/example1/`.
 
-1. **DATA — BOM** → open `Kaseta_2v1 BOM_results.txt`. In the header combos set **REF** and **Comment** (part name). Use **PnJoin** only if a second column should be glued onto the name after Clean.
+1. **DATA - BOM** → open `Kaseta_2v1 BOM_results.txt`. In the header combos set **REF** and **Comment** (part name). Use **PnJoin** only if a second column should be glued onto the name after Clean. **Custom** marks a pass-through column copied unchanged into Merge/CSV/Excel (for example an ERP/1C code); Clean never touches it.
 2. **DATA — PnP** → open `Pick Place for Kaseta2v1(Standard).csv`. Map **REF**, **X**, **Y**, **Rotation**, **Layer** (and **Comment** / footprint if present).
 3. **TRANSFORM — Clean BOM** → Parser Settings if needed → Convert. Apply cleaned names back to the BOM.
 4. **OUTPUT — Report** → cross-check (missing refs, comment mismatch, stacked XY).

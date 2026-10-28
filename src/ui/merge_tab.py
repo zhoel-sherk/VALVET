@@ -139,6 +139,15 @@ class MergeTabMixin:
         self.chk_info.setChecked(True)
         self.chk_info.toggled.connect(self._on_cross_check_filter_toggled)
         cc_l.addWidget(self.chk_info)
+        self.chk_custom = switch_checkbox(self.ui_tr("mapping.custom"))
+        self.chk_custom.setChecked(False)
+        self.chk_custom.setToolTip(
+            "Compare same-named Custom columns (Custom 1 vs Custom 1) during "
+            "Cross-check. Off by default: Custom is a pass-through code and a "
+            "difference is usually a data-entry issue, not a mapping one."
+        )
+        self.chk_custom.toggled.connect(self._save_report_filter_settings)
+        cc_l.addWidget(self.chk_custom)
         self.chk_overlap = switch_checkbox("Overlap: mm")
         self.chk_overlap.setChecked(False)
         self.chk_overlap.setToolTip(
@@ -336,14 +345,20 @@ class MergeTabMixin:
         bom_cols = list(self._bom_df.columns)
         bom_mappings: dict[str, str] = {}
         for i, mapping in enumerate(bom_roles):
-            if mapping not in ("-", "PnJoin") and i < len(bom_cols):
+            if mapping not in ("-", "PnJoin", "Custom") and i < len(bom_cols):
                 bom_mappings[mapping] = bom_cols[i]
 
+        pnp_roles = [self._mapping_combo_role(combo) for combo in self.pnp_col_combos]
+        pnp_cols = list(self._pnp_df.columns)
         pnp_mappings: dict[str, str] = {}
-        for i, combo in enumerate(self.pnp_col_combos):
-            mapping = self._mapping_combo_role(combo)
-            if mapping != "-":
-                pnp_mappings[mapping] = list(self._pnp_df.columns)[i]
+        for i, mapping in enumerate(pnp_roles):
+            if mapping not in ("-", "Custom") and i < len(pnp_cols):
+                pnp_mappings[mapping] = pnp_cols[i]
+
+        from services.column_mapping import custom_columns_in_order
+
+        bom_custom = custom_columns_in_order(bom_cols, bom_roles)
+        pnp_custom = custom_columns_in_order(pnp_cols, pnp_roles)
 
         from smt_processor import SMTColumnNotFoundError
 
@@ -354,6 +369,11 @@ class MergeTabMixin:
                 bom_mappings,
                 pnp_mappings,
                 bom_column_roles=bom_roles,
+                bom_custom=bom_custom,
+                pnp_custom=pnp_custom,
+                compare_custom=bool(
+                    getattr(self, "chk_custom", None) and self.chk_custom.isChecked()
+                ),
                 pnp_xy_are_mils=not self._pnp_xy_stored_in_mm(),
                 overlap_min_mm=float(self.spin_overlap_mm.value()),
                 check_overlap=self.chk_overlap.isChecked(),
@@ -458,6 +478,8 @@ class MergeTabMixin:
         s.setValue("report/show_critical", self.chk_critical.isChecked())
         s.setValue("report/show_warning", self.chk_warning.isChecked())
         s.setValue("report/show_info", self.chk_info.isChecked())
+        if hasattr(self, "chk_custom"):
+            s.setValue("report/compare_custom", self.chk_custom.isChecked())
 
     def _save_report_overlap_settings(self) -> None:
         if self._restoring_settings or not hasattr(self, "_settings"):
@@ -983,6 +1005,14 @@ class MergeTabMixin:
         if not path.lower().endswith(".mmd"):
             path += ".mmd"
         try:
+            standard = {"Ref", "Value", "Footprint", "X", "Y", "Rotation", "Layer"}
+            extra = [str(c) for c in out_df.columns if c not in standard]
+            if extra:
+                self._log(
+                    "MMD export: the format has no field for Custom columns; "
+                    f"omitted: {', '.join(extra)}",
+                    "info",
+                )
             text = merge_dataframe_to_mmd_mercury(
                 out_df, pnp_xy_are_mm=self._pnp_xy_stored_in_mm()
             )

@@ -3,6 +3,31 @@
 Notable changes to VALVET. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4.0] - BETA - 2026-10-28
+
+### Added
+
+- **`Custom` column role for BOM and PnP.** Any number of columns can be marked
+  `Custom` in the header dropdown. Custom columns never take part in Clean BOM
+  and are copied **verbatim** (no trimming, case folding or number formatting)
+  through Merge into the merged table and every export that carries the merge
+  columns: Save CSV, Save Excel and the TOP/BOT layer CSV. Use it to keep an
+  external identifier — for example the 1C inventory code `IN-00004817` — next
+  to the placement, so the operator knows which code to request for a
+  replacement.
+  - Merge names them `Custom 1`, `Custom 2`, … in table order and appends them
+    after the standard seven columns. When the BOM and the PnP both map a
+    `Custom 1`, the merged column is single and the BOM value wins; placements
+    absent from the BOM fall back to the PnP value.
+  - `Replace PnP` keeps merge-output extras mapped as `Custom`, so a second
+    Merge does not lose them.
+  - MMD export is unchanged: the fixed MMD line has no field for Custom
+    columns, so they are omitted with an info message.
+- **Cross-check: optional `Custom` comparison.** A new `Custom` switch compares
+  `Custom 1` on the BOM with `Custom 1` on the PnP and reports
+  `custom_mismatch` findings. Off by default; the choice is stored in the
+  profile and the app settings.
+
 ## [0.5.3.4] - BETA - 2026-10-27
 
 ### Fixed

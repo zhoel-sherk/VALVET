@@ -33,7 +33,7 @@ _MAPPING_COMBO_MAX_HEIGHT = 26
 # Cap table column auto-width so BOM/PnP load does not force a multi-screen-wide window.
 _TABLE_COL_MAX_WIDTH = 400
 
-_BOM_MAPPING_ROLES = ("-", "REF", "Comment", "PnJoin")
+_BOM_MAPPING_ROLES = ("-", "REF", "Comment", "PnJoin", "Custom")
 _PNP_MAPPING_ROLES = (
     "-",
     "REF",
@@ -44,6 +44,7 @@ _PNP_MAPPING_ROLES = (
     "Y",
     "Rotation",
     "Layer",
+    "Custom",
 )
 _MAPPING_I18N_KEY = {
     "-": "mapping.none",
@@ -56,6 +57,7 @@ _MAPPING_I18N_KEY = {
     "Y": "mapping.y",
     "Rotation": "mapping.rotation",
     "Layer": "mapping.layer",
+    "Custom": "mapping.custom",
 }
 _DANGER_CLEAR_BTN_STYLE = (
     "QPushButton#dangerClearBtn { color: #ffcdd2; background-color: #5c1a1a; "
