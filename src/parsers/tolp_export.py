@@ -427,6 +427,12 @@ def _load_mfb_export(
         warnings.extend(file_warnings)
         fresh = [f for f in file_feeders if (f.machine, f.side) not in seen]
         if not fresh:
+            if file_feeders:
+                duplicated = sorted({f"{f.machine}{f.side}" for f in file_feeders})
+                warnings.append(
+                    f"{path.name}: machine sides already defined by a newer "
+                    f".mfb file, skipped: {', '.join(duplicated)}"
+                )
             continue
         for feeder in fresh:
             feeders.append(
