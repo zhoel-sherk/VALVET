@@ -88,6 +88,25 @@ def test_merge_config_receives_custom_columns(main_window) -> None:
     assert merged.set_index("Ref").at["R1", "Custom 1"] == "IN-00004817"
 
 
+def test_layer_export_keeps_custom_columns(main_window) -> None:
+    """Export Top/Bot filters rows only; the Custom column must stay attached."""
+    main_window._last_merge_df = pd.DataFrame(
+        {
+            "Ref": ["R1", "R2"],
+            "Value": ["A", "B"],
+            "Footprint": ["0402", "0402"],
+            "X": [1.0, 2.0],
+            "Y": [3.0, 4.0],
+            "Rotation": ["0", "0"],
+            "Layer": ["Top", "Bottom"],
+            "Custom 1": ["IN-0001", "IN-0002"],
+        }
+    )
+    top = main_window._merge_filtered_by_layer("Top")
+    assert top["Ref"].tolist() == ["R1"]
+    assert top["Custom 1"].tolist() == ["IN-0001"]
+
+
 def test_cross_check_custom_toggle_defaults_off_and_persists(main_window) -> None:
     main_window.chk_custom.setChecked(False)
     main_window._save_report_filter_settings()
