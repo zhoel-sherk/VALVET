@@ -1,4 +1,4 @@
-# VALVET — BETA v0.5.4.0
+# VALVET — BETA v0.5.5.0
 
 **English** | [Русский](README.ru.md)
 
@@ -47,7 +47,7 @@ Repo: [zhoel-sherk/VALVET](https://github.com/zhoel-sherk/VALVET). Own project (
 
 ## Install: Windows zip (no Python)
 
-1. Download [VALVET-0.5.4.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.4.0/VALVET-0.5.4.0-windows-x64.zip) from [release v0.5.4.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.4.0). This tree is **0.5.4.0 BETA**; until that release is published, the newest download is still **0.2.0**.
+1. Download [VALVET-0.5.5.0-windows-x64.zip](https://github.com/zhoel-sherk/VALVET/releases/download/v0.5.5.0/VALVET-0.5.5.0-windows-x64.zip) from [release v0.5.5.0](https://github.com/zhoel-sherk/VALVET/releases/tag/v0.5.5.0). This tree is **0.5.5.0 BETA**; until that release is published, the newest download is still **0.2.0**.
 2. Unzip. Run `VALVET\VALVET.exe` (keep the `_internal` folder next to the exe).
 3. Copy the whole folder if you put it on a USB stick.
 
@@ -85,6 +85,7 @@ Files in `examples/example1/`.
 3. **TRANSFORM — Clean BOM** → Parser Settings if needed → Convert. Apply cleaned names back to the BOM.
 4. **OUTPUT — Report** → cross-check (missing refs, comment mismatch, stacked XY).
 5. **TRANSFORM — Merge / Export** → Merge → Export CSV/XLSX or **Export Top** / **Export Bot**.
+6. **Scan (operator screen)** → the **Scan** button on Merge opens a hidden screen. Pick the T-OLP export folder (machine feeder base `.mfb`, with `.eoj`/`.PCB` as fallback/cross-check), choose the **Custom** column, scan the reel barcode: the machine, side and feeder attachment position are shown in a large font. Settings: export folder, column, font 25–72 px, front/rear swap.
 
 Other sample files:
 

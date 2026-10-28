@@ -235,6 +235,7 @@ class MainWindow(
             self._create_step_3d_tab()
         self._create_machine_library_tab()
         self._create_settings_tab()
+        self._create_scan_tab()
 
         self.tabs.currentChanged.connect(self._on_main_tab_changed)
 
@@ -545,13 +546,40 @@ class MainWindow(
         self._machine_library_tab = MachineLibraryTab(self, settings=self._settings)
         self._register_main_tab("machine_lib", self._machine_library_tab)
 
+    def _create_scan_tab(self) -> None:
+        """Operator scan screen: present in the stack, absent from the tab bar."""
+        from ui.scan_tab import ScanTab
+
+        self._scan_tab = ScanTab(self, settings=self._settings)
+        index = self.tabs.addTab(self._scan_tab, "Scan")
+        self._scan_tab_index = index
+        self.tabs.setTabVisible(index, False)
+
+    def _open_scan_tab(self) -> None:
+        """Open the hidden Scan tab from Merge and focus the barcode field."""
+        tab = getattr(self, "_scan_tab", None)
+        if tab is None:
+            return
+        self.tabs.setCurrentWidget(tab)
+        tab.on_shown()
+
+    def _tab_index_for_persistence(self) -> int:
+        """Never persist the hidden Scan tab as the restored workspace tab."""
+        idx = self.tabs.currentIndex()
+        if idx == getattr(self, "_scan_tab_index", -1):
+            merge_idx = self._tab_index("merge")
+            return merge_idx if merge_idx >= 0 else 0
+        return idx
+
     def _on_main_tab_changed(self, idx: int) -> None:
         if (
             not getattr(self, "_restoring_settings", False)
             and hasattr(self, "_settings")
             and hasattr(self, "tabs")
         ):
-            self._settings.setValue("ui/main_tab_index", idx)
+            self._settings.setValue(
+                "ui/main_tab_index", self._tab_index_for_persistence()
+            )
         self._refresh_shell_status()
         if (
             0 <= idx < len(self._tab_keys_in_order)
@@ -820,6 +848,9 @@ class MainWindow(
         s = self._settings
         idx = _settings_int(s.value("ui/main_tab_index", 0), default=0)
         idx = max(0, min(idx, self.tabs.count() - 1))
+        if idx == getattr(self, "_scan_tab_index", -1):
+            merge_idx = self._tab_index("merge")
+            idx = merge_idx if merge_idx >= 0 else 0
         self.tabs.blockSignals(True)
         self.tabs.setCurrentIndex(idx)
         self.tabs.blockSignals(False)
@@ -831,7 +862,9 @@ class MainWindow(
             return
         self._settings.setValue("ui/main_window_geometry", self.saveGeometry())
         if hasattr(self, "tabs"):
-            self._settings.setValue("ui/main_tab_index", self.tabs.currentIndex())
+            self._settings.setValue(
+                "ui/main_tab_index", self._tab_index_for_persistence()
+            )
         w = getattr(self, "_console_window", None)
         if w is not None:
             self._settings.setValue("ui/console_window_geometry", w.saveGeometry())
