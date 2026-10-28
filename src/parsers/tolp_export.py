@@ -47,7 +47,8 @@ _PCB_NAME = re.compile(rb"[\x20-\x7e]{4,}\.PCB")
 
 # --- .mfb: machine feeder base ------------------------------------------------
 # Sections are introduced by a length-prefixed machine name and side ("F"/"R").
-_MFB_SECTION = re.compile(rb"\x02M(\d).{4}\x01([FR])", re.S)
+# Old exports use "Machine4"; current ones use "M1".
+_MFB_SECTION = re.compile(rb"[\x02-\x14](M\d+|Machine\d+)[\x00\x01]{3,4}\x01([FR])")
 # Feeder type tokens that carry the tape width in their name.
 _MFB_TYPE = re.compile(
     rb"(?:TapeFeeder\d*mm[A-Z]*|TapeFeeder|STF-\d+[A-Z]?|TrayFeeder|Tray|StickFeeder|Stick)"
@@ -284,6 +285,8 @@ def _iter_pcb(folder: Path) -> list[Path]:
 def _is_part_name(text: str) -> bool:
     if any(text.startswith(prefix) for prefix in _NON_PART_PREFIXES):
         return False
+    if re.fullmatch(r"M\d+|Machine\d+", text):
+        return False
     if not 4 <= len(text) <= 48 or _MFB_PART.fullmatch(text) is None:
         return False
     if not any(ch.isdigit() for ch in text):
@@ -354,10 +357,12 @@ def _parse_mfb_file(
 ) -> tuple[list[TolpFeeder], dict[str, str], list[str]]:
     """Parse one ``.mfb`` feeder-base file."""
     data = path.read_bytes()
-    sections = [
-        (m.start(), f"M{m.group(1).decode()}", m.group(2).decode())
-        for m in _MFB_SECTION.finditer(data)
-    ]
+    sections: list[tuple[int, str, str]] = []
+    for match in _MFB_SECTION.finditer(data):
+        name = match.group(1).decode("ascii")
+        if data[match.start()] != len(name):
+            continue
+        sections.append((match.start(), name, match.group(2).decode("ascii")))
     feeders: list[TolpFeeder] = []
     machines: dict[str, str] = {}
     warnings: list[str] = []

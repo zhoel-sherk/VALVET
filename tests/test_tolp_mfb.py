@@ -125,6 +125,17 @@ def test_single_mfb_path_works() -> None:
     assert export.feeders
 
 
+def test_old_export_uses_machine_name_sections() -> None:
+    """Older T-OLP writes "Machine4" instead of "M4" in the section header."""
+    path = _REPO / "examples" / "tolp_mfb" / "Feederbases" / "2mbot.mfb"
+    if not path.is_file():
+        pytest.skip("mfb sample fixture not present")
+    export = load_tolp_export(path)
+    assert {f.machine for f in export.feeders} == {"Machine4"}
+    assert export.feeders[0].part == "SX1276"
+    assert export.feeders[0].slot == 1
+
+
 def test_mfb_pcb_disagreement_is_reported() -> None:
     mfb = [TolpFeeder("M1", "", SIDE_FRONT, 1, "0201_10K_1%")]
     pcb = [TolpFeeder("M1", "DECANS2", SIDE_FRONT, 7, "0201_10K_1%")]
