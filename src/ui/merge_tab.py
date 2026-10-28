@@ -88,6 +88,13 @@ class MergeTabMixin:
         self.btn_merge_help.setMinimumHeight(ACTION_BTN_MIN_H)
         merge_row.addWidget(self.btn_merge_help)
         merge_l.addLayout(merge_row)
+        self.btn_scan = action_button(self.ui_tr("merge.scan"))
+        self.btn_scan.setToolTip(
+            "Operator scan screen: reel barcode → component → T-OLP feeder slot. "
+            "It compares the scanned Custom code with the Merge/BOM part name."
+        )
+        self.btn_scan.clicked.connect(self._open_scan_tab)
+        merge_l.addWidget(self.btn_scan)
         self.merge_delete_dnp = switch_checkbox("Delete DNP")
         self.merge_delete_dnp.setToolTip(
             "When merging, drop PnP placements that are not in the BOM "

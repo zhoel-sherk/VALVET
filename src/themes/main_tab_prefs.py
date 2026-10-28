@@ -107,13 +107,26 @@ def read_min_tab_height(settings: Any) -> int:
 def apply_main_tab_order(main: MainWindow) -> None:
     tabs = main.tabs
     keys = list(getattr(main, "_tab_keys_in_order", []) or [])
-    if not keys or tabs.count() != len(keys):
+    if not keys or tabs.count() < len(keys):
         return
+    # Pages beyond the registered keys are not part of the user's tab layout
+    # (the hidden Scan tab). They must survive a reorder and stay hidden.
+    extras = [
+        (
+            tabs.widget(i),
+            tabs.tabText(i),
+            tabs.tabIcon(i),
+            tabs.isTabVisible(i),
+        )
+        for i in range(len(keys), tabs.count())
+        if tabs.widget(i) is not None
+    ]
     idx = tabs.currentIndex()
     current_key = keys[idx] if 0 <= idx < len(keys) else keys[0]
-    widgets = {keys[i]: tabs.widget(i) for i in range(tabs.count())}
-    texts = {keys[i]: tabs.tabText(i) for i in range(tabs.count())}
-    icons = {keys[i]: tabs.tabIcon(i) for i in range(tabs.count())}
+    current_widget = tabs.currentWidget()
+    widgets = {keys[i]: tabs.widget(i) for i in range(len(keys))}
+    texts = {keys[i]: tabs.tabText(i) for i in range(len(keys))}
+    icons = {keys[i]: tabs.tabIcon(i) for i in range(len(keys))}
     order = read_main_tab_order(main._settings, keys)
     if order == keys:
         return
@@ -127,8 +140,15 @@ def apply_main_tab_order(main: MainWindow) -> None:
             continue
         tabs.addTab(w, icons.get(k, QtGui.QIcon()), texts.get(k, k))
         new_keys.append(k)
+    for w, text, icon, visible in extras:
+        extra_idx = tabs.addTab(w, icon, text)
+        tabs.setTabVisible(extra_idx, visible)
     main._tab_keys_in_order = new_keys
-    if current_key in new_keys:
+    if current_widget is not None:
+        restored = tabs.indexOf(current_widget)
+        if restored >= 0:
+            tabs.setCurrentIndex(restored)
+    elif current_key in new_keys:
         tabs.setCurrentIndex(new_keys.index(current_key))
     tabs.blockSignals(False)
 
