@@ -114,6 +114,9 @@ class ProfilesMixin:
                 "show_critical": self.chk_critical.isChecked(),
                 "show_warning": self.chk_warning.isChecked(),
                 "show_info": self.chk_info.isChecked(),
+                "compare_custom": self.chk_custom.isChecked()
+                if hasattr(self, "chk_custom")
+                else False,
                 "overlap": self.chk_overlap.isChecked(),
                 "overlap_mm": float(self.spin_overlap_mm.value()),
             },
@@ -197,6 +200,10 @@ class ProfilesMixin:
         self.chk_critical.setChecked(bool(rep.get("show_critical", True)))
         self.chk_warning.setChecked(bool(rep.get("show_warning", True)))
         self.chk_info.setChecked(bool(rep.get("show_info", True)))
+        if hasattr(self, "chk_custom"):
+            self.chk_custom.blockSignals(True)
+            self.chk_custom.setChecked(bool(rep.get("compare_custom", False)))
+            self.chk_custom.blockSignals(False)
         self.chk_overlap.blockSignals(True)
         self.spin_overlap_mm.blockSignals(True)
         self.chk_overlap.setChecked(bool(rep.get("overlap", False)))
@@ -554,6 +561,12 @@ class ProfilesMixin:
             )
             self.chk_warning.setChecked(s.value("report/show_warning", True, type=bool))
             self.chk_info.setChecked(s.value("report/show_info", True, type=bool))
+        if hasattr(self, "chk_custom"):
+            self.chk_custom.blockSignals(True)
+            self.chk_custom.setChecked(
+                s.value("report/compare_custom", False, type=bool)
+            )
+            self.chk_custom.blockSignals(False)
         if hasattr(self, "chk_overlap") and hasattr(self, "spin_overlap_mm"):
             self.chk_overlap.blockSignals(True)
             self.spin_overlap_mm.blockSignals(True)

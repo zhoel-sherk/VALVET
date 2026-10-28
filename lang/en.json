@@ -264,6 +264,7 @@
   "mapping.y": "Y",
   "mapping.rotation": "Rotation",
   "mapping.layer": "Layer",
+  "mapping.custom": "Custom",
   "mapping.column_tooltip": "Column {n}",
   "table.delete_rows": "Delete selected rows",
   "table.delete_columns": "Delete selected columns",

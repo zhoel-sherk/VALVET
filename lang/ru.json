@@ -264,6 +264,7 @@
   "mapping.y": "Y",
   "mapping.rotation": "Поворот",
   "mapping.layer": "Слой",
+  "mapping.custom": "Custom",
   "mapping.column_tooltip": "Столбец {n}",
   "table.delete_rows": "Удалить выбранные строки",
   "table.delete_columns": "Удалить выбранные столбцы",

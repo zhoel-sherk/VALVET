@@ -70,6 +70,10 @@ class ColumnConfig:
     coord_y: str = "?"
     rotation: str = "?"
     layer: str = "?"
+    #: Pass-through columns: ``(output_name, source_column)``. Never parsed;
+    #: copied verbatim into Merge (CSV/Excel) so the operator keeps the
+    #: inventory code next to the placement.
+    custom: list[tuple[str, str]] = field(default_factory=list)
     first_row: int = 0  # 0-based
     last_row: int = -1  # -1 = all rows
     has_header: bool = True
@@ -100,12 +104,44 @@ class ProcessorConfig:
     # When overlap check runs: True = PnP X/Y already in mm vs threshold; False = X/Y in mils (convert with ×0.0254 for distance only).
     overlap_xy_are_mm: bool = True
     normalize_comments: bool = False  # normalize BOM/PnP comment text before compare
+    # Compare same-named Custom columns (Custom 1 vs Custom 1) in Cross-check.
+    compare_custom: bool = False
     # Optional callback (message, level) e.g. GUI log; safe from worker thread if level uses Qt::QueuedConnection.
     progress_log: Optional[Callable[[str, str], None]] = field(default=None, repr=False)
 
     def emit_progress(self, message: str, level: str = "info") -> None:
         if self.progress_log is not None:
             self.progress_log(message, level)
+
+
+def custom_cell_text(value: object) -> str:
+    """Copy a ``Custom`` cell through Merge without changing its text.
+
+    Strings are returned verbatim - no ``strip()``, no case folding - because
+    the value is an external identifier (invoice code, warehouse code) that the
+    operator types elsewhere. Numbers lose the ``.0`` pandas adds to integral
+    columns; missing values become ``""`` so the merged column keeps one shape.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, np.integer)):
+        return str(int(value))
+    if isinstance(value, (float, np.floating)):
+        if pd.isna(value):
+            return ""
+        if float(value).is_integer():
+            return str(int(value))
+        return repr(float(value))
+    try:
+        if pd.isna(value):  # type: ignore[arg-type]
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(value)
 
 
 def coord_cell_float_for_math(value: object) -> Optional[float]:
@@ -1477,6 +1513,51 @@ class SMTDataProcessor:
                         )
                     )
 
+        # 3b. Custom columns (opt-in): Custom 1 on the BOM vs Custom 1 on the PnP
+        if self.config.compare_custom:
+            bom_custom_cfg = list(bom_config.custom)
+            pnp_custom_cfg = list(pnp_config.custom)
+            pnp_custom_names = {name for name, _col in pnp_custom_cfg}
+            shared_custom = [
+                name for name, _col in bom_custom_cfg if name in pnp_custom_names
+            ]
+            if shared_custom and bom_designator_idx >= 0 and pnp_designator_idx >= 0:
+                self.config.emit_progress(
+                    "Cross-check: comparing Custom columns "
+                    f"({', '.join(shared_custom)})...",
+                    "info",
+                )
+                bom_custom = custom_values_by_ref(
+                    self._bom_df,
+                    self._bom_df.columns[bom_designator_idx],
+                    bom_custom_cfg,
+                    log_prefix="Cross-check custom (BOM)",
+                )
+                pnp_custom = custom_values_by_ref(
+                    self._pnp_df,
+                    self._pnp_df.columns[pnp_designator_idx],
+                    pnp_custom_cfg,
+                    log_prefix="Cross-check custom (PnP)",
+                )
+                for designator, bom_values in bom_custom.items():
+                    pnp_values = pnp_custom.get(designator)
+                    if pnp_values is None:
+                        continue
+                    for name in shared_custom:
+                        bom_code = bom_values.get(name, "")
+                        pnp_code = pnp_values.get(name, "")
+                        if bom_code == pnp_code:
+                            continue
+                        results.append(
+                            CrossCheckResult(
+                                designator=designator,
+                                issue_type="custom_mismatch",
+                                bom_value=bom_code,
+                                pnp_value=pnp_code,
+                                severity="warning",
+                            )
+                        )
+
         # 4. Duplicate placements (same XY on the **same** layer when Layer is mapped)
         self.config.emit_progress(
             "Cross-check: duplicate exact coordinates (same X/Y, same layer)...", "info"
@@ -1802,6 +1883,27 @@ class SMTDataProcessor:
             for d in designators:
                 bom_map[_ref_key(d)] = comment
 
+        # Custom (pass-through) columns: BOM names first, then PnP-only names.
+        # A name present on both sides is a single merged column and the BOM
+        # value wins for designators the BOM knows; PnP is only the fallback for
+        # placements the BOM does not list.
+        bom_custom_columns = list(bom_config.custom)
+        pnp_custom_columns = list(pnp_config.custom)
+        bom_custom_names = [name for name, _col in bom_custom_columns]
+        output_custom = list(bom_custom_names)
+        output_custom.extend(
+            name for name, _col in pnp_custom_columns if name not in bom_custom_names
+        )
+        bom_custom_by_ref = custom_values_by_ref(
+            self._bom_df,
+            bom_designator_col,
+            bom_custom_columns,
+            log_prefix="Merge custom",
+        )
+        pnp_custom_present = [
+            (name, col) for name, col in pnp_custom_columns if col in pnp_cols
+        ]
+
         # Build merged frame
         merged = []
         # "Not in BOM" and "marked DNP" are different facts: the first means
@@ -1880,6 +1982,14 @@ class SMTDataProcessor:
                     "Y": y,
                     "Rotation": rotation,
                     "Layer": layer,
+                    **_custom_row_values(
+                        ref_key,
+                        bom_custom_by_ref,
+                        bom_custom_names,
+                        pnp_custom_present,
+                        row,
+                        output_custom,
+                    ),
                 }
             )
 
@@ -1984,6 +2094,81 @@ def designator_key(value: object) -> str:
     except (TypeError, ValueError):
         pass
     return str(value).strip().upper()
+
+
+def custom_values_by_ref(
+    df: pd.DataFrame,
+    designator_col: object,
+    custom: Sequence[tuple[str, str]],
+    *,
+    log_prefix: str = "Custom columns",
+) -> dict[str, dict[str, str]]:
+    """``ref -> {output_name: exact cell text}`` for the mapped Custom columns.
+
+    Values are copied with :func:`custom_cell_text`, so they keep their leading
+    zeros, spaces and letter case. Rows sharing one designator are a data error
+    when their codes differ; the later row wins (same as the BOM comment) and the
+    conflict is logged instead of silently dropping either code.
+    """
+    out: dict[str, dict[str, str]] = {}
+    if not custom or designator_col is None:
+        return out
+    columns = list(df.columns)
+    present = [(name, col) for name, col in custom if col in columns]
+    if not present:
+        return out
+    for _, row in df.iterrows():
+        raw_ref = row[designator_col]
+        if pd.isna(raw_ref):
+            continue
+        designators, _warnings = normalize_designators(str(raw_ref))
+        values = {name: custom_cell_text(row[col]) for name, col in present}
+        for d in designators:
+            key = designator_key(d)
+            if not key:
+                continue
+            previous = out.get(key)
+            if previous is not None and previous != values:
+                logger.warning(
+                    "%s: designator %s repeats with different values "
+                    "(%s -> %s); the last row wins",
+                    log_prefix,
+                    key,
+                    previous,
+                    values,
+                )
+            out[key] = values
+    return out
+
+
+def _custom_row_values(
+    ref_key: str,
+    bom_custom_by_ref: dict[str, dict[str, str]],
+    bom_custom_names: Sequence[str],
+    pnp_custom_present: Sequence[tuple[str, str]],
+    pnp_row: pd.Series,
+    output_names: Sequence[str],
+) -> dict[str, str]:
+    """Custom cells for one merged placement.
+
+    Names mapped on the BOM take the BOM value whenever the BOM lists the
+    designator (``BOM wins``); PnP is only the fallback for placements the BOM
+    does not carry. PnP-only names always come from the PnP row.
+    """
+    bom_names = set(bom_custom_names)
+    in_bom = ref_key in bom_custom_by_ref
+    bom_values = bom_custom_by_ref.get(ref_key, {})
+    values: dict[str, str] = {}
+    for name in output_names:
+        if name in bom_names and in_bom:
+            values[name] = bom_values.get(name, "")
+            continue
+        values[name] = ""
+        for pnp_name, pnp_col in pnp_custom_present:
+            if pnp_name == name:
+                values[name] = custom_cell_text(pnp_row[pnp_col])
+                break
+    return values
 
 
 def _normalize_comment(comment: str) -> str:

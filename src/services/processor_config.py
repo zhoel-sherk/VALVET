@@ -28,6 +28,9 @@ def build_processor_config(
     pnp_mappings: dict[str, str],
     *,
     bom_column_roles: Sequence[str] | None = None,
+    bom_custom: Sequence[tuple[str, str]] = (),
+    pnp_custom: Sequence[tuple[str, str]] = (),
+    compare_custom: bool = False,
     pnp_xy_are_mils: bool = False,
     overlap_min_mm: float = 3.0,
     check_overlap: bool = False,
@@ -70,6 +73,7 @@ def build_processor_config(
         designator=str(bom_ref),
         comment=str(bom_comment_col),
         has_header=HIDDEN_TABLE_HAS_HEADER_ROW,
+        custom=list(bom_custom),
     )
     pnp_cfg = ColumnConfig(
         designator=str(pnp_ref),
@@ -80,6 +84,7 @@ def build_processor_config(
         rotation=str(pnp_rot) if pnp_rot else "_skip_",
         layer=str(pnp_layer) if pnp_layer else "_skip_",
         has_header=HIDDEN_TABLE_HAS_HEADER_ROW,
+        custom=list(pnp_custom),
     )
 
     proc = SMTDataProcessor(
@@ -87,6 +92,7 @@ def build_processor_config(
             overlap_xy_are_mm=not pnp_xy_are_mils,
             min_distance_mm=overlap_min_mm,
             check_overlap=check_overlap,
+            compare_custom=compare_custom,
             progress_log=progress_callback,
         )
     )

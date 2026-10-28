@@ -15,6 +15,14 @@ _EXCLUSIVE_ROLES = (
     "Layer",
 )
 
+#: Pass-through role: the column is never cleaned and is copied verbatim into
+#: Merge (and from there into CSV/Excel). Several columns may carry it.
+CUSTOM_ROLE = "Custom"
+
+#: PnP roles that may only be assigned to one column. Everything else in
+#: ``_EXCLUSIVE_ROLES`` is exclusive there, but ``Custom`` is not.
+PNP_EXCLUSIVE_ROLES = tuple(r for r in _EXCLUSIVE_ROLES if r != CUSTOM_ROLE)
+
 _PN_TOKENS = ("COMMENT", "VALUE", "PART", "PN")
 BOM_EXCLUSIVE_ROLES = ("REF", "Comment")
 PN_CLEAN_ROLES = ("Comment", "PnJoin")
@@ -125,6 +133,25 @@ def pn_columns_in_order(columns: Sequence[object], roles: Sequence[str]) -> list
     return out
 
 
+def custom_columns_in_order(
+    columns: Sequence[object], roles: Sequence[str]
+) -> list[tuple[str, str]]:
+    """``(output_name, source_column)`` for every column mapped ``Custom``.
+
+    Names are generated (``Custom 1``, ``Custom 2`` …) because the GUI loads
+    BOM/PnP without a header row, so column labels are just ``0``, ``1``, ….
+    Numbering restarts on each side, which is what makes ``Custom 1`` on the BOM
+    comparable with ``Custom 1`` on the PnP in Cross-check; Merge lets the BOM
+    value win when both sides carry the same name.
+    """
+    out: list[tuple[str, str]] = []
+    for col, role in zip(columns, roles, strict=False):
+        if role != CUSTOM_ROLE:
+            continue
+        out.append((f"{CUSTOM_ROLE} {len(out) + 1}", str(col)))
+    return out
+
+
 def pick_merge_pn_column(columns: Sequence[object], roles: Sequence[str]) -> str | None:
     """Merge/cross-check Value: PN name, else first PN name/join column."""
     for col, role in zip(columns, roles, strict=False):
@@ -160,7 +187,12 @@ def roles_after_clean_apply(
 
 
 def merge_result_pnp_roles(columns: Sequence[str]) -> list[str]:
-    """Map merge output headers Ref/Value/Footprint/X/Y/Rotation/Layer."""
+    """Map merge output headers Ref/Value/Footprint/X/Y/Rotation/Layer.
+
+    Anything that is not one of the standard placement columns is a ``Custom``
+    column carried through Merge, so ``Replace PnP`` keeps it mapped and a
+    second Merge does not lose it.
+    """
     by_compact = {
         "REF": "REF",
         "DESIGNATOR": "REF",
@@ -174,7 +206,12 @@ def merge_result_pnp_roles(columns: Sequence[str]) -> list[str]:
     }
     out: list[str] = []
     for name in columns:
-        out.append(by_compact.get(_compact(str(name)), guess_pnp_role(str(name))))
+        role = by_compact.get(_compact(str(name)))
+        if role is None:
+            role = guess_pnp_role(str(name))
+        if role == "-":
+            role = CUSTOM_ROLE
+        out.append(role)
     return uniquify_roles(out)
 
 

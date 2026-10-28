@@ -264,6 +264,7 @@
   "mapping.y": "Y",
   "mapping.rotation": "Rotation",
   "mapping.layer": "Layer",
+  "mapping.custom": "Custom",
   "mapping.column_tooltip": "Spalte {n}",
   "table.delete_rows": "Ausgewählte Zeilen löschen",
   "table.delete_columns": "Ausgewählte Spalten löschen",
