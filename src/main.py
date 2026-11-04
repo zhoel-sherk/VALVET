@@ -60,7 +60,11 @@ def main(argv: list[str] | None = None) -> None:
     if icon_path is not None:
         win.setWindowIcon(QtGui.QIcon(str(icon_path)))
     win.show()
-    print(f"{APP_NAME} - {APP_EXPANSION}", flush=True)
+    try:
+        print(f"{APP_NAME} - {APP_EXPANSION}", flush=True)
+    except OSError:
+        # PyInstaller's windowed executable may have no usable stdout handle.
+        pass
     if args.smoke or os.environ.get("VALVET_SMOKE", "").strip() in ("1", "true", "yes"):
         QtCore.QTimer.singleShot(400, app.quit)
     raise SystemExit(app.exec())

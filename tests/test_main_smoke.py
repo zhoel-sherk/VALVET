@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 _ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -23,3 +25,20 @@ def test_main_py_smoke_exits_zero() -> None:
     out = (proc.stdout or "") + (proc.stderr or "")
     assert proc.returncode == 0, out
     assert "VALVET" in out or proc.returncode == 0
+
+
+def test_main_smoke_tolerates_invalid_windowed_stdout(monkeypatch, qapp) -> None:
+    """PyInstaller console=False can expose a stdout that raises EINVAL."""
+    import main as main_module
+
+    class BrokenStdout:
+        def write(self, _text):
+            raise OSError(22, "Invalid argument")
+
+        def flush(self):
+            raise OSError(22, "Invalid argument")
+
+    monkeypatch.setattr(sys, "stdout", BrokenStdout())
+    with pytest.raises(SystemExit) as result:
+        main_module.main(["--smoke"])
+    assert result.value.code == 0
