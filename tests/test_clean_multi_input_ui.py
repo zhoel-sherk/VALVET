@@ -67,7 +67,7 @@ def test_fragment_checkbox_produces_a_combined_preview_input(main_window) -> Non
 
 
 def test_learn_other_uses_the_winning_original(main_window, monkeypatch) -> None:
-    import ui.clean_tab as clean_tab
+    import ui.clean_tab.actions as clean_tab
 
     preview = pd.DataFrame(
         [

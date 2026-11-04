@@ -23,7 +23,8 @@ from typing import Callable
 
 import pytest
 
-SRC = Path(__file__).resolve().parents[1] / "src" / "ui" / "clean_tab.py"
+PKG = Path(__file__).resolve().parents[1] / "src" / "ui" / "clean_tab"
+SOURCES = {p.name: p.read_text(encoding="utf-8") for p in sorted(PKG.glob("*.py"))}
 
 _LOG_FUNCS = {
     "_log",
@@ -37,8 +38,8 @@ _LOG_FUNCS = {
 }
 
 
-def _tree() -> ast.Module:
-    return ast.parse(SRC.read_text(encoding="utf-8"))
+def _trees() -> dict[str, ast.Module]:
+    return {name: ast.parse(text) for name, text in SOURCES.items()}
 
 
 def _with_parents(tree: ast.Module) -> ast.Module:
@@ -95,30 +96,32 @@ def _closes_over_path_variable(node: ast.AST, names: set[str]) -> bool:
 def _check_no_absolute_paths() -> list[str]:
     """Check that no log call resolves an absolute path."""
     offenders = []
-    for node in ast.walk(_tree()):
-        if not isinstance(node, ast.Call) or not _is_log_call(node):
-            continue
-        for arg in node.args:
-            if _mentions_absolute_path(arg):
-                offenders.append(f"line {node.lineno}: {ast.unparse(arg)}")
+    for name, tree in _trees().items():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not _is_log_call(node):
+                continue
+            for arg in node.args:
+                if _mentions_absolute_path(arg):
+                    offenders.append(f"{name}:{node.lineno}: {ast.unparse(arg)}")
     return offenders
 
 
 def _check_no_bare_path_variables() -> list[str]:
     """Check that no log call prints a bare path variable."""
     offenders = []
-    for node in ast.walk(_with_parents(_tree())):
-        if not isinstance(node, ast.Call) or not _is_log_call(node):
-            continue
-        for arg in node.args:
-            if _closes_over_path_variable(arg, {"path", "lib_path", "lib_dir"}):
-                offenders.append(f"line {node.lineno}: {ast.unparse(arg)}")
+    for name, tree in _trees().items():
+        for node in ast.walk(_with_parents(tree)):
+            if not isinstance(node, ast.Call) or not _is_log_call(node):
+                continue
+            for arg in node.args:
+                if _closes_over_path_variable(arg, {"path", "lib_path", "lib_dir"}):
+                    offenders.append(f"{name}:{node.lineno}: {ast.unparse(arg)}")
     return offenders
 
 
 def _check_still_logs_paths_by_name() -> list[str]:
     """Positive check: file names are still logged."""
-    text = SRC.read_text(encoding="utf-8")
+    text = "\n".join(SOURCES.values())
     violations = []
     if "os.path.abspath" in text:
         violations.append("os.path.abspath found")
@@ -133,7 +136,7 @@ def _check_still_logs_paths_by_name() -> list[str]:
 
 def _check_no_truncated_comments() -> list[str]:
     """Check that no truncated comment echoes in logs."""
-    text = SRC.read_text(encoding="utf-8")
+    text = "\n".join(SOURCES.values())
     violations = []
     if "sample row {i}: {one}" in text:
         violations.append("truncated sample row format found")
@@ -145,17 +148,18 @@ def _check_no_truncated_comments() -> list[str]:
 def _check_logger_exception_in_except() -> list[str]:
     """Check that logger.error is not used inside except blocks."""
     seen = []
-    for node in ast.walk(_tree()):
-        if not isinstance(node, ast.ExceptHandler):
-            continue
-        for sub in ast.walk(node):
-            if (
-                isinstance(sub, ast.Call)
-                and isinstance(sub.func, ast.Attribute)
-                and isinstance(sub.func.value, ast.Name)
-                and sub.func.value.id == "logger"
-            ):
-                seen.append((sub.lineno, sub.func.attr))
+    for name, tree in _trees().items():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ExceptHandler):
+                continue
+            for sub in ast.walk(node):
+                if (
+                    isinstance(sub, ast.Call)
+                    and isinstance(sub.func, ast.Attribute)
+                    and isinstance(sub.func.value, ast.Name)
+                    and sub.func.value.id == "logger"
+                ):
+                    seen.append((f"{name}:{sub.lineno}", sub.func.attr))
 
     violations = []
     errors_in_except = [(ln, a) for ln, a in seen if a == "error"]
@@ -173,23 +177,26 @@ def _check_logger_exception_in_except() -> list[str]:
 
 def _check_logger_error_outside_except() -> list[str]:
     """Check that logger.error outside except blocks is preserved."""
+    trees = _trees()
     in_except_lines = set()
-    for node in ast.walk(_tree()):
-        if isinstance(node, ast.ExceptHandler):
-            for sub in ast.walk(node):
-                line = getattr(sub, "lineno", None)
-                if line is not None:
-                    in_except_lines.add(line)
+    for name, tree in trees.items():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ExceptHandler):
+                for sub in ast.walk(node):
+                    line = getattr(sub, "lineno", None)
+                    if line is not None:
+                        in_except_lines.add((name, line))
 
     outside = [
-        node.lineno
-        for node in ast.walk(_tree())
+        (name, node.lineno)
+        for name, tree in trees.items()
+        for node in ast.walk(tree)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and isinstance(node.func.value, ast.Name)
         and node.func.value.id == "logger"
         and node.func.attr == "error"
-        and node.lineno not in in_except_lines
+        and (name, node.lineno) not in in_except_lines
     ]
 
     violations = []
@@ -226,9 +233,22 @@ def _check_logger_error_outside_except() -> list[str]:
     ],
 )
 def test_ast_log_checks(check_name: str, check_func: Callable) -> None:
-    """Parameterized AST checks for clean_tab.py logging."""
+    """Parameterized AST checks for the clean_tab package logging."""
     violations = check_func()
     assert not violations, f"{check_name} failed: {violations}"
+
+
+def test_guard_scans_the_whole_package() -> None:
+    """A module dropped from the scan would silently disable these checks."""
+    assert {
+        "__init__.py",
+        "actions.py",
+        "build.py",
+        "helpers.py",
+        "settings.py",
+        "texts.py",
+        "view_state.py",
+    } <= set(SOURCES)
 
 
 # ---------------------------------------------------------------------------
@@ -262,14 +282,14 @@ def test_import_log_does_not_print_comment_text(main_window) -> None:
 
 def test_convert_failure_log_keeps_traceback(main_window, monkeypatch, caplog) -> None:
     """Behavioural half: logger.exception really attaches exc_info here."""
-    import ui.clean_tab as clean_tab
+    import ui.clean_tab.actions as clean_actions
 
     main_window._clean_imported_comments = ["CAP 100nF"]
 
     def boom(_comments, _cfg):
         raise ValueError("kaboom")
 
-    monkeypatch.setattr(clean_tab, "clean_preview_inputs", boom)
+    monkeypatch.setattr(clean_actions, "clean_preview_inputs", boom)
     with caplog.at_level(logging.ERROR):
         main_window._run_clean_preview()
     record = next(r for r in caplog.records if "clean_preview failed" in r.getMessage())
@@ -283,8 +303,7 @@ def test_save_excel_failure_log_keeps_traceback(
 ) -> None:
     """The other converted site, and its GUI line stays path-free."""
     import pandas as pd
-
-    import ui.clean_tab as clean_tab
+    from PySide6 import QtWidgets
 
     lines: list[str] = []
     main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
@@ -292,12 +311,12 @@ def test_save_excel_failure_log_keeps_traceback(
     main_window._bom_df = df
     main_window.bom_model.update_dataframe(df)
     monkeypatch.setattr(
-        clean_tab.QtWidgets.QFileDialog,
+        QtWidgets.QFileDialog,
         "getSaveFileName",
         staticmethod(lambda *a, **k: (str(tmp_path / "out.xlsx"), "")),
     )
     monkeypatch.setattr(
-        clean_tab.QtWidgets.QMessageBox,
+        QtWidgets.QMessageBox,
         "critical",
         staticmethod(lambda *a, **k: None),
     )
@@ -321,8 +340,7 @@ def test_save_excel_success_logs_only_the_file_name(
 ) -> None:
     """The success path: the operator still sees which file was written."""
     import pandas as pd
-
-    import ui.clean_tab as clean_tab
+    from PySide6 import QtWidgets
 
     lines: list[str] = []
     main_window.log_message.connect(lambda msg, _lvl: lines.append(str(msg)))
@@ -330,12 +348,12 @@ def test_save_excel_success_logs_only_the_file_name(
     main_window._bom_df = df
     main_window.bom_model.update_dataframe(df)
     monkeypatch.setattr(
-        clean_tab.QtWidgets.QFileDialog,
+        QtWidgets.QFileDialog,
         "getSaveFileName",
         staticmethod(lambda *a, **k: (str(tmp_path / "customer" / "out.xlsx"), "")),
     )
     monkeypatch.setattr(
-        clean_tab.QtWidgets.QMessageBox,
+        QtWidgets.QMessageBox,
         "information",
         staticmethod(lambda *a, **k: None),
     )
