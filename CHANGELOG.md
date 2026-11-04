@@ -3,7 +3,7 @@
 Notable changes to VALVET. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.5.0] - BETA - 2026-10-28
+## [0.5.5.1] - BETA - 2026-11-04
 
 ### Added
 
