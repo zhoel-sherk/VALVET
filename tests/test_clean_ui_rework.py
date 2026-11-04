@@ -214,6 +214,42 @@ def test_learn_other_shows_count_and_disables_at_zero(main_window) -> None:
     assert win.btn_clean_learn_other.toolTip() == win.ui_tr("clean.btn_learn_zero_tip")
 
 
+def test_parser_settings_has_type_header_and_unlabelled_miniblocks(
+    main_window,
+) -> None:
+    win = main_window
+    win.btn_clean_options_toggle.setChecked(True)
+    win.show()
+    QtWidgets.QApplication.processEvents()
+    assert win.gb_clean_parser.title() == win.ui_tr("clean.everyday")
+    assert win.gb_clean_everyday.title() == ""
+    assert win.gb_clean_advanced.title() == ""
+    assert win.lbl_clean_rcl_type_hdr.text() == win.ui_tr("clean.rcl_type")
+    assert win.lbl_clean_rcl_type_hdr.isVisible() is True
+    assert win._clean_rcl_header.isVisible() is True
+    assert win.clean_rcl_host.parentWidget() is win.gb_clean_parser
+
+
+def test_primary_actions_share_one_row_at_1000(main_window) -> None:
+    win = main_window
+    win.resize(1000, 650)
+    win.tabs.setCurrentIndex(win._tab_index("clean_bom"))
+    win.show()
+    QtWidgets.QApplication.processEvents()
+    actions = (
+        win.btn_clean_import,
+        win.btn_clean_convert,
+        win.btn_clean_apply,
+        win.btn_clean_learn_other,
+        win.btn_clean_save,
+    )
+    ys = {button.mapTo(win, button.rect().topLeft()).y() for button in actions}
+    assert len(ys) == 1
+    assert max(
+        button.mapTo(win, button.rect().topRight()).x() for button in actions
+    ) <= (win.width())
+
+
 def test_rules_summary_reflects_live_settings(main_window) -> None:
     win = main_window
     win.chk_clean_res.setChecked(True)

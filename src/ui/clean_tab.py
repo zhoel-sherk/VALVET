@@ -128,9 +128,22 @@ class CleanTabMixin:
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(6)
         grid.setColumnStretch(0, 1)
-        self.clean_rules_grid = grid
+
+        group_parser = QtWidgets.QGroupBox()
+        self.gb_clean_parser = group_parser
+        group_parser.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Maximum,
+        )
+        parser_grid = QtWidgets.QGridLayout(group_parser)
+        parser_grid.setHorizontalSpacing(8)
+        parser_grid.setVerticalSpacing(6)
+        parser_grid.setColumnStretch(0, 1)
+        parser_grid.setColumnStretch(1, 1)
+        self.clean_rules_grid = parser_grid
 
         group_global = QtWidgets.QGroupBox()
+        group_global.setTitle("")
         self.gb_clean_everyday = group_global
         group_global.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred,
@@ -187,12 +200,11 @@ class CleanTabMixin:
         rcl_v.setContentsMargins(0, 4, 0, 0)
         rcl_v.setSpacing(2)
         self._build_clean_rcl_grid(rcl_v)
-        glb.addWidget(rcl_host, 4, 0, 1, 4)
-
-        grid.addWidget(group_global, 0, 0)
+        self.clean_rcl_host = rcl_host
 
         group_advanced = QtWidgets.QGroupBox()
         self.gb_clean_advanced = group_advanced
+        group_advanced.setTitle("")
         group_advanced.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Preferred,
             QtWidgets.QSizePolicy.Policy.Maximum,
@@ -228,19 +240,12 @@ class CleanTabMixin:
         self.clean_regex_master.toggled.connect(self._on_clean_regex_master_toggled)
         adv.addWidget(self.clean_regex_master, 3, 0, 1, 2)
         adv.addWidget(self.clean_regex_master_scores, 4, 0, 1, 2)
-        grid.addWidget(group_advanced, 1, 0)
-        grid.addItem(
-            QtWidgets.QSpacerItem(
-                0,
-                0,
-                QtWidgets.QSizePolicy.Policy.Minimum,
-                QtWidgets.QSizePolicy.Policy.Expanding,
-            ),
-            2,
-            0,
-            1,
-            2,
-        )
+        parser_grid.addWidget(group_global, 0, 0)
+        parser_grid.addWidget(group_advanced, 0, 1)
+        parser_grid.addWidget(rcl_host, 1, 0, 1, 2)
+        parser_grid.setRowStretch(0, 0)
+        parser_grid.setRowStretch(1, 0)
+        grid.addWidget(group_parser, 0, 0)
 
         group_mpn_www = QtWidgets.QGroupBox()
         self.gb_clean_mpn = group_mpn_www
@@ -406,13 +411,7 @@ class CleanTabMixin:
                 QtWidgets.QSizePolicy.Policy.Fixed,
             )
             buttons.addWidget(b)
-        buttons.addStretch()
-        layout.addLayout(buttons)
-
-        secondary_row = QtWidgets.QHBoxLayout()
-        secondary_row.setContentsMargins(0, 0, 0, 0)
-        secondary_row.setSpacing(8)
-        secondary_row.addStretch(1)
+        buttons.addStretch(1)
         for b in (self.btn_clean_learn_other, self.btn_clean_save):
             f = b.font()
             f.setBold(True)
@@ -425,8 +424,8 @@ class CleanTabMixin:
                 QtWidgets.QSizePolicy.Policy.Minimum,
                 QtWidgets.QSizePolicy.Policy.Fixed,
             )
-            secondary_row.addWidget(b)
-        layout.addLayout(secondary_row)
+            buttons.addWidget(b)
+        layout.addLayout(buttons)
 
         self.clean_apply_ok_banner = QtWidgets.QFrame()
         self.clean_apply_ok_banner.setObjectName("cleanApplyOkBanner")
@@ -640,7 +639,9 @@ class CleanTabMixin:
         hdr = QtWidgets.QWidget()
         self._clean_rcl_header = hdr
         hg = _new_grid(hdr)
-        hg.addWidget(QtWidgets.QLabel(), 0, 0)
+        self.lbl_clean_rcl_type_hdr = QtWidgets.QLabel()
+        self.lbl_clean_rcl_type_hdr.setObjectName("cleanRclTypeHeader")
+        hg.addWidget(self.lbl_clean_rcl_type_hdr, 0, 0)
         for i in range(slot_n):
             h = QtWidgets.QLabel(str(i + 1))
             h.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -804,7 +805,7 @@ class CleanTabMixin:
             *self.clean_cap_template_combos,
             *self.clean_ind_template_combos,
         ]
-        slot_w = 112
+        slot_w = 104
         for c in combos:
             slot_w = max(slot_w, int(c.sizeHint().width()))
         type_w = 96
@@ -909,20 +910,27 @@ class CleanTabMixin:
             return
         self._clean_rules_layout_mode = mode
         grid = self.clean_rules_grid
-        grid.removeWidget(self.gb_clean_everyday)
-        grid.removeWidget(self.gb_clean_advanced)
+        for widget in (
+            self.gb_clean_everyday,
+            self.gb_clean_advanced,
+            self.clean_rcl_host,
+        ):
+            grid.removeWidget(widget)
         if mode == "side":
             grid.addWidget(self.gb_clean_everyday, 0, 0)
             grid.addWidget(self.gb_clean_advanced, 0, 1)
+            grid.addWidget(self.clean_rcl_host, 1, 0, 1, 2)
             grid.setColumnStretch(0, 1)
             grid.setColumnStretch(1, 1)
         else:
             grid.addWidget(self.gb_clean_everyday, 0, 0, 1, 2)
             grid.addWidget(self.gb_clean_advanced, 1, 0, 1, 2)
+            grid.addWidget(self.clean_rcl_host, 2, 0, 1, 2)
             grid.setColumnStretch(0, 1)
             grid.setColumnStretch(1, 0)
         grid.setRowStretch(0, 0)
         grid.setRowStretch(1, 0)
+        grid.setRowStretch(2, 0)
 
     def _save_clean_splitter_sizes(self) -> None:
         if not hasattr(self, "clean_splitter") or not hasattr(self, "_settings"):
@@ -980,10 +988,10 @@ class CleanTabMixin:
             total = sum(self.clean_splitter.sizes())
         if total <= 0:
             return
-        rules = max(120, int(total * 0.45))
-        table = max(self.clean_preview_stack.minimumHeight(), total - rules)
+        table = max(self.clean_preview_stack.minimumHeight(), int(total * 0.35))
+        rules = max(120, total - table)
         if table + rules > total:
-            rules = max(120, total - table)
+            table = max(120, total - rules)
         self.clean_splitter.setSizes([table, rules])
 
     def _restore_clean_splitter_sizes(self) -> None:
@@ -998,7 +1006,7 @@ class CleanTabMixin:
             self.clean_splitter.setSizes(sizes)
             return
         total = sum(self.clean_splitter.sizes()) or 600
-        self.clean_splitter.setSizes([int(total * 0.55), int(total * 0.45)])
+        self.clean_splitter.setSizes([int(total * 0.35), int(total * 0.65)])
 
     def _update_clean_preview_min_height(self) -> None:
         if not hasattr(self, "clean_preview_stack"):
@@ -1423,11 +1431,13 @@ class CleanTabMixin:
         ):
             for w in combos:
                 w.setVisible(visible)
+        # The slot numbers and Type header describe the visible row below, even
+        # when the empty default slots are not part of a custom preset.
         hdr = getattr(self, "_clean_rcl_header", None)
         if hdr is not None:
-            hdr.setVisible(visible)
+            hdr.setVisible(True)
         for h in getattr(self, "_clean_rcl_slot_headers", []):
-            h.setVisible(visible)
+            h.setVisible(True)
         for sp in getattr(self, "_clean_rcl_slot_spacers", []):
             sp.setVisible(visible)
         self._sync_clean_parser_grid_sizes()
@@ -1505,8 +1515,9 @@ class CleanTabMixin:
         if not hasattr(self, "btn_clean_import"):
             return
         self.btn_clean_help.setToolTip(self.ui_tr("clean.help_title"))
-        self.gb_clean_everyday.setTitle(self.ui_tr("clean.everyday"))
-        self.gb_clean_advanced.setTitle(self.ui_tr("clean.advanced"))
+        self.gb_clean_parser.setTitle(self.ui_tr("clean.everyday"))
+        self.gb_clean_everyday.setTitle("")
+        self.gb_clean_advanced.setTitle("")
         self.lbl_clean_spacer.setText(self.ui_tr("clean.spacer"))
         self.clean_spacer_cust.setPlaceholderText(self.ui_tr("clean.spacer_custom"))
         _si = self.clean_spacer_combo.currentIndex()
@@ -1569,6 +1580,8 @@ class CleanTabMixin:
         self.lbl_clean_res_prefix.setText(self.ui_tr("clean.prefix"))
         self.lbl_clean_cap_prefix.setText(self.ui_tr("clean.prefix"))
         self.lbl_clean_ind_prefix.setText(self.ui_tr("clean.prefix"))
+        if hasattr(self, "lbl_clean_rcl_type_hdr"):
+            self.lbl_clean_rcl_type_hdr.setText(self.ui_tr("clean.rcl_type"))
         if hasattr(self, "lbl_clean_rcl_prefix_hdr"):
             self.lbl_clean_rcl_prefix_hdr.setText(self.ui_tr("clean.prefix"))
         self.clean_res_ohm_r.setText(self.ui_tr("clean.ohm_r"))

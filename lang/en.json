@@ -334,6 +334,7 @@
   "clean.preset_compact": "Compact",
   "clean.preset_custom": "Custom…",
   "clean.prefix": "Prefix:",
+  "clean.rcl_type": "Type",
   "clean.prefix_spacer": "Use spacer after prefix",
   "clean.prefix_spacer_tip": "On: prefix C + spacer + 0402-12PF. Off: C0402-12PF.",
   "clean.double_comment": "Double Comment import",

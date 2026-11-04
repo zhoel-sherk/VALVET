@@ -235,13 +235,11 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         assert win.btn_clean_convert.isEnabled() is False
         assert win.btn_clean_apply.isEnabled() is False
         assert win.clean_res_watt_from_pack.text() == win.ui_tr("clean.watt_from_pack")
-        assert win.gb_clean_everyday.title() == win.ui_tr("clean.everyday")
+        assert win.gb_clean_parser.title() == win.ui_tr("clean.everyday")
         assert win.lbl_clean_preset.text() == win.ui_tr("clean.preset")
         assert win.clean_format_preset.parent() is not None
-        assert win.clean_res_frame.parent() is win.gb_clean_everyday or (
-            win.clean_res_frame.parent() is not None
-            and win.gb_clean_everyday.isAncestorOf(win.clean_res_frame)
-        )
+        assert win.clean_res_frame.parent() is not None
+        assert win.gb_clean_parser.isAncestorOf(win.clean_res_frame)
         assert win.gb_clean_mpn.isVisible() is False
         assert win.btn_clean_debug is not None
         status = win.statusBar().currentMessage()

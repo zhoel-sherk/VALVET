@@ -334,6 +334,7 @@
   "clean.preset_compact": "Компактно",
   "clean.preset_custom": "Свой…",
   "clean.prefix": "Префикс:",
+  "clean.rcl_type": "Тип",
   "clean.prefix_spacer": "Разделитель после префикса",
   "clean.prefix_spacer_tip": "Вкл.: префикс C + разделитель + 0402-12PF. Выкл.: C0402-12PF.",
   "clean.double_comment": "Двойной Comment",
