@@ -313,6 +313,11 @@ class ScanTab(QtWidgets.QWidget):
         self._load_thread = None
         self._set_export_loading(False)
 
+    def wait_for_export_load(self) -> None:
+        """Do not let Qt destroy a running worker during application close."""
+        if self._load_thread is not None:
+            self._load_thread.wait()
+
     def _render_export_status(self, export: TolpExport) -> None:
         machines = len(export.machines)
         text = self._tr(

@@ -907,6 +907,8 @@ class MainWindow(
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Persist active profile snapshot (widgets only; no BOM/PnP file paths)."""
+        if hasattr(self, "_scan_tab"):
+            self._scan_tab.wait_for_export_load()
         try:
             self._save_window_layout_settings()
             if hasattr(self, "_save_full_profile_snapshot"):
