@@ -32,6 +32,30 @@ class CrossCheckThread(QtCore.QThread):
             self.result_ready.emit(r, "")
 
 
+class TolpExportLoadThread(QtCore.QThread):
+    """Read T-OLP binary exports off the GUI thread."""
+
+    result_ready = QtCore.Signal(object, str)  # TolpExport or None, error
+
+    def __init__(
+        self, path: str, front_is_one: bool, parent: Optional[QtCore.QObject] = None
+    ):
+        super().__init__(parent)
+        self._path = path
+        self._front_is_one = front_is_one
+
+    def run(self) -> None:
+        try:
+            from parsers.tolp_export import load_tolp_export
+
+            export = load_tolp_export(self._path, front_is_one=self._front_is_one)
+        except Exception as e:
+            logger.exception("T-OLP export load failed: %s", e)
+            self.result_ready.emit(None, str(e))
+        else:
+            self.result_ready.emit(export, "")
+
+
 class HanwhaPartDetLoadThread(QtCore.QThread):
     """Load PART_Det off the GUI thread (ACE/ODBC or mdbtools can block for minutes)."""
 

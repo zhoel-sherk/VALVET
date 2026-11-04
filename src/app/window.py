@@ -111,6 +111,7 @@ class MainWindow(
         self._recent_pnp: list[str] = []
         self._last_report_html: str = ""
         self._last_merge_df: Optional[pd.DataFrame] = None
+        self._merge_stale: bool = False
         self._cc_full_df: Optional[pd.DataFrame] = None
         self._cc_user_accepted: bool = False
         self._restoring_settings: bool = False
@@ -235,6 +236,7 @@ class MainWindow(
             self._create_step_3d_tab()
         self._create_machine_library_tab()
         self._create_settings_tab()
+        self._create_scan_tab()
 
         self.tabs.currentChanged.connect(self._on_main_tab_changed)
 
@@ -300,6 +302,11 @@ class MainWindow(
             self._pcb_tab.refresh_static_texts()
         if hasattr(self, "_step_3d_tab"):
             self._step_3d_tab.refresh_static_texts()
+        if hasattr(self, "_scan_tab"):
+            self._scan_tab.refresh_static_texts()
+        if hasattr(self, "btn_scan"):
+            self.btn_scan.setText(self.ui_tr("merge.scan"))
+            self.btn_scan.setToolTip(self.ui_tr("merge.scan_tip"))
         self._refresh_shell_status()
 
     def apply_ui_font_from_settings(self) -> None:
@@ -545,13 +552,40 @@ class MainWindow(
         self._machine_library_tab = MachineLibraryTab(self, settings=self._settings)
         self._register_main_tab("machine_lib", self._machine_library_tab)
 
+    def _create_scan_tab(self) -> None:
+        """Operator scan screen: present in the stack, absent from the tab bar."""
+        from ui.scan_tab import ScanTab
+
+        self._scan_tab = ScanTab(self, settings=self._settings)
+        index = self.tabs.addTab(self._scan_tab, "Scan")
+        self._scan_tab_index = index
+        self.tabs.setTabVisible(index, False)
+
+    def _open_scan_tab(self) -> None:
+        """Open the hidden Scan tab from Merge and focus the barcode field."""
+        tab = getattr(self, "_scan_tab", None)
+        if tab is None:
+            return
+        self.tabs.setCurrentWidget(tab)
+        tab.on_shown()
+
+    def _tab_index_for_persistence(self) -> int:
+        """Never persist the hidden Scan tab as the restored workspace tab."""
+        idx = self.tabs.currentIndex()
+        if idx == getattr(self, "_scan_tab_index", -1):
+            merge_idx = self._tab_index("merge")
+            return merge_idx if merge_idx >= 0 else 0
+        return idx
+
     def _on_main_tab_changed(self, idx: int) -> None:
         if (
             not getattr(self, "_restoring_settings", False)
             and hasattr(self, "_settings")
             and hasattr(self, "tabs")
         ):
-            self._settings.setValue("ui/main_tab_index", idx)
+            self._settings.setValue(
+                "ui/main_tab_index", self._tab_index_for_persistence()
+            )
         self._refresh_shell_status()
         if (
             0 <= idx < len(self._tab_keys_in_order)
@@ -820,6 +854,9 @@ class MainWindow(
         s = self._settings
         idx = _settings_int(s.value("ui/main_tab_index", 0), default=0)
         idx = max(0, min(idx, self.tabs.count() - 1))
+        if idx == getattr(self, "_scan_tab_index", -1):
+            merge_idx = self._tab_index("merge")
+            idx = merge_idx if merge_idx >= 0 else 0
         self.tabs.blockSignals(True)
         self.tabs.setCurrentIndex(idx)
         self.tabs.blockSignals(False)
@@ -831,7 +868,9 @@ class MainWindow(
             return
         self._settings.setValue("ui/main_window_geometry", self.saveGeometry())
         if hasattr(self, "tabs"):
-            self._settings.setValue("ui/main_tab_index", self.tabs.currentIndex())
+            self._settings.setValue(
+                "ui/main_tab_index", self._tab_index_for_persistence()
+            )
         w = getattr(self, "_console_window", None)
         if w is not None:
             self._settings.setValue("ui/console_window_geometry", w.saveGeometry())
@@ -868,6 +907,8 @@ class MainWindow(
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """Persist active profile snapshot (widgets only; no BOM/PnP file paths)."""
+        if hasattr(self, "_scan_tab"):
+            self._scan_tab.wait_for_export_load()
         try:
             self._save_window_layout_settings()
             if hasattr(self, "_save_full_profile_snapshot"):

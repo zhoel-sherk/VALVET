@@ -48,8 +48,10 @@ def test_main_window_constructs(import_parsers, qapp, tmp_path) -> None:
         assert widths[merge_i] > widths[project_i]
         assert min(widths) >= 48
         assert not win.tabs.tabIcon(win._tab_index("project")).isNull()
-        assert win.tabs.count() == len(win._tab_keys_in_order)
-        assert win.tabs.count() == 9
+        assert len(win._tab_keys_in_order) == 9
+        # The operator Scan screen lives in the stack but not in the tab bar.
+        assert win.tabs.count() == len(win._tab_keys_in_order) + 1
+        assert not win.tabs.isTabVisible(win.tabs.indexOf(win._scan_tab))
         assert "package" in win._tab_keys_in_order
         assert hasattr(win, "_package_tab")
         assert hasattr(win, "btn_find_package")
@@ -92,7 +94,8 @@ def test_main_window_each_tab_switchable(
     _set_experimental(settings, enabled=experimental_on)
     win = MainWindow(settings=settings)
     try:
-        assert win.tabs.count() == expected_tabs
+        assert len(win._tab_keys_in_order) == expected_tabs
+        assert win.tabs.count() == expected_tabs + 1  # + hidden Scan
         for i, key in enumerate(win._tab_keys_in_order):
             win.tabs.setCurrentIndex(i)
             qapp.processEvents()

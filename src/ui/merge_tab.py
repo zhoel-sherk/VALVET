@@ -88,6 +88,10 @@ class MergeTabMixin:
         self.btn_merge_help.setMinimumHeight(ACTION_BTN_MIN_H)
         merge_row.addWidget(self.btn_merge_help)
         merge_l.addLayout(merge_row)
+        self.btn_scan = action_button(self.ui_tr("merge.scan"))
+        self.btn_scan.setToolTip(self.ui_tr("merge.scan_tip"))
+        self.btn_scan.clicked.connect(self._open_scan_tab)
+        merge_l.addWidget(self.btn_scan)
         self.merge_delete_dnp = switch_checkbox("Delete DNP")
         self.merge_delete_dnp.setToolTip(
             "When merging, drop PnP placements that are not in the BOM "
@@ -654,6 +658,7 @@ class MergeTabMixin:
             include_dnp = not self.merge_delete_dnp.isChecked()
             merged = self.processor.merge_bom_pnp(include_dnp=include_dnp)
             self._last_merge_df = merged
+            self._merge_stale = False
             self.merge_model.update_dataframe(merged)
             self._update_merge_layer_export_controls()
             self._log(

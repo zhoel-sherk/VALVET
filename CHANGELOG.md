@@ -3,6 +3,48 @@
 Notable changes to VALVET. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5.1] - BETA - 2026-11-04
+
+### Added
+
+- **Hidden Scan tab: reel barcode → feeder position.** Merge has a **Scan**
+  button that opens an operator screen (not present in the tab bar). The
+  operator scans the reel barcode (`IN-…`, stored in a Custom column), and the
+  screen shows the machine, the front/rear feeder base and the slot in a
+  25–72 px selector.
+  - The T-OLP **machine feeder base (`.mfb`)** is the primary source: machine
+    and side are explicit, and the slot is the attachment position (the T-OLP
+    `No.` column), advanced by the feeder width (8 mm = 1, 12/16 mm = 2,
+    24 mm = 3, 32/36/44 mm = 4, 56 mm = 5, 88 mm = 7, tray = 2). Per-machine
+    `.PCB` files remain the fallback and a cross-check; the `.eoj` only names
+    the machines/models and has no feeder table.
+  - Scanned code → BOM/Merge row → part name (merge `Value` or the BOM
+    comment) → every feeder holding that part, across all machines. Values are
+    compared after whitespace/case normalisation; the part problem is the
+    production `0201_10K_1%`, never the 1C code, so a mismatch is reported as
+    “part not found in T-OLP”, separately from “code not found in BOM”.
+  - Settings remembered: export folder, Custom column, font size, front/rear
+    swap (when the T-OLP job numbers the rear base first).
+  - Format notes and a probe: `doc/info/tolp_export_format.md`,
+    `python tools/tolp_probe.py C:\PCB`. Sample feeder-base files live in
+    `examples/tolp_mfb/`.
+
+### Fixed
+
+- **Scan slot accounting and source selection.** A 32 mm feeder now consumes
+  four attachment positions, as shown by the T-OLP FeederBase (slot 7 → 11).
+  Unknown widths fail instead of silently shifting every following slot.
+  Scan ignores stale Merge results after BOM/PnP changes, keeps the selected
+  BOM fallback DataFrame, follows Merge's Comment/PnJoin rule and preserves the
+  selected Custom column across BOM/Merge.
+- **Scan operator states.** Missing spreadsheet cells no longer become a `nan`
+  part; numeric Custom codes use the same cell conversion as Merge. An unreadable
+  or empty export is a load error, not `part missing`. Every feeder carrying the
+  scanned part remains visible, with scrolling for large result sets.
+- **Scan UI responsiveness and localization.** T-OLP disk parsing runs in a
+  worker thread, duplicate reloads are disabled while it runs, and Scan strings
+  now refresh when the application language changes.
+
 ## [0.5.4.0] - BETA - 2026-10-28
 
 ### Added

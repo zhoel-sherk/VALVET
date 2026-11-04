@@ -326,6 +326,7 @@ class FilesMixin:
                     dirty=False,
                 )
             QtCore.QTimer.singleShot(0, self._save_bom_tab_settings_to_disk)
+            self._merge_stale = True
             self._hide_merge_cross_check_ok_banner()
             self._register_session_link()
             if hasattr(self, "_mark_clean_preview_stale"):
@@ -442,6 +443,7 @@ class FilesMixin:
                     extra=extra,
                 )
             QtCore.QTimer.singleShot(0, self._save_pnp_tab_settings_to_disk)
+            self._merge_stale = True
             self._hide_merge_cross_check_ok_banner()
             self._register_session_link()
         except SMTProcessorError as e:
@@ -501,6 +503,7 @@ class FilesMixin:
             self._pnp_dirty = True
         else:
             return
+        self._merge_stale = True
         if autosave:
             self._autosave_timer.start(1500)
 

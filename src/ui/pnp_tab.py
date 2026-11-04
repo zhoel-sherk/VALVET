@@ -227,6 +227,7 @@ class PnpTabMixin:
 
     def _clear_pnp_workspace(self) -> None:
         self._prune_session_links_for_pnp_identity(self._pnp_snapshot_identity_path())
+        self._merge_stale = True
         self._pnp_df = None
         self._pnp_source_path = ""
         self._pnp_secondary_path = ""

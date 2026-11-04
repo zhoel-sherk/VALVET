@@ -285,6 +285,7 @@ class MappingMixin:
                 exclusive_roles=frozenset(BOM_EXCLUSIVE_ROLES),
             )
         self._log(f"BOM col {col_idx} -> {mapping}", "debug")
+        self._merge_stale = True
         self._schedule_save_bom_tab_settings()
         if hasattr(self, "_mark_clean_preview_stale"):
             self._mark_clean_preview_stale()
@@ -301,6 +302,7 @@ class MappingMixin:
                 exclusive_roles=frozenset(PNP_EXCLUSIVE_ROLES),
             )
         self._log(f"PnP col {col_idx} -> {mapping}", "debug")
+        self._merge_stale = True
         self._schedule_save_pnp_tab_settings()
 
     def _on_bom_header_click(self, section: int):

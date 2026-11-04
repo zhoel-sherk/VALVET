@@ -80,6 +80,11 @@ def test_apply_main_tab_order_and_icons(import_parsers, main_window) -> None:
         main_window._tab_index("settings")
     )
     assert not main_window.tabs.tabIcon(main_window._tab_index("project")).isNull()
+    # The hidden Scan page survives a tab reorder and stays out of the bar.
+    scan_idx = main_window.tabs.indexOf(main_window._scan_tab)
+    assert scan_idx >= 0
+    assert not main_window.tabs.isTabVisible(scan_idx)
+    assert main_window.tabs.count() == len(keys) + 1
     settings.setValue(TAB_SHOW_ICONS_KEY, False)
     apply_all_main_tab_prefs(main_window)
     assert main_window.tabs.tabIcon(main_window._tab_index("project")).isNull()
@@ -97,7 +102,7 @@ def test_settings_tabs_page_present(import_parsers, main_window) -> None:
 
     pages = main_window._settings_pages
     assert pages.page_tabs is not None
-    assert pages._tabs_order_list.count() == main_window.tabs.count()
+    assert pages._tabs_order_list.count() == len(main_window._tab_keys_in_order)
     pages._chk_tab_icons.setChecked(False)
     pages._spin_tab_height.setValue(36)
     pages._on_tabs_apply_clicked()
