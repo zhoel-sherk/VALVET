@@ -346,6 +346,8 @@ class MainWindow(
     def _refresh_project_tab_static_texts(self) -> None:
         if not hasattr(self, "project_bom_group"):
             return
+        self.project_title_label.setText(self.ui_tr("project.workspace_title"))
+        self.project_subtitle_label.setText(self.ui_tr("project.workspace_subtitle"))
         self.project_load_group.setTitle(self.ui_tr("project.load_files"))
         self.project_bom_group.setTitle(self.ui_tr("project.bom_file"))
         self.project_pnp_group.setTitle(self.ui_tr("project.pnp_file"))
@@ -353,6 +355,8 @@ class MainWindow(
         if hasattr(self, "project_profile_group"):
             self.project_profile_group.setTitle(self.ui_tr("project.profile_group"))
             self.project_session_group.setTitle(self.ui_tr("project.session_group"))
+            self.project_options_group.setTitle(self.ui_tr("project.options"))
+            self.pnp_secondary_label.setText(self.ui_tr("project.pnp_select_optional"))
         self.btn_browse_bom.setText(self.ui_tr("project.browse_bom"))
         self.btn_browse_pnp.setText(self.ui_tr("project.browse_pnp"))
         self.btn_profile_clone.setText(self.ui_tr("project.profile_clone"))
@@ -486,6 +490,9 @@ class MainWindow(
         if hasattr(self, "btn_project_save_pack"):
             self.btn_project_save_pack.setText(self.ui_tr("project.save_session"))
             self.btn_project_load_pack.setText(self.ui_tr("project.load_session"))
+        from ui.project_tab import apply_project_equal_widths
+
+        apply_project_equal_widths(self)
 
     def _on_ui_language_changed(self) -> None:
         if getattr(self, "_restoring_settings", False):

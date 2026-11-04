@@ -8,7 +8,10 @@ from typing import Any, Callable
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from themes.fonts_loader import build_mono_font
+from themes.tab_icons import tab_icon
 from ui_i18n import UI_LANGUAGE_OPTIONS
+
+_PROJECT_CONTENT_MAX_W = 1500
 
 
 class PathLabel(QtWidgets.QLabel):
@@ -26,9 +29,8 @@ class PathLabel(QtWidgets.QLabel):
         )
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.Fixed,
         )
-        self.setMinimumHeight(40)
         self.setText(empty_text)
 
     def set_path(self, path: str, *, empty_text: str | None = None) -> None:
@@ -200,11 +202,69 @@ class DropRowWidget(QtWidgets.QWidget):
         event.ignore()
 
 
+class _ProjectScrollArea(QtWidgets.QScrollArea):
+    """Stack the two Project columns when the viewport cannot fit them."""
+
+    def __init__(
+        self,
+        columns: QtWidgets.QGridLayout,
+        files: QtWidgets.QWidget,
+        workspace: QtWidgets.QWidget,
+    ) -> None:
+        super().__init__()
+        self._columns = columns
+        self._files = files
+        self._workspace = workspace
+        self._two_columns: bool | None = None
+
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:  # type: ignore[override]
+        super().resizeEvent(event)
+        two_columns = self.viewport().width() >= 1100
+        if two_columns == self._two_columns:
+            return
+        self._two_columns = two_columns
+        self._columns.removeWidget(self._files)
+        self._columns.removeWidget(self._workspace)
+        self._columns.addWidget(self._files, 0, 0)
+        self._columns.addWidget(
+            self._workspace, 0 if two_columns else 1, 1 if two_columns else 0
+        )
+        self._columns.setColumnStretch(0, 3 if two_columns else 1)
+        self._columns.setColumnStretch(1, 2 if two_columns else 0)
+
+
 def _clear_file_button(win: Any, slot: Callable[[], None]) -> QtWidgets.QPushButton:
     btn = QtWidgets.QPushButton(win.ui_tr("project.pnp_clear_optional"))
     btn.setMaximumWidth(88)
     btn.clicked.connect(slot)
     return btn
+
+
+def apply_project_equal_widths(win: Any) -> None:
+    """Re-align Project actions after construction and after a language change."""
+    from ui.chrome import apply_equal_widths
+
+    file_buttons = [
+        win.btn_browse_bom,
+        win.btn_browse_pnp,
+        win.btn_browse_pnp2,
+        win.btn_open_mdb,
+        win.btn_open_tou,
+        win.btn_open_tou_folder,
+        win.btn_open_lib,
+    ]
+    if win.btn_access_odbc is not None:
+        file_buttons.append(win.btn_access_odbc)
+    apply_equal_widths(file_buttons)
+    apply_equal_widths(
+        (
+            win.btn_profile_clone,
+            win.btn_profile_new,
+            win.btn_profile_delete,
+            win.btn_project_save_pack,
+            win.btn_project_load_pack,
+        )
+    )
 
 
 def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
@@ -215,15 +275,44 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
         ACTION_BTN_MIN_H,
         CHROME_SPACING,
         action_button,
-        apply_equal_widths,
         help_button,
         switch_checkbox,
     )
 
+    content = QtWidgets.QWidget()
+    content.setMaximumWidth(_PROJECT_CONTENT_MAX_W)
+    content.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Expanding,
+        QtWidgets.QSizePolicy.Policy.Preferred,
+    )
+    content_layout = QtWidgets.QVBoxLayout(content)
+    content_layout.setSpacing(CHROME_SPACING * 2)
+
+    header = QtWidgets.QHBoxLayout()
+    icon_label = QtWidgets.QLabel()
+    icon_label.setPixmap(tab_icon("project").pixmap(28, 28))
+    header.addWidget(icon_label)
+    win.project_title_label = QtWidgets.QLabel(win.ui_tr("project.workspace_title"))
+    title_font = win.project_title_label.font()
+    title_font.setPointSize(18)
+    title_font.setBold(True)
+    win.project_title_label.setFont(title_font)
+    header.addWidget(win.project_title_label)
+    header.addStretch(1)
+    content_layout.addLayout(header)
+    win.project_subtitle_label = QtWidgets.QLabel(
+        win.ui_tr("project.workspace_subtitle")
+    )
+    win.project_subtitle_label.setWordWrap(True)
+    win.project_subtitle_label.setForegroundRole(
+        QtGui.QPalette.ColorRole.PlaceholderText
+    )
+    content_layout.addWidget(win.project_subtitle_label)
+
     top = QtWidgets.QGridLayout()
-    top.setSpacing(CHROME_SPACING)
-    top.setColumnStretch(0, 1)
-    top.setColumnStretch(1, 1)
+    top.setSpacing(CHROME_SPACING * 2)
+    top.setColumnStretch(0, 3)
+    top.setColumnStretch(1, 2)
 
     win.project_load_group = QtWidgets.QGroupBox(win.ui_tr("project.load_files"))
     load_inner = QtWidgets.QVBoxLayout(win.project_load_group)
@@ -232,16 +321,16 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.project_bom_group = DropGroupBox(
         win.ui_tr("project.bom_file"), win, win._load_bom
     )
-    bom_layout = QtWidgets.QVBoxLayout(win.project_bom_group)
+    bom_layout = QtWidgets.QGridLayout(win.project_bom_group)
     win.bom_path_label = PathLabel(win.ui_tr("project.no_file"))
-    bom_layout.addWidget(win.bom_path_label)
+    bom_layout.addWidget(win.bom_path_label, 0, 0)
     bom_btns = QtWidgets.QHBoxLayout()
     win.btn_clear_bom_file = _clear_file_button(win, win._confirm_clear_bom_workspace)
     bom_btns.addWidget(win.btn_clear_bom_file)
     win.btn_browse_bom = action_button(win.ui_tr("project.browse_bom"))
     win.btn_browse_bom.clicked.connect(win._browse_bom)
-    bom_btns.addWidget(win.btn_browse_bom, 1)
-    bom_layout.addLayout(bom_btns)
+    bom_btns.addWidget(win.btn_browse_bom)
+    bom_layout.addLayout(bom_btns, 0, 1)
 
     load_inner.addWidget(win.project_bom_group)
 
@@ -251,10 +340,10 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     pnp_outer = QtWidgets.QVBoxLayout(win.project_pnp_group)
 
     row1 = DropRowWidget(win, win._load_pnp)
-    row1_layout = QtWidgets.QVBoxLayout(row1)
+    row1_layout = QtWidgets.QHBoxLayout(row1)
     row1_layout.setContentsMargins(0, 0, 0, 0)
     win.pnp_path_label = PathLabel(win.ui_tr("project.no_file"))
-    row1_layout.addWidget(win.pnp_path_label)
+    row1_layout.addWidget(win.pnp_path_label, 1)
     pnp_btns = QtWidgets.QHBoxLayout()
     win.btn_clear_pnp_file = _clear_file_button(win, win._confirm_clear_pnp_workspace)
     pnp_btns.addWidget(win.btn_clear_pnp_file)
@@ -265,10 +354,13 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     pnp_outer.addWidget(row1)
 
     row2 = DropRowWidget(win, win._drop_pnp_secondary)
-    row2_layout = QtWidgets.QVBoxLayout(row2)
+    row2_layout = QtWidgets.QGridLayout(row2)
     row2_layout.setContentsMargins(0, 0, 0, 0)
+    win.pnp_secondary_label = QtWidgets.QLabel(win.ui_tr("project.pnp_select_optional"))
+    win.pnp_secondary_label.setWordWrap(True)
+    row2_layout.addWidget(win.pnp_secondary_label, 0, 0, 1, 2)
     win.pnp_path2_label = PathLabel(win.ui_tr("project.no_file"))
-    row2_layout.addWidget(win.pnp_path2_label)
+    row2_layout.addWidget(win.pnp_path2_label, 1, 0)
     pnp2_btns = QtWidgets.QHBoxLayout()
     win.btn_clear_pnp_optional = _clear_file_button(win, win._clear_pnp_secondary_only)
     pnp2_btns.addWidget(win.btn_clear_pnp_optional)
@@ -279,7 +371,7 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     win.btn_pnp2_help.setToolTip(win.ui_tr("project.pnp2_help_title"))
     win.btn_pnp2_help.setMinimumHeight(ACTION_BTN_MIN_H)
     pnp2_btns.addWidget(win.btn_pnp2_help)
-    row2_layout.addLayout(pnp2_btns)
+    row2_layout.addLayout(pnp2_btns, 1, 1)
     pnp_outer.addWidget(row2)
 
     row3 = QtWidgets.QHBoxLayout()
@@ -314,22 +406,22 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
         win._drop_hanwha_mdb,
         suffixes=(".mdb",),
     )
-    han_l = QtWidgets.QVBoxLayout(win.project_hanwha_group)
+    han_l = QtWidgets.QGridLayout(win.project_hanwha_group)
     win.hanwha_mdb_path_label = PathLabel(win.ui_tr("project.no_file"))
-    han_l.addWidget(win.hanwha_mdb_path_label)
+    han_l.addWidget(win.hanwha_mdb_path_label, 0, 0)
     han_btns = QtWidgets.QHBoxLayout()
     win.btn_clear_hanwha_mdb = _clear_file_button(win, win._clear_hanwha_mdb)
     han_btns.addWidget(win.btn_clear_hanwha_mdb)
     win.btn_open_mdb = action_button(win.ui_tr("project.open_mdb"))
     win.btn_open_mdb.clicked.connect(win._browse_hanwha_mdb)
     han_btns.addWidget(win.btn_open_mdb, 1)
-    han_l.addLayout(han_btns)
+    han_l.addLayout(han_btns, 0, 1)
     win.btn_access_odbc = None
     if sys.platform == "win32":
         win.btn_access_odbc = action_button(win.ui_tr("project.access_odbc"))
         win.btn_access_odbc.setToolTip(win.ui_tr("project.access_odbc_tip"))
         win.btn_access_odbc.clicked.connect(win._show_access_odbc_help)
-        han_l.addWidget(win.btn_access_odbc)
+        han_l.addWidget(win.btn_access_odbc, 1, 0, 1, 2)
     load_inner.addWidget(win.project_hanwha_group)
 
     win.project_yamaha_group = QtWidgets.QGroupBox(win.ui_tr("project.yamaha_libs"))
@@ -340,28 +432,28 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
         allow_dirs=True,
         suffixes=(".tou",),
     )
-    yam_tou_l = QtWidgets.QVBoxLayout(yam_tou_row)
+    yam_tou_l = QtWidgets.QGridLayout(yam_tou_row)
     yam_tou_l.setContentsMargins(0, 0, 0, 0)
     win.yamaha_tou_path_label = PathLabel(win.ui_tr("project.no_file"))
-    yam_tou_l.addWidget(win.yamaha_tou_path_label)
+    yam_tou_l.addWidget(win.yamaha_tou_path_label, 0, 0)
     tou_btns = QtWidgets.QHBoxLayout()
     win.btn_clear_yamaha_tou = _clear_file_button(win, win._clear_yamaha_tou)
     tou_btns.addWidget(win.btn_clear_yamaha_tou)
     win.btn_open_tou = action_button(win.ui_tr("project.open_tou"))
     win.btn_open_tou.clicked.connect(win._browse_yamaha_tou)
     tou_btns.addWidget(win.btn_open_tou, 1)
-    yam_tou_l.addLayout(tou_btns)
+    yam_tou_l.addLayout(tou_btns, 0, 1)
     win.btn_open_tou_folder = action_button(win.ui_tr("project.open_tou_folder"))
     win.btn_open_tou_folder.setToolTip(win.ui_tr("project.open_tou_folder_tip"))
     win.btn_open_tou_folder.clicked.connect(win._browse_yamaha_tou_folder)
-    yam_tou_l.addWidget(win.btn_open_tou_folder)
+    yam_tou_l.addWidget(win.btn_open_tou_folder, 1, 0, 1, 2)
     yam_outer.addWidget(yam_tou_row)
 
     yam_lib_row = DropRowWidget(win, win._drop_yamaha_lib, suffixes=(".lib",))
-    yam_lib_l = QtWidgets.QVBoxLayout(yam_lib_row)
+    yam_lib_l = QtWidgets.QHBoxLayout(yam_lib_row)
     yam_lib_l.setContentsMargins(0, 0, 0, 0)
     win.yamaha_lib_path_label = PathLabel(win.ui_tr("project.no_file"))
-    yam_lib_l.addWidget(win.yamaha_lib_path_label)
+    yam_lib_l.addWidget(win.yamaha_lib_path_label, 1)
     lib_btns = QtWidgets.QHBoxLayout()
     win.btn_clear_yamaha_lib = _clear_file_button(win, win._clear_yamaha_lib)
     lib_btns.addWidget(win.btn_clear_yamaha_lib)
@@ -371,6 +463,7 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     yam_lib_l.addLayout(lib_btns)
     yam_outer.addWidget(yam_lib_row)
     load_inner.addWidget(win.project_yamaha_group)
+    load_inner.addStretch(1)
 
     top.addWidget(win.project_load_group, 0, 0)
 
@@ -407,56 +500,49 @@ def setup_project_tab(win: Any, layout: QtWidgets.QVBoxLayout) -> None:
     sess_l.addWidget(win.btn_project_load_pack)
     settings_layout.addWidget(win.project_session_group)
 
-    equal = [
-        win.btn_browse_bom,
-        win.btn_browse_pnp,
-        win.btn_browse_pnp2,
-        win.btn_open_mdb,
-        win.btn_open_tou,
-        win.btn_open_tou_folder,
-        win.btn_open_lib,
-    ]
-    if win.btn_access_odbc is not None:
-        equal.append(win.btn_access_odbc)
-    apply_equal_widths(equal)
-    apply_equal_widths(
-        (
-            win.btn_profile_clone,
-            win.btn_profile_new,
-            win.btn_profile_delete,
-            win.btn_project_save_pack,
-            win.btn_project_load_pack,
-        )
-    )
-    settings_layout.addStretch(1)
+    apply_project_equal_widths(win)
     top.addWidget(win.project_settings_group, 0, 1)
-    layout.addLayout(top)
+    content_layout.addLayout(top)
 
-    log_row = QtWidgets.QHBoxLayout()
+    win.project_options_group = QtWidgets.QGroupBox(win.ui_tr("project.options"))
+    log_row = QtWidgets.QGridLayout(win.project_options_group)
     win.chk_colorful = switch_checkbox(win.ui_tr("project.debug_logs"))
     win.chk_colorful.setToolTip(win.ui_tr("project.debug_logs_hint"))
     win.chk_colorful.setChecked(True)
     win.chk_colorful.toggled.connect(win._on_colorful_logs_toggled)
-    log_row.addWidget(win.chk_colorful)
+    log_row.addWidget(win.chk_colorful, 0, 0, 1, 2)
     win.chk_session_log = switch_checkbox(win.ui_tr("project.session_log"))
     win.chk_session_log.setToolTip(win.ui_tr("project.session_log_hint"))
     win.chk_session_log.setChecked(True)
     win.chk_session_log.toggled.connect(win._on_session_log_toggled)
-    log_row.addWidget(win.chk_session_log)
+    log_row.addWidget(win.chk_session_log, 1, 0, 1, 2)
     win.btn_project_console = action_button(win.ui_tr("project.console"))
     win.btn_project_console.clicked.connect(win._show_project_console)
-    log_row.addWidget(win.btn_project_console)
-    log_row.addStretch(1)
+    log_row.addWidget(win.btn_project_console, 2, 0, 1, 2)
     win.lang_label = QtWidgets.QLabel(win.ui_tr("project.language"))
-    log_row.addWidget(win.lang_label)
+    log_row.addWidget(win.lang_label, 3, 0)
     win.lang_combo = QtWidgets.QComboBox()
     for label, code in UI_LANGUAGE_OPTIONS:
         win.lang_combo.addItem(label, code)
     li = win.lang_combo.findData(win._i18n.locale)
     win.lang_combo.setCurrentIndex(li if li >= 0 else 0)
     win.lang_combo.currentIndexChanged.connect(lambda *_: win._on_ui_language_changed())
-    log_row.addWidget(win.lang_combo)
-    layout.addLayout(log_row)
+    log_row.addWidget(win.lang_combo, 3, 1)
+    settings_layout.addWidget(win.project_options_group)
+    settings_layout.addStretch(1)
+
+    content_layout.addStretch(1)
+    center_host = QtWidgets.QWidget()
+    center = QtWidgets.QHBoxLayout(center_host)
+    center.addStretch(1)
+    center.addWidget(content)
+    center.addStretch(1)
+    scroll = _ProjectScrollArea(top, win.project_load_group, win.project_settings_group)
+    win.project_scroll = scroll
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+    scroll.setWidget(center_host)
+    layout.addWidget(scroll)
 
     win.console = QtWidgets.QTextEdit()
     win.console.setObjectName("project_console")

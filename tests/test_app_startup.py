@@ -157,6 +157,58 @@ def test_project_profile_session_and_lang_row(import_parsers, qapp, tmp_path) ->
         win.close()
 
 
+def test_project_language_cycle_preserves_state_and_action_widths(
+    import_parsers, qapp, tmp_path
+) -> None:
+    from app.window import MainWindow
+    from ui.project_tab import configure_path_label
+
+    settings = _ini_settings(tmp_path)
+    _set_experimental(settings, enabled=False)
+    win = MainWindow(settings=settings)
+    win.show()
+    qapp.processEvents()
+    try:
+        path = r"C:\board\input\1235_1220.xlsx"
+        win._bom_source_path = path
+        configure_path_label(
+            win.bom_path_label, path, empty_text=win.ui_tr("project.no_file")
+        )
+        win.chk_pnp_layer_override.setChecked(True)
+        win.edit_pnp_layer_tokens.setText("top bottom")
+        file_buttons = (
+            win.btn_browse_bom,
+            win.btn_browse_pnp,
+            win.btn_browse_pnp2,
+            win.btn_open_mdb,
+            win.btn_open_tou,
+            win.btn_open_tou_folder,
+            win.btn_open_lib,
+        )
+        for lang in ("en", "ru", "de", "en"):
+            win._apply_ui_language(lang, save=False)
+            qapp.processEvents()
+            assert win.project_title_label.text() == win.ui_tr(
+                "project.workspace_title"
+            )
+            assert win.project_options_group.title() == win.ui_tr("project.options")
+            assert win.bom_path_label.toolTip() == path
+            assert win.chk_pnp_layer_override.isChecked() is True
+            assert win.edit_pnp_layer_tokens.text() == "top bottom"
+            assert len({b.minimumWidth() for b in file_buttons}) == 1
+        assert win.bom_path_label.height() <= win.bom_path_label.sizeHint().height()
+        win.resize(1000, 650)
+        qapp.processEvents()
+        assert win.project_settings_group.y() > win.project_load_group.y()
+        assert not win.project_scroll.horizontalScrollBar().isVisible()
+        assert (
+            win.bom_path_label.sizePolicy().verticalPolicy()
+            == QtWidgets.QSizePolicy.Policy.Fixed
+        )
+    finally:
+        win.close()
+
+
 def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
     from app.window import MainWindow
 
@@ -230,7 +282,8 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         assert "Open .mdb…" not in texts
         assert "Open .tou…" not in texts
         assert "Access ODBC (ACE)…" not in texts
-        pnp2 = win.pnp_path2_label.parentWidget().layout().itemAt(1).layout()
+        pnp2_layout = win.pnp_path2_label.parentWidget().layout()
+        pnp2 = pnp2_layout.itemAtPosition(1, 1).layout()
         assert pnp2.itemAt(0).widget() is win.btn_clear_pnp_optional
         assert pnp2.itemAt(1).widget() is win.btn_browse_pnp2
         assert pnp2.itemAt(2).widget() is win.btn_pnp2_help

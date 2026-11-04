@@ -31,6 +31,12 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Project start page and live language layout.** The workspace is centered and
+  top-aligned instead of stretching empty file panels across the window. File
+  actions share compact one-line rows, Profile/Session/Options form one workspace
+  column, and narrow windows stack the columns with vertical scrolling. Changing
+  language now refreshes the new strings and re-aligns Project action buttons
+  without resetting user state or forcing a global repaint.
 - **Scan slot accounting and source selection.** A 32 mm feeder now consumes
   four attachment positions, as shown by the T-OLP FeederBase (slot 7 → 11).
   Unknown widths fail instead of silently shifting every following slot.
