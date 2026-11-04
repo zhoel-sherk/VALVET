@@ -398,11 +398,9 @@ class ProfilesMixin:
                 self.clean_cap_prefix,
                 self.clean_ind_prefix,
                 self.clean_apply_replace,
-                self.clean_double_comment_import,
+                self.clean_combine_inputs,
             ):
                 w.blockSignals(True)
-            if hasattr(self, "clean_double_comment_sep"):
-                self.clean_double_comment_sep.blockSignals(True)
             res_template = s.value("clean/res_template", "nom,pack,watt,%", str)
             cap_template = s.value("clean/cap_template", "nom,pack,film,%,V", str)
             ind_template = s.value("clean/ind_template", "pack,nom,%,Imax,DCR", str)
@@ -464,14 +462,9 @@ class ProfilesMixin:
             self.clean_apply_replace.setChecked(
                 s.value("clean/apply_replace", False, type=bool)
             )
-            if hasattr(self, "clean_double_comment_import"):
-                self.clean_double_comment_import.setChecked(
-                    s.value("clean/double_comment_import", False, type=bool)
-                )
-            if hasattr(self, "clean_double_comment_sep"):
-                self.clean_double_comment_sep.setText(
-                    s.value("clean/double_comment_sep", " | ", str)
-                )
+            self.clean_combine_inputs.setChecked(
+                s.value("clean/combine_input_columns", False, type=bool)
+            )
             if hasattr(self, "chk_clean_res"):
                 self.chk_clean_res.setChecked(
                     s.value("clean/group_res", True, type=bool)
@@ -512,11 +505,9 @@ class ProfilesMixin:
                 self.clean_cap_prefix,
                 self.clean_ind_prefix,
                 self.clean_apply_replace,
-                self.clean_double_comment_import,
+                self.clean_combine_inputs,
             ):
                 w.blockSignals(False)
-            if hasattr(self, "clean_double_comment_sep"):
-                self.clean_double_comment_sep.blockSignals(False)
             if hasattr(self, "clean_mpn_search_provider"):
                 self.clean_mpn_search_provider.blockSignals(True)
                 self.clean_octopart_api_key.blockSignals(True)

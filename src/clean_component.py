@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import replace
 from typing import TYPE_CHECKING, AbstractSet, List, Optional, Tuple
 
 import logger
@@ -29,6 +30,7 @@ from parsers.other_pars import clean_other
 from parsers.res_pars import parse_resistor, parse_resistor_token_fields
 from parsers.thermistors import extract_thermistor_mpn
 from parsers.vendor_context_merge import enrich_vendor_cleaned_from_bom
+from smt_processor import custom_cell_text
 
 if TYPE_CHECKING:
     pass
@@ -1286,3 +1288,157 @@ def clean_preview(
                     row[1],
                 )
     return results
+
+
+def _evaluate_clean_input(raw: str, index: int, cfg: CleanConfig) -> dict:
+    """Evaluate one independent BOM cell without applying a legacy join split."""
+    eval_cfg = replace(cfg, double_comment_separator=None)
+    ctype = classify_component_type(raw)
+    if ctype == "FERRITE_BEAD":
+        cleaned, typ, part_code, source = _ferrite_bead_passthrough(raw, None)
+        return {
+            "Cleaned": cleaned,
+            "Type": typ,
+            "Source": source,
+            "Arbiter": "",
+            "_score": None,
+            "_raw": raw,
+            "input_index": index,
+        }
+    eff_vendor = (
+        ctype if not (ctype == "INDUCTOR" and not cfg.parse_inductors) else "OTHER"
+    )
+    if cfg.regex_master_enabled:
+        cleaned, typ, part_code, source, debug, score = _clean_one_regex_master(
+            raw, ctype, eff_vendor, eval_cfg
+        )
+    else:
+        cleaned, typ, part_code, source = _clean_one_pipeline_legacy(
+            raw, ctype, eff_vendor, eval_cfg
+        )
+        debug, score = "", None
+    return {
+        "Cleaned": cleaned,
+        "Type": typ,
+        "Source": source,
+        "Arbiter": debug,
+        "_score": score,
+        "_raw": raw,
+        "input_index": index,
+    }
+
+
+def _clean_input_succeeded(result: dict, cfg: CleanConfig) -> bool:
+    """A parsed field or a trusted match, not merely a non-empty fallback."""
+    cleaned = str(result.get("Cleaned", "")).strip()
+    if not cleaned:
+        return False
+    typ = str(result.get("Type", ""))
+    if typ in ("RESISTOR", "CAP", "INDUCTOR"):
+        alert = analyze_token_alert(
+            cleaned,
+            typ,
+            separator=cfg.output_separator,
+            resistor_ohm_r_suffix=cfg.resistor_include_ohm_r_suffix,
+            resistor_roles=_alert_roles(cfg.resistor_template, _RES_ALERT_TOKENS),
+            cap_roles=_alert_roles(cfg.cap_template, _CAP_ALERT_TOKENS),
+        )
+        return alert.present_count > 0
+    source = str(result.get("Source", ""))
+    if source in {
+        "library",
+        "hanwha_mdb",
+        "PARTIAL hanwha_mdb",
+        "thermistor",
+        "ferrite_bead",
+        "vendor",
+        "pn",
+    }:
+        return True
+    return cleaned != str(result.get("_raw", "")).strip()
+
+
+def clean_preview_inputs(
+    inputs: list[object], config: Optional[CleanConfig] = None
+) -> list[dict]:
+    """Clean independent BOM cells, preserving the winning Original position.
+
+    Each item is either one string or a tuple of source-cell strings. With
+    ``combine_input_columns`` the cells are fragments of one component and are
+    joined once with token spaces; no separator is ever used to split them back.
+    """
+    cfg = default_clean_config(config)
+    output: list[dict] = []
+    for row_index, item in enumerate(inputs, start=1):
+        if isinstance(item, str):
+            cells = [item.strip()]
+        elif item is None:
+            cells = []
+        else:
+            cells = [custom_cell_text(cell).strip() for cell in item]
+        candidates = [(i, cell) for i, cell in enumerate(cells) if cell]
+        combined = bool(cfg.combine_input_columns and len(candidates) > 1)
+        if combined:
+            candidates = [(0, " ".join(cell for _i, cell in candidates))]
+        results = [
+            _evaluate_clean_input(cell, index, cfg) for index, cell in candidates
+        ]
+        if not results:
+            output.append(
+                {
+                    "#": row_index,
+                    "Original": "",
+                    "Cleaned": "",
+                    "Type": "OTHER",
+                    "Source": "",
+                    "Arbiter": "",
+                    "Win%": "",
+                    "Alert": "",
+                    "input_index": None,
+                    "combined": False,
+                }
+            )
+            continue
+        successful = [r for r in results if _clean_input_succeeded(r, cfg)]
+        if not cfg.regex_master_enabled:
+            winner = successful[0] if successful else results[0]
+        elif successful:
+            # Library/strict matches have no arbiter score and retain priority.
+            winner = min(
+                successful,
+                key=lambda r: (
+                    -(1000.0 if r["_score"] is None else float(r["_score"])),
+                    int(r["input_index"]),
+                ),
+            )
+        else:
+            winner = results[0]
+        alert = _alert_for(str(winner["Cleaned"]), str(winner["Type"]), cfg)
+        if alert:
+            append_missing_tokens_log(
+                {
+                    "row": row_index,
+                    "type": winner["Type"],
+                    "source": winner["Source"],
+                    "original": winner["_raw"],
+                    "cleaned": winner["Cleaned"],
+                    "alert": alert,
+                }
+            )
+        output.append(
+            {
+                "#": row_index,
+                "Original": winner["_raw"],
+                "Cleaned": winner["Cleaned"],
+                "Type": winner["Type"],
+                "Source": winner["Source"],
+                "Arbiter": winner["Arbiter"],
+                "Win%": (
+                    "" if winner["_score"] is None else f"{float(winner['_score']):.0f}"
+                ),
+                "Alert": alert,
+                "input_index": winner["input_index"],
+                "combined": combined,
+            }
+        )
+    return output

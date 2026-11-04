@@ -26,7 +26,8 @@ def build_clean_config(
     parse_capacitors: bool = True,
     parse_inductors: bool = True,
     output_separator: str = "",
-    double_comment_separator: str = " | ",
+    double_comment_separator: str | None = " | ",
+    combine_input_columns: bool = False,
     res_prefix: str = "",
     cap_prefix: str = "",
     ind_prefix: str = "",
@@ -76,6 +77,7 @@ def build_clean_config(
         parse_inductors=parse_inductors,
         output_separator=output_separator,
         double_comment_separator=double_comment_separator,
+        combine_input_columns=combine_input_columns,
         resistor_template=res_template,
         cap_template=cap_template,
         inductor_template=ind_template

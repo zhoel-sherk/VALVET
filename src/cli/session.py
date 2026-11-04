@@ -25,7 +25,7 @@ class CliSession:
     pnp_df: pd.DataFrame | None = field(default=None, repr=False, compare=False)
     merge_df: pd.DataFrame | None = field(default=None, repr=False, compare=False)
     report_df: pd.DataFrame | None = field(default=None, repr=False, compare=False)
-    last_clean_preview: list[tuple] | None = field(
+    last_clean_preview: list[dict] | None = field(
         default=None, repr=False, compare=False
     )
 

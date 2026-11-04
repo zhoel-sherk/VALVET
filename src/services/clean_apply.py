@@ -17,7 +17,13 @@ _PREVIEW_MIN_LEN = 5
 _CLEAN_OUTPUT_COLUMN = "comment"
 
 
-def _preview_row_fields(row: tuple[Any, ...] | list[Any]) -> tuple[str, str, str]:
+def _preview_row_fields(row: Any) -> tuple[str, str, str]:
+    if isinstance(row, dict):
+        return (
+            str(row.get("Cleaned", "")),
+            str(row.get("Type", "")),
+            str(row.get("Source", "")),
+        )
     if len(row) < _PREVIEW_MIN_LEN:
         return "", "", ""
     cleaned = str(row[2] if len(row) > 2 else "")
@@ -39,7 +45,7 @@ def _resolve_clean_target_column(
 
 def apply_clean_preview_to_bom(
     bom_df: pd.DataFrame,
-    preview_rows: list[tuple],
+    preview_rows: list[Any],
     source_indices: list[int],
     source_column: str,
     *,

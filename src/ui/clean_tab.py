@@ -12,7 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import logger
 from app.constants import _RCL_ROW_DISABLED_STYLE
 from app.prefs import _prefs_profile_bool
-from clean_component import CleanConfig, clean_preview
+from clean_component import CleanConfig, clean_preview_inputs
 from clean_debug_dialog import (
     CleanPipelineDebugDialog,
     load_pipeline_from_settings,
@@ -27,7 +27,7 @@ from pn_original import normalize_mpn_bare
 from qt_models import CleanPreviewTableModel
 from services.clean_apply import apply_clean_preview_to_bom
 from services.clean_config import build_clean_config
-from services.clean_import import import_bom_comments_for_clean
+from services.clean_import import import_bom_comment_inputs
 from ui.chrome import (
     CLEAN_PRIMARY_BTN_MIN_H,
     CLEAN_PRIMARY_BTN_MIN_W,
@@ -45,6 +45,45 @@ _CLEAN_PRESET_COMPACT = {
     "cap": ("nom", "pack", "none", "none", "none"),
     "ind": ("pack", "nom", "none", "none", "none"),
 }
+
+
+def _clean_input_cells(item: object) -> tuple[str, ...]:
+    if isinstance(item, str):
+        return (item,)
+    return tuple(str(cell) for cell in item)
+
+
+def _clean_preview_frame(
+    inputs: list[object], results: list[dict] | None, *, combined_label: str
+) -> pd.DataFrame:
+    """Build preview columns without serialising alternatives into one string."""
+    rows = []
+    input_count = max((len(_clean_input_cells(item)) for item in inputs), default=1)
+    for i, item in enumerate(inputs):
+        cells = _clean_input_cells(item)
+        record = {"#": i + 1}
+        for col_index in range(input_count):
+            name = "Original" if col_index == 0 else f"Original {col_index + 1}"
+            record[name] = cells[col_index] if col_index < len(cells) else ""
+        if results is None:
+            record.update({"Cleaned": "—", "Type": "—", "Source": "—"})
+        else:
+            result = results[i]
+            record["Cleaned"] = result["Cleaned"]
+            record["Type"] = result["Type"]
+            if input_count > 1:
+                if result.get("combined"):
+                    record["Input"] = combined_label
+                else:
+                    winner = result.get("input_index")
+                    record["Input"] = (
+                        "Original" if winner == 0 else f"Original {int(winner) + 1}"
+                    )
+            for key in ("Source", "Arbiter", "Win%", "Alert"):
+                if key in result:
+                    record[key] = result[key]
+        rows.append(record)
+    return pd.DataFrame(rows)
 
 
 class CleanTabMixin:
@@ -149,16 +188,11 @@ class CleanTabMixin:
         row_sp_adv.addStretch(1)
         adv.addLayout(row_sp_adv)
         row_dbg = QtWidgets.QHBoxLayout()
-        self.clean_double_comment_import = QtWidgets.QCheckBox()
-        self.clean_double_comment_import.hide()
-        row_dbg.addWidget(self.clean_double_comment_import)
         self.lbl_clean_double_join = QtWidgets.QLabel()
         row_dbg.addWidget(self.lbl_clean_double_join)
-        self.clean_double_comment_sep = QtWidgets.QLineEdit()
-        self.clean_double_comment_sep.setPlaceholderText(" | ")
-        self.clean_double_comment_sep.setMaximumWidth(96)
-        self.clean_double_comment_sep.setText(" | ")
-        row_dbg.addWidget(self.clean_double_comment_sep)
+        self.clean_combine_inputs = QtWidgets.QCheckBox()
+        self.clean_combine_inputs.setToolTip(self.ui_tr("clean.combine_inputs_tip"))
+        row_dbg.addWidget(self.clean_combine_inputs)
         self.btn_clean_pn_join_help = QtWidgets.QToolButton()
         self.btn_clean_pn_join_help.setText("?")
         self.btn_clean_pn_join_help.setAutoRaise(True)
@@ -225,11 +259,10 @@ class CleanTabMixin:
             self.clean_from_db,
             self.clean_from_hanwha_mdb,
             self.clean_hanwha_partial_match,
-            self.clean_double_comment_import,
+            self.clean_combine_inputs,
         ):
             w.stateChanged.connect(self._save_clean_settings)
         self.clean_regex_master_scores.stateChanged.connect(self._save_clean_settings)
-        self.clean_double_comment_sep.textChanged.connect(self._save_clean_settings)
         self.gb_clean_pn.toggled.connect(self._on_gb_clean_pn_toggled)
         self.chk_clean_res.toggled.connect(self._on_gb_clean_res_toggled)
         self.chk_clean_cap.toggled.connect(self._on_gb_clean_cap_toggled)
@@ -841,11 +874,8 @@ class CleanTabMixin:
         self.clean_prefix_use_separator.setToolTip(
             self.ui_tr("clean.prefix_spacer_tip")
         )
-        self.clean_double_comment_import.setText(self.ui_tr("clean.double_comment"))
-        self.clean_double_comment_import.setToolTip(
-            self.ui_tr("clean.double_comment_tip")
-        )
-        self.lbl_clean_double_join.setText(self.ui_tr("clean.double_join"))
+        self.lbl_clean_double_join.setText(self.ui_tr("clean.combine_inputs"))
+        self.clean_combine_inputs.setToolTip(self.ui_tr("clean.combine_inputs_tip"))
         if hasattr(self, "btn_clean_pn_join_help"):
             self.btn_clean_pn_join_help.setToolTip(
                 self.ui_tr("mapping.pn_join_help_title")
@@ -934,16 +964,6 @@ class CleanTabMixin:
     def _get_bom_comment_column_name(self) -> Any | None:
         names = self._get_bom_comment_column_names()
         return names[0] if names else None
-
-    def _merge_clean_comment_cells(self, parts: list[object]) -> str:
-        from parsers.bom_text_utils import merge_clean_comment_cell_parts
-
-        raw = (
-            self.clean_double_comment_sep.text()
-            if hasattr(self, "clean_double_comment_sep")
-            else ""
-        )
-        return merge_clean_comment_cell_parts(parts, raw)
 
     def _open_clean_pipeline_debug(self) -> None:
         if not hasattr(self, "_settings"):
@@ -1138,11 +1158,9 @@ class CleanTabMixin:
             parse_capacitors=self.chk_clean_cap.isChecked(),
             parse_inductors=self.chk_clean_ind.isChecked(),
             output_separator=self._clean_output_separator(),
-            double_comment_separator=(
-                self.clean_double_comment_sep.text()
-                if hasattr(self, "clean_double_comment_sep")
-                else " | "
-            ),
+            # Raw Original cells are evaluated independently; legacy split is off.
+            double_comment_separator=None,
+            combine_input_columns=self.clean_combine_inputs.isChecked(),
             res_prefix=self.clean_res_prefix.text().strip(),
             cap_prefix=self.clean_cap_prefix.text().strip(),
             ind_prefix=self.clean_ind_prefix.text().strip(),
@@ -1216,16 +1234,7 @@ class CleanTabMixin:
             )
         if hasattr(self, "clean_apply_replace"):
             s.setValue("clean/apply_replace", self.clean_apply_replace.isChecked())
-        if hasattr(self, "clean_double_comment_import"):
-            s.setValue(
-                "clean/double_comment_import",
-                self.clean_double_comment_import.isChecked(),
-            )
-        if hasattr(self, "clean_double_comment_sep"):
-            s.setValue(
-                "clean/double_comment_sep",
-                self.clean_double_comment_sep.text(),
-            )
+        s.setValue("clean/combine_input_columns", self.clean_combine_inputs.isChecked())
         if hasattr(self, "btn_clean_options_toggle"):
             s.setValue(
                 "clean/options_expanded",
@@ -1264,15 +1273,8 @@ class CleanTabMixin:
             self._log("Clean BOM: BOM table is empty", "warning")
             return
 
-        self._clean_imported_comments = import_bom_comments_for_clean(
-            df,
-            comment_cols,
-            self._clean_source_indices,
-            double_comment_separator=str(
-                self.clean_double_comment_sep.text()
-                if hasattr(self, "clean_double_comment_sep")
-                else " "
-            ),
+        self._clean_imported_comments = import_bom_comment_inputs(
+            df, comment_cols, self._clean_source_indices
         )
         n = len(self._clean_imported_comments)
         joined = "», «".join(str(c) for c in comment_cols)
@@ -1302,15 +1304,10 @@ class CleanTabMixin:
         self._sync_clean_primary_buttons()
         if hasattr(self, "_refresh_shell_status"):
             self._refresh_shell_status()
-        pending = "\u2014"
-        raw_df = pd.DataFrame(
-            {
-                "#": list(range(1, n + 1)),
-                "Original": self._clean_imported_comments,
-                "Cleaned": [pending] * n,
-                "Type": [pending] * n,
-                "Source": [pending] * n,
-            }
+        raw_df = _clean_preview_frame(
+            self._clean_imported_comments,
+            None,
+            combined_label=self.ui_tr("clean.input_combined"),
         )
         self.clean_preview_model.update_dataframe(raw_df)
         range_note = self._clean_source_range_label(n)
@@ -1357,48 +1354,18 @@ class CleanTabMixin:
         self._log(f"Clean BOM: generating clean preview for {n} component(s)…", "info")
         cfg = self._clean_config_from_ui()
         try:
-            rows = clean_preview(self._clean_imported_comments, cfg)
+            rows = clean_preview_inputs(self._clean_imported_comments, cfg)
         except Exception as e:
             self._log(f"Clean BOM: Convert! error: {e}", "error")
             logger.exception("Clean BOM clean_preview failed")
             return
         self._clean_last_preview = rows
         self._clean_preview_stale = False
-        if rows and len(rows[0]) == 8:
-            df = pd.DataFrame(
-                rows,
-                columns=[
-                    "#",
-                    "Original",
-                    "Cleaned",
-                    "Type",
-                    "Source",
-                    "Arbiter",
-                    "Win%",
-                    "Alert",
-                ],
-            )
-        elif rows and len(rows[0]) == 7:
-            df = pd.DataFrame(
-                rows,
-                columns=[
-                    "#",
-                    "Original",
-                    "Cleaned",
-                    "Type",
-                    "Source",
-                    "Arbiter",
-                    "Win%",
-                ],
-            )
-        elif rows and len(rows[0]) == 6:
-            df = pd.DataFrame(
-                rows, columns=["#", "Original", "Cleaned", "Type", "Source", "Alert"]
-            )
-        else:
-            df = pd.DataFrame(
-                rows, columns=["#", "Original", "Cleaned", "Type", "Source"]
-            )
+        df = _clean_preview_frame(
+            self._clean_imported_comments,
+            rows,
+            combined_label=self.ui_tr("clean.input_combined"),
+        )
         use_hl = cfg.regex_master_enabled and cfg.regex_master_preview_scores
         if isinstance(self.clean_preview_model, CleanPreviewTableModel):
             self.clean_preview_model.set_arbiter_score_highlight(use_hl)
@@ -1455,7 +1422,17 @@ class CleanTabMixin:
         if typ != "OTHER":
             self._log("Clean BOM: selected row is not OTHER", "warning")
             return
-        original = str(row.get("Original", "")).strip()
+        input_name = str(row.get("Input", "")).strip()
+        if input_name in df.columns:
+            original = str(row.get(input_name, "")).strip()
+        elif input_name:
+            original = " ".join(
+                str(row.get(col, "")).strip()
+                for col in df.columns
+                if str(col).startswith("Original") and str(row.get(col, "")).strip()
+            )
+        else:
+            original = str(row.get("Original", "")).strip()
         cleaned = str(row.get("Cleaned", "")).strip()
         try:
             one_based = int(row.get("#", idx.row() + 1))
@@ -1634,12 +1611,7 @@ class CleanTabMixin:
             "group_cap": self.chk_clean_cap.isChecked(),
             "group_ind": self.chk_clean_ind.isChecked(),
             "group_pn": self.gb_clean_pn.isChecked(),
-            "double_comment_import": self.clean_double_comment_import.isChecked()
-            if hasattr(self, "clean_double_comment_import")
-            else False,
-            "double_comment_sep": self.clean_double_comment_sep.text()
-            if hasattr(self, "clean_double_comment_sep")
-            else " | ",
+            "combine_input_columns": self.clean_combine_inputs.isChecked(),
             "output_separator": self._clean_output_separator(),
             "mpn_search_provider": key,
             "octopart_api_key": self.clean_octopart_api_key.text()
@@ -1678,11 +1650,9 @@ class CleanTabMixin:
             self.clean_cap_prefix,
             self.clean_ind_prefix,
             self.clean_apply_replace,
-            self.clean_double_comment_import,
+            self.clean_combine_inputs,
         ):
             w.blockSignals(True)
-        if hasattr(self, "clean_double_comment_sep"):
-            self.clean_double_comment_sep.blockSignals(True)
         self._set_template_combos(
             self.clean_res_template_combos,
             str(c.get("res_template", "nom,pack,watt,%")),
@@ -1743,14 +1713,9 @@ class CleanTabMixin:
             self.chk_clean_cap.setChecked(_prefs_profile_bool(c.get("group_cap"), True))
             self.chk_clean_ind.setChecked(_prefs_profile_bool(c.get("group_ind"), True))
             self.gb_clean_pn.setChecked(_prefs_profile_bool(c.get("group_pn"), True))
-        if hasattr(self, "clean_double_comment_import"):
-            self.clean_double_comment_import.setChecked(
-                _prefs_profile_bool(c.get("double_comment_import"), False)
-            )
-        if hasattr(self, "clean_double_comment_sep"):
-            self.clean_double_comment_sep.setText(
-                str(c.get("double_comment_sep", " | "))
-            )
+        self.clean_combine_inputs.setChecked(
+            _prefs_profile_bool(c.get("combine_input_columns"), False)
+        )
         self.clean_spacer_combo.blockSignals(True)
         self.clean_spacer_cust.blockSignals(True)
         self._apply_clean_spacer_to_ui(str(c.get("output_separator", "_")))
@@ -1773,11 +1738,9 @@ class CleanTabMixin:
             self.clean_cap_prefix,
             self.clean_ind_prefix,
             self.clean_apply_replace,
-            self.clean_double_comment_import,
+            self.clean_combine_inputs,
         ):
             w.blockSignals(False)
-        if hasattr(self, "clean_double_comment_sep"):
-            self.clean_double_comment_sep.blockSignals(False)
         if hasattr(self, "clean_mpn_search_provider"):
             self.clean_mpn_search_provider.blockSignals(True)
             self.clean_octopart_api_key.blockSignals(True)

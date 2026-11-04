@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from clean_component import clean_preview
+from clean_component import clean_preview_inputs
 from clean_types import CleanConfig
 from cli.session import CliSession
 from mmd_export import merge_dataframe_to_mmd_mercury
 from report_html import html_document_from_fragment, result_dataframe_to_html
 from services.clean_apply import apply_clean_preview_to_bom
-from services.clean_import import import_bom_comments_for_clean
+from services.clean_import import import_bom_comment_inputs
 from services.file_loading import read_pnp_dataframe
 from services.processor_config import build_processor_config
 from smt_processor import read_file
@@ -75,15 +75,28 @@ def comment_column(session: CliSession) -> str:
     return str(session.bom_df.columns[-1])
 
 
+def comment_columns(session: CliSession) -> list[str]:
+    """PN name first, then the optional PN-join column, in BOM table order."""
+    primary = comment_column(session)
+    assert session.bom_df is not None
+    join = session.bom_mappings.get("PnJoin") or session.bom_mappings.get("pnjoin")
+    columns = [primary]
+    if join and join in session.bom_df.columns and join != primary:
+        columns.append(join)
+    return [col for col in session.bom_df.columns if col in columns]
+
+
 def clean_comments(
     session: CliSession, *, apply: bool = False, config: CleanConfig | None = None
-) -> list[tuple]:
+) -> list[dict]:
     if session.bom_df is None:
         raise ValueError("BOM is not loaded")
     col = comment_column(session)
     indices = list(range(len(session.bom_df)))
-    comments = import_bom_comments_for_clean(session.bom_df, [col], indices)
-    preview = clean_preview(comments, config)
+    comments = import_bom_comment_inputs(
+        session.bom_df, comment_columns(session), indices
+    )
+    preview = clean_preview_inputs(comments, config)
     session.last_clean_preview = preview
     if apply:
         session.bom_df = apply_clean_preview_to_bom(

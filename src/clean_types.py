@@ -81,7 +81,9 @@ class CleanConfig:
     # `split_joined_clean_comment` cannot recover a row joined with a different
     # separator, and falls through to treating the whole cell as one part number.
     # Empty means "not configured" and is resolved to DEFAULT_DOUBLE_COMMENT_JOIN.
-    double_comment_separator: str = " | "
+    double_comment_separator: Optional[str] = " | "
+    # Combine mapped columns as fragments of one component; never split them back.
+    combine_input_columns: bool = False
     resistor_template: Tuple[str, ...] = ("pack", "nom", "%")
     cap_template: Tuple[str, ...] = ("pack", "nom", "V", "film", "%")
     resistor_prefix: str = ""

@@ -269,7 +269,7 @@ def test_convert_failure_log_keeps_traceback(main_window, monkeypatch, caplog) -
     def boom(_comments, _cfg):
         raise ValueError("kaboom")
 
-    monkeypatch.setattr(clean_tab, "clean_preview", boom)
+    monkeypatch.setattr(clean_tab, "clean_preview_inputs", boom)
     with caplog.at_level(logging.ERROR):
         main_window._run_clean_preview()
     record = next(r for r in caplog.records if "clean_preview failed" in r.getMessage())

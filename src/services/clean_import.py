@@ -12,6 +12,7 @@ from parsers.bom_text_utils import (
     DEFAULT_DOUBLE_COMMENT_JOIN,
     merge_clean_comment_cell_parts,
 )
+from smt_processor import custom_cell_text
 
 
 def import_bom_comments_for_clean(
@@ -41,21 +42,22 @@ def import_bom_comments_for_clean(
             return []
 
     sep = double_comment_separator or DEFAULT_DOUBLE_COMMENT_JOIN
-    for col in comment_cols:
-        for i in active_row_indices:
-            cell = str(bom_df.iloc[i][col])
-            if sep in cell:
-                preview = cell[:40] + "..." if len(cell) > 40 else cell
-                logger.warning(
-                    "Clean BOM: separator %r occurs inside comment cell "
-                    "(row %s, column %r, value %r). Joined cells may split "
-                    "incorrectly; change the separator in Clean options if the "
-                    "result looks wrong.",
-                    sep,
-                    i,
-                    col,
-                    preview,
-                )
+    if len(comment_cols) >= 2:
+        for col in comment_cols:
+            for i in active_row_indices:
+                cell = str(bom_df.iloc[i][col])
+                if sep in cell:
+                    preview = cell[:40] + "..." if len(cell) > 40 else cell
+                    logger.warning(
+                        "Clean BOM: separator %r occurs inside comment cell "
+                        "(row %s, column %r, value %r). Joined cells may split "
+                        "incorrectly; change the separator in Clean options if the "
+                        "result looks wrong.",
+                        sep,
+                        i,
+                        col,
+                        preview,
+                    )
 
     if len(comment_cols) >= 2:
         return [
@@ -74,5 +76,20 @@ def import_bom_comments_for_clean(
             [bom_df.iloc[i][primary_col]],
             double_comment_separator,
         )
+        for i in active_row_indices
+    ]
+
+
+def import_bom_comment_inputs(
+    bom_df: pd.DataFrame,
+    comment_column_names: list[str],
+    active_row_indices: list[int],
+) -> list[tuple[str, ...]]:
+    """Read raw Original cells without joining or splitting them."""
+    columns = list(comment_column_names)
+    if not columns or any(col not in bom_df.columns for col in columns):
+        return []
+    return [
+        tuple(custom_cell_text(bom_df.iloc[i][col]).strip() for col in columns)
         for i in active_row_indices
     ]

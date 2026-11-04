@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import logger
+from clean_types import CleanConfig
 from cli.hanwha import HanwhaMdbToolsError, format_part_det, format_tables
 from cli.pipeline import (
     apply_map_json,
@@ -61,6 +62,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     mp.add_argument("--bom-ref")
     mp.add_argument("--bom-comment")
+    mp.add_argument("--bom-pn-join")
     mp.add_argument("--pnp-ref")
     mp.add_argument("--pnp-comment")
     mp.add_argument("--pnp-x")
@@ -78,6 +80,11 @@ def _parser() -> argparse.ArgumentParser:
         "--apply", action="store_true", help="Write cleaned values into the BOM frame"
     )
     cl.add_argument("--limit", type=int, default=20, help="Preview rows to print")
+    cl.add_argument(
+        "--combine-inputs",
+        action="store_true",
+        help="Treat PN name + PN join columns as fragments of one component",
+    )
 
     mg = sub.add_parser("merge", help="Merge BOM + PnP and optionally export")
     mg.add_argument("--overlap", action="store_true")
@@ -156,6 +163,7 @@ def _cmd_map(session: CliSession, args: argparse.Namespace) -> int:
     pairs = (
         ("REF", args.bom_ref, session.bom_mappings),
         ("Comment", args.bom_comment, session.bom_mappings),
+        ("PnJoin", args.bom_pn_join, session.bom_mappings),
         ("REF", args.pnp_ref, session.pnp_mappings),
         ("Comment", args.pnp_comment, session.pnp_mappings),
         ("X", args.pnp_x, session.pnp_mappings),
@@ -178,15 +186,16 @@ def _cmd_clean(session: CliSession, args: argparse.Namespace) -> int:
     if session.bom_df is None:
         print("load a BOM first (load-bom)", file=sys.stderr)
         return 1
-    preview = clean_comments(session, apply=args.apply)
+    config = CleanConfig(combine_input_columns=bool(args.combine_inputs))
+    preview = clean_comments(session, apply=args.apply, config=config)
     n = max(0, args.limit)
     print(
         f"clean preview: {len(preview)} row(s)" + (" (applied)" if args.apply else "")
     )
     for row in preview[:n]:
-        orig = row[1] if len(row) > 1 else ""
-        cleaned = row[2] if len(row) > 2 else ""
-        tag = row[3] if len(row) > 3 else ""
+        orig = row.get("Original", "")
+        cleaned = row.get("Cleaned", "")
+        tag = row.get("Type", "")
         print(f"{orig}\t→\t{cleaned}\t[{tag}]")
     if len(preview) > n:
         print(f"… {len(preview) - n} more")

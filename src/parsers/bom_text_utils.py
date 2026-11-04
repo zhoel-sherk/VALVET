@@ -265,7 +265,7 @@ def looks_like_part_number(segment: object) -> bool:
 
 def split_joined_clean_comment(
     spec: str,
-    sep: str = DEFAULT_DOUBLE_COMMENT_JOIN,
+    sep: str | None = DEFAULT_DOUBLE_COMMENT_JOIN,
 ) -> tuple[str, str, str]:
     """
     Split «prose | vendor label | MPN» join rows (Double Comment import).
@@ -284,6 +284,8 @@ def split_joined_clean_comment(
     instead; every other shape keeps the positional rule, so an ordinary
     «prose | MPN» row behaves exactly as before.
     """
+    if sep is None:
+        return str(spec).strip(), "", ""
     if not sep:
         sep = DEFAULT_DOUBLE_COMMENT_JOIN
     parts = [p.strip() for p in str(spec).split(sep) if str(p).strip()]
@@ -307,14 +309,16 @@ def split_joined_clean_comment(
     return parts[0], "", ""
 
 
-def joined_clean_comment_mpn(spec: str, sep: str = DEFAULT_DOUBLE_COMMENT_JOIN) -> str:
+def joined_clean_comment_mpn(
+    spec: str, sep: str | None = DEFAULT_DOUBLE_COMMENT_JOIN
+) -> str:
     """Bare MPN from the last join segment, or the whole string."""
     _bom, _label, mpn = split_joined_clean_comment(spec, sep)
     return mpn or str(spec).strip()
 
 
 def joined_clean_comment_bom_prose(
-    spec: str, sep: str = DEFAULT_DOUBLE_COMMENT_JOIN
+    spec: str, sep: str | None = DEFAULT_DOUBLE_COMMENT_JOIN
 ) -> str:
     """BOM description (first join segment) for regex / vendor merge."""
     bom, _label, _mpn = split_joined_clean_comment(spec, sep)
