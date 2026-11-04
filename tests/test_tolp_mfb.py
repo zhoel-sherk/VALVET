@@ -15,6 +15,7 @@ sys.path.insert(
 from parsers.tolp_export import (  # noqa: E402
     SIDE_FRONT,
     SIDE_REAR,
+    TolpExportError,
     TolpFeeder,
     _compare_feeder_sets,
     _mfb_width,
@@ -38,11 +39,34 @@ def test_width_table_matches_the_t_olp_layout() -> None:
     assert _mfb_width("TapeFeeder12mmSME") == 2
     assert _mfb_width("TapeFeeder16mmSME") == 2
     assert _mfb_width("TapeFeeder24mmSME") == 3
+    # T-OLP screenshot: 32 mm at slot 7, then 44 mm at slot 11.
+    assert _mfb_width("TapeFeeder32mmSME") == 4
     assert _mfb_width("TapeFeeder36mmSME") == 4
     assert _mfb_width("TapeFeeder44mmSME") == 4
     assert _mfb_width("TapeFeeder56mmSME") == 5
     assert _mfb_width("TapeFeeder88mmSME") == 7
     assert _mfb_width("STF-100D") == 2
+
+
+def test_unknown_width_is_not_silently_treated_as_8mm() -> None:
+    with pytest.raises(TolpExportError, match="100 mm"):
+        _mfb_width("TapeFeeder100mmSME")
+
+
+def test_32mm_feeder_advances_the_following_slots() -> None:
+    path = _REPO / "examples" / "tolp_mfb" / "3_H610_D5" / "OLD_FEEDR.mfb"
+    export = load_tolp_export(path)
+    rows = [
+        (f.slot, f.part)
+        for f in export.feeders
+        if f.machine == "M3" and f.side == SIDE_FRONT
+    ]
+    assert rows[:4] == [
+        (1, "HDMI-PORT_19PIN"),  # 32 mm: occupies 1..4
+        (5, "WLTE_001A"),
+        (8, "PI3HDX12211AZHEX"),
+        (11, "G2406S"),
+    ]
 
 
 def test_source_is_mfb(export) -> None:
@@ -125,6 +149,17 @@ def test_single_mfb_path_works() -> None:
     assert export.feeders
 
 
+def test_every_committed_mfb_has_known_widths_and_unique_slots() -> None:
+    root = _REPO / "examples" / "tolp_mfb"
+    paths = sorted(root.rglob("*.mfb"))
+    assert paths
+    for path in paths:
+        export = load_tolp_export(path)
+        assert export.feeders, path
+        slots = [(f.machine, f.side, f.slot) for f in export.feeders]
+        assert len(slots) == len(set(slots)), path
+
+
 def test_old_export_uses_machine_name_sections() -> None:
     """Older T-OLP writes "Machine4" instead of "M4" in the section header."""
     path = _REPO / "examples" / "tolp_mfb" / "Feederbases" / "2mbot.mfb"
@@ -147,3 +182,16 @@ def test_mfb_pcb_agreement_is_silent() -> None:
     mfb = [TolpFeeder("M1", "", SIDE_FRONT, 1, "0201_10K_1%")]
     pcb = [TolpFeeder("M1", "DECANS2", SIDE_FRONT, 1, "0201_10K_1%")]
     assert _compare_feeder_sets(mfb, pcb) == []
+
+
+def test_mfb_pcb_disagreement_keeps_duplicate_part_slots() -> None:
+    mfb = [
+        TolpFeeder("M1", "", SIDE_FRONT, 1, "PART_1"),
+        TolpFeeder("M1", "", SIDE_FRONT, 7, "PART_1"),
+    ]
+    pcb = [
+        TolpFeeder("M1", "DECANS2", SIDE_FRONT, 2, "PART_1"),
+        TolpFeeder("M1", "DECANS2", SIDE_FRONT, 7, "PART_1"),
+    ]
+    warnings = _compare_feeder_sets(mfb, pcb)
+    assert warnings and "[1, 7]" in warnings[0] and "[2, 7]" in warnings[0]

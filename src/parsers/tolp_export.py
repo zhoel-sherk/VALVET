@@ -54,8 +54,19 @@ _MFB_TYPE = re.compile(
     rb"(?:TapeFeeder\d*mm[A-Z]*|TapeFeeder|STF-\d+[A-Z]?|TrayFeeder|Tray|StickFeeder|Stick)"
 )
 _MFB_PART = re.compile(r"[A-Za-z0-9_.%+/-]+")
-#: Physical slots consumed by one feeder of that width (user-confirmed).
-_TAPE_WIDTH = {8: 1, 12: 2, 16: 2, 24: 3, 36: 4, 44: 4, 56: 5, 88: 7}
+#: Physical slots consumed by one feeder of that width (T-OLP FeederBase).
+#: The 32 mm row is confirmed by M4 Front: 32 mm at 7, then 44 mm at 11.
+_TAPE_WIDTH = {
+    8: 1,
+    12: 2,
+    16: 2,
+    24: 3,
+    32: 4,
+    36: 4,
+    44: 4,
+    56: 5,
+    88: 7,
+}
 _TRAY_WIDTH = 2
 #: Tokens that look like parts but are feeder/nozzle/type names.
 _NON_PART_PREFIXES = (
@@ -321,7 +332,10 @@ def _mfb_width(type_name: str) -> int:
         return 1
     match = re.search(r"(\d+)mm", type_name)
     if match:
-        return _TAPE_WIDTH.get(int(match.group(1)), 1)
+        width = int(match.group(1))
+        if width not in _TAPE_WIDTH:
+            raise TolpExportError(f"Unsupported tape feeder width: {width} mm")
+        return _TAPE_WIDTH[width]
     if type_name.startswith("STF-") or "Tray" in type_name or "Stick" in type_name:
         return _TRAY_WIDTH
     return 1
@@ -490,22 +504,26 @@ def _compare_feeder_sets(
     mfb_feeders: Sequence[TolpFeeder], pcb_feeders: Sequence[TolpFeeder]
 ) -> list[str]:
     """Warn when the two sources disagree on a part they both contain."""
-    mfb_map = {(f.machine, f.side, f.part): f.slot for f in mfb_feeders}
-    pcb_map = {(f.machine, f.side, f.part): f.slot for f in pcb_feeders}
+    mfb_map: dict[tuple[str, str, str], list[int]] = {}
+    pcb_map: dict[tuple[str, str, str], list[int]] = {}
+    for target, feeders in ((mfb_map, mfb_feeders), (pcb_map, pcb_feeders)):
+        for feeder in feeders:
+            key = (feeder.machine, feeder.side, feeder.part)
+            target.setdefault(key, []).append(feeder.slot)
     common = set(mfb_map) & set(pcb_map)
     diffs = [
-        (key, mfb_map[key], pcb_map[key])
+        (key, sorted(mfb_map[key]), sorted(pcb_map[key]))
         for key in common
-        if mfb_map[key] != pcb_map[key]
+        if sorted(mfb_map[key]) != sorted(pcb_map[key])
     ]
     if not diffs:
         return []
     sample = ", ".join(
-        f"{machine}/{side} {part}: mfb {slot_a} vs pcb {slot_b}"
-        for (machine, side, part), slot_a, slot_b in diffs[:5]
+        f"{machine}/{side} {part}: mfb {slots_a} vs pcb {slots_b}"
+        for (machine, side, part), slots_a, slots_b in diffs[:5]
     )
     return [
-        f".mfb and .PCB disagree on {len(diffs)} feeder slot(s); using .mfb ({sample})"
+        f".mfb and .PCB disagree on {len(diffs)} feeder part(s); using .mfb ({sample})"
     ]
 
 

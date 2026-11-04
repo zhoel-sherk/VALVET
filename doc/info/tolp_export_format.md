@@ -37,6 +37,7 @@ the following positions, so the next part is placed after its width:
 | 12 mm | 2 |
 | 16 mm | 2 |
 | 24 mm | 3 |
+| 32 mm | 4 |
 | 36 mm | 4 |
 | 44 mm | 4 |
 | 56 mm | 5 |
