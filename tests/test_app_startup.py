@@ -227,7 +227,7 @@ def test_clean_tab_table_first_and_i18n(import_parsers, qapp, tmp_path) -> None:
         )
         for i in range(win.tabs.count()):
             assert " · " not in win.tabs.tabText(i)
-        assert hasattr(win, "lbl_clean_context")
+        assert not hasattr(win, "lbl_clean_context")
         assert hasattr(win, "clean_preview_table")
         assert hasattr(win, "btn_clean_options_toggle")
         assert win.btn_clean_options_toggle.isChecked() is False

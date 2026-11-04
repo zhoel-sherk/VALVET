@@ -53,6 +53,32 @@ def _clean_input_cells(item: object) -> tuple[str, ...]:
     return tuple(str(cell) for cell in item)
 
 
+def _clean_int_list(raw: object) -> list[int]:
+    """QSettings can hand back a list, a tuple or a comma string; keep only ints."""
+    values: list[object]
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        values = raw.split(",")
+    elif isinstance(raw, (list, tuple)):
+        values = list(raw)
+    else:
+        try:
+            values = list(raw)  # type: ignore[arg-type]
+        except TypeError:
+            # Not a stored sequence: the correct contract is "no saved sizes".
+            return []
+    out: list[int] = []
+    for value in values:
+        try:
+            out.append(int(str(value).strip()))
+        except (TypeError, ValueError):
+            # Malformed stored layout: the correct fallback is "no saved sizes";
+            # the splitter then uses its default or collapsed geometry.
+            return []
+    return out
+
+
 def _clean_preview_frame(
     inputs: list[object], results: list[dict] | None, *, combined_label: str
 ) -> pd.DataFrame:
@@ -95,30 +121,25 @@ class CleanTabMixin:
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        chip_row = QtWidgets.QHBoxLayout()
-        self.lbl_clean_context = QtWidgets.QLabel()
-        self.lbl_clean_context.setObjectName("cleanContextChip")
-        self.lbl_clean_context.setWordWrap(False)
-        chip_row.addWidget(self.lbl_clean_context, 1)
-        self.btn_clean_help = QtWidgets.QToolButton()
-        self.btn_clean_help.setText("?")
-        self.btn_clean_help.setAutoRaise(True)
-        self.btn_clean_help.clicked.connect(self._show_clean_help)
-        chip_row.addWidget(self.btn_clean_help)
-        layout.addLayout(chip_row)
-
         options = QtWidgets.QFrame()
+        options.setObjectName("cleanRulesContent")
         grid = QtWidgets.QGridLayout(options)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(6)
         grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(2, 1)
+        self.clean_rules_grid = grid
 
         group_global = QtWidgets.QGroupBox()
         self.gb_clean_everyday = group_global
-        glb_outer = QtWidgets.QVBoxLayout(group_global)
-        row_sp = QtWidgets.QHBoxLayout()
+        group_global.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Maximum,
+        )
+        glb = QtWidgets.QGridLayout(group_global)
+        glb.setHorizontalSpacing(8)
+        glb.setVerticalSpacing(4)
         self.lbl_clean_spacer = QtWidgets.QLabel()
-        row_sp.addWidget(self.lbl_clean_spacer)
         self.clean_spacer_combo = QtWidgets.QComboBox()
         self.clean_spacer_combo.setSizeAdjustPolicy(
             QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
@@ -133,91 +154,93 @@ class CleanTabMixin:
         self.clean_spacer_cust.setPlaceholderText("Custom separator (any string)")
         self.clean_spacer_cust.setEnabled(False)
         self.clean_spacer_cust.setMaximumWidth(220)
-        row_sp.addWidget(self.clean_spacer_combo, 0)
-        row_sp.addWidget(self.clean_spacer_cust, 1)
-        row_sp.addStretch(1)
-        glb_outer.addLayout(row_sp)
+        glb.addWidget(self.lbl_clean_spacer, 0, 0)
+        glb.addWidget(self.clean_spacer_combo, 0, 1)
+        glb.addWidget(self.clean_spacer_cust, 0, 2)
+        glb.setColumnStretch(2, 1)
 
-        row_lib = QtWidgets.QHBoxLayout()
         self.clean_from_db = QtWidgets.QCheckBox()
         self.clean_from_db.setChecked(True)
-        row_lib.addWidget(self.clean_from_db)
         self.clean_from_hanwha_mdb = QtWidgets.QCheckBox()
         self.clean_from_hanwha_mdb.setChecked(False)
-        row_lib.addWidget(self.clean_from_hanwha_mdb)
-        row_lib.addStretch(1)
-        glb_outer.addLayout(row_lib)
+        glb.addWidget(self.clean_from_db, 1, 0, 1, 2)
+        glb.addWidget(self.clean_from_hanwha_mdb, 1, 2)
 
-        pn_row = QtWidgets.QHBoxLayout()
         self.gb_clean_pn = QtWidgets.QCheckBox()
         self.gb_clean_pn.setChecked(True)
-        pn_row.addWidget(self.gb_clean_pn)
         self.clean_use_vendor = QtWidgets.QCheckBox()
         self.clean_use_vendor.setChecked(False)
-        pn_row.addWidget(self.clean_use_vendor)
-        pn_row.addStretch(1)
-        glb_outer.addLayout(pn_row)
+        glb.addWidget(self.gb_clean_pn, 2, 0, 1, 2)
+        glb.addWidget(self.clean_use_vendor, 2, 2)
 
-        preset_row = QtWidgets.QHBoxLayout()
         self.lbl_clean_preset = QtWidgets.QLabel()
         self.clean_format_preset = QtWidgets.QComboBox()
         self.clean_format_preset.addItem("", "smt")
         self.clean_format_preset.addItem("", "compact")
         self.clean_format_preset.addItem("", "custom")
-        preset_row.addWidget(self.lbl_clean_preset)
-        preset_row.addWidget(self.clean_format_preset)
-        preset_row.addStretch(1)
-        glb_outer.addLayout(preset_row)
+        glb.addWidget(self.lbl_clean_preset, 3, 0)
+        glb.addWidget(self.clean_format_preset, 3, 1)
+        glb.setColumnStretch(3, 1)
 
         rcl_host = QtWidgets.QWidget()
         rcl_v = QtWidgets.QVBoxLayout(rcl_host)
         rcl_v.setContentsMargins(0, 4, 0, 0)
-        rcl_v.setSpacing(6)
+        rcl_v.setSpacing(2)
         self._build_clean_rcl_grid(rcl_v)
-        glb_outer.addWidget(rcl_host)
+        glb.addWidget(rcl_host, 4, 0, 1, 4)
 
-        grid.addWidget(group_global, 0, 0, 1, 3)
+        grid.addWidget(group_global, 0, 0)
 
         group_advanced = QtWidgets.QGroupBox()
         self.gb_clean_advanced = group_advanced
-        adv = QtWidgets.QVBoxLayout(group_advanced)
-        row_sp_adv = QtWidgets.QHBoxLayout()
+        group_advanced.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Maximum,
+        )
+        adv = QtWidgets.QGridLayout(group_advanced)
+        adv.setHorizontalSpacing(8)
+        adv.setVerticalSpacing(2)
         self.clean_prefix_use_separator = QtWidgets.QCheckBox()
         self.clean_prefix_use_separator.setChecked(True)
-        row_sp_adv.addWidget(self.clean_prefix_use_separator)
-        row_sp_adv.addStretch(1)
-        adv.addLayout(row_sp_adv)
-        row_dbg = QtWidgets.QHBoxLayout()
+        adv.addWidget(self.clean_prefix_use_separator, 0, 0, 1, 2)
         self.lbl_clean_double_join = QtWidgets.QLabel()
-        row_dbg.addWidget(self.lbl_clean_double_join)
         self.clean_combine_inputs = QtWidgets.QCheckBox()
         self.clean_combine_inputs.setToolTip(self.ui_tr("clean.combine_inputs_tip"))
-        row_dbg.addWidget(self.clean_combine_inputs)
         self.btn_clean_pn_join_help = QtWidgets.QToolButton()
         self.btn_clean_pn_join_help.setText("?")
         self.btn_clean_pn_join_help.setAutoRaise(True)
         self.btn_clean_pn_join_help.clicked.connect(self._show_pn_join_help)
-        row_dbg.addWidget(self.btn_clean_pn_join_help)
-        row_dbg.addStretch(1)
         self.btn_clean_debug = QtWidgets.QPushButton()
         self.btn_clean_debug.clicked.connect(self._open_clean_pipeline_debug)
-        row_dbg.addWidget(self.btn_clean_debug)
-        adv.addLayout(row_dbg)
-        row_fuzzy = QtWidgets.QHBoxLayout()
+        adv.addWidget(self.lbl_clean_double_join, 1, 0)
+        adv.addWidget(self.clean_combine_inputs, 1, 1)
+        adv.addWidget(self.btn_clean_pn_join_help, 1, 2)
+        adv.addWidget(self.btn_clean_debug, 1, 3)
+        adv.setColumnStretch(3, 1)
         self.clean_hanwha_partial_match = QtWidgets.QCheckBox()
         self.clean_hanwha_partial_match.setChecked(False)
-        row_fuzzy.addWidget(self.clean_hanwha_partial_match)
-        row_fuzzy.addStretch(1)
-        adv.addLayout(row_fuzzy)
+        adv.addWidget(self.clean_hanwha_partial_match, 2, 0, 1, 2)
         self.clean_regex_master = QtWidgets.QCheckBox()
         self.clean_regex_master.setChecked(False)
         self.clean_regex_master_scores = QtWidgets.QCheckBox()
         self.clean_regex_master_scores.setChecked(False)
         self.clean_regex_master_scores.setEnabled(False)
         self.clean_regex_master.toggled.connect(self._on_clean_regex_master_toggled)
-        adv.addWidget(self.clean_regex_master)
-        adv.addWidget(self.clean_regex_master_scores)
-        grid.addWidget(group_advanced, 1, 0, 1, 3)
+        adv.addWidget(self.clean_regex_master, 3, 0, 1, 2)
+        adv.addWidget(self.clean_regex_master_scores, 4, 0, 1, 2)
+        grid.addWidget(group_advanced, 1, 0)
+        grid.addItem(
+            QtWidgets.QSpacerItem(
+                0,
+                0,
+                QtWidgets.QSizePolicy.Policy.Minimum,
+                QtWidgets.QSizePolicy.Policy.Expanding,
+            ),
+            2,
+            0,
+            1,
+            2,
+        )
 
         group_mpn_www = QtWidgets.QGroupBox()
         self.gb_clean_mpn = group_mpn_www
@@ -244,7 +267,13 @@ class CleanTabMixin:
         mpn_w.addStretch(1)
         group_mpn_www.hide()
 
-        self.clean_options_panel = options
+        self.clean_options_scroll = QtWidgets.QScrollArea()
+        self.clean_options_scroll.setObjectName("cleanRulesScroll")
+        self.clean_options_scroll.setWidgetResizable(True)
+        self.clean_options_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.clean_options_scroll.setWidget(options)
+        self.clean_options_panel = self.clean_options_scroll
+        self.clean_options_scroll.viewport().installEventFilter(self)
 
         for w in (
             *self.clean_res_template_combos,
@@ -305,9 +334,43 @@ class CleanTabMixin:
         self.clean_format_preset.currentIndexChanged.connect(
             self._on_clean_preset_changed
         )
+        for combo in (
+            *self.clean_res_template_combos,
+            *self.clean_cap_template_combos,
+            *self.clean_ind_template_combos,
+        ):
+            combo.currentIndexChanged.connect(self._on_clean_preview_setting_changed)
+        for combo in (self.clean_spacer_combo, self.clean_format_preset):
+            combo.currentIndexChanged.connect(self._on_clean_preview_setting_changed)
+        for edit in (
+            self.clean_spacer_cust,
+            self.clean_res_prefix,
+            self.clean_cap_prefix,
+            self.clean_ind_prefix,
+        ):
+            edit.textChanged.connect(self._on_clean_preview_setting_changed)
+        for chk in (
+            self.clean_cap_nf,
+            self.clean_cap_uf_micro,
+            self.clean_use_vendor,
+            self.clean_from_db,
+            self.clean_from_hanwha_mdb,
+            self.clean_hanwha_partial_match,
+            self.clean_combine_inputs,
+            self.clean_regex_master,
+            self.clean_regex_master_scores,
+            self.clean_prefix_use_separator,
+            self.clean_res_ohm_r,
+            self.clean_res_watt_from_pack,
+            self.chk_clean_res,
+            self.chk_clean_cap,
+            self.chk_clean_ind,
+            self.gb_clean_pn,
+        ):
+            chk.stateChanged.connect(self._on_clean_preview_setting_changed)
 
         buttons = QtWidgets.QHBoxLayout()
-        buttons.setSpacing(10)
+        buttons.setSpacing(8)
         self.btn_clean_import = QtWidgets.QPushButton()
         self.btn_clean_import.setObjectName("cleanPrimaryImport")
         self.btn_clean_import.clicked.connect(self._clean_import)
@@ -319,8 +382,6 @@ class CleanTabMixin:
         self.btn_clean_apply.setObjectName("cleanPrimaryApply")
         self.btn_clean_apply.setEnabled(False)
         self.btn_clean_apply.clicked.connect(self._clean_apply)
-        self.clean_apply_replace = QtWidgets.QCheckBox()
-        self.clean_apply_replace.stateChanged.connect(self._save_clean_settings)
         self.btn_clean_learn_other = QtWidgets.QPushButton()
         self.btn_clean_learn_other.setObjectName("cleanSecondaryAction")
         self.btn_clean_learn_other.setEnabled(False)
@@ -345,8 +406,13 @@ class CleanTabMixin:
                 QtWidgets.QSizePolicy.Policy.Fixed,
             )
             buttons.addWidget(b)
-        buttons.addWidget(self.clean_apply_replace)
         buttons.addStretch()
+        layout.addLayout(buttons)
+
+        secondary_row = QtWidgets.QHBoxLayout()
+        secondary_row.setContentsMargins(0, 0, 0, 0)
+        secondary_row.setSpacing(8)
+        secondary_row.addStretch(1)
         for b in (self.btn_clean_learn_other, self.btn_clean_save):
             f = b.font()
             f.setBold(True)
@@ -359,8 +425,8 @@ class CleanTabMixin:
                 QtWidgets.QSizePolicy.Policy.Minimum,
                 QtWidgets.QSizePolicy.Policy.Fixed,
             )
-            buttons.addWidget(b)
-        layout.addLayout(buttons)
+            secondary_row.addWidget(b)
+        layout.addLayout(secondary_row)
 
         self.clean_apply_ok_banner = QtWidgets.QFrame()
         self.clean_apply_ok_banner.setObjectName("cleanApplyOkBanner")
@@ -383,14 +449,55 @@ class CleanTabMixin:
         clean_ok_lay.addWidget(self.btn_clean_go_bom)
         layout.addWidget(self.clean_apply_ok_banner)
 
+        self.clean_alert_frame = QtWidgets.QFrame()
+        self.clean_alert_frame.setObjectName("cleanErrorStrip")
+        self.clean_alert_frame.setVisible(False)
+        alert_lay = QtWidgets.QHBoxLayout(self.clean_alert_frame)
+        alert_lay.setContentsMargins(8, 4, 8, 4)
+        alert_lay.setSpacing(8)
+        self.lbl_clean_alert_icon = QtWidgets.QLabel("⚠")
+        self.lbl_clean_alert_icon.setObjectName("cleanAlertIcon")
+        self.lbl_clean_alert = QtWidgets.QLabel()
+        self.lbl_clean_alert.setWordWrap(True)
+        self.lbl_clean_alert.setObjectName("cleanAlertText")
+        self.btn_clean_alert_details = QtWidgets.QPushButton()
+        self.btn_clean_alert_details.clicked.connect(self._show_project_console)
+        self.btn_clean_alert_dismiss = QtWidgets.QToolButton()
+        self.btn_clean_alert_dismiss.setText("✕")
+        self.btn_clean_alert_dismiss.setAutoRaise(True)
+        self.btn_clean_alert_dismiss.clicked.connect(self._clear_clean_alert)
+        alert_lay.addWidget(self.lbl_clean_alert_icon)
+        alert_lay.addWidget(self.lbl_clean_alert, 1)
+        alert_lay.addWidget(self.btn_clean_alert_details)
+        alert_lay.addWidget(self.btn_clean_alert_dismiss)
+        self._clean_alert_key = ""
+        self._clean_alert_args: dict[str, object] = {}
+        layout.addWidget(self.clean_alert_frame)
+
         self.lbl_clean_source = QtWidgets.QLabel()
         self.lbl_clean_source.setWordWrap(True)
-        layout.addWidget(self.lbl_clean_source)
+        self.lbl_clean_source.setObjectName("cleanSummary")
+        self.lbl_clean_stale = QtWidgets.QLabel()
+        self.lbl_clean_stale.setObjectName("cleanStaleBadge")
+        self.lbl_clean_stale.setVisible(False)
+        self.btn_clean_help = QtWidgets.QToolButton()
+        self.btn_clean_help.setText("?")
+        self.btn_clean_help.setAutoRaise(True)
+        self.btn_clean_help.clicked.connect(self._show_clean_help)
+        summary_row = QtWidgets.QHBoxLayout()
+        summary_row.setContentsMargins(0, 0, 0, 0)
+        summary_row.setSpacing(8)
+        summary_row.addWidget(self.lbl_clean_source, 1)
+        summary_row.addWidget(self.lbl_clean_stale)
+        summary_row.addWidget(self.btn_clean_help)
+        layout.addLayout(summary_row)
 
         self._clean_imported_comments: list[str] = []
         self._clean_last_preview: list = []
         self._clean_source_column: Optional[str] = None
         self._clean_source_indices: list[int] = []
+        self._clean_applied = False
+        self._clean_applying = False
 
         self.clean_preview_table = QtWidgets.QTableView()
         self.clean_preview_table.setAlternatingRowColors(True)
@@ -400,22 +507,85 @@ class CleanTabMixin:
         self.clean_preview_table.customContextMenuRequested.connect(
             self._clean_preview_context_menu
         )
+        self.clean_preview_table.verticalHeader().setVisible(False)
+        self.clean_preview_table.horizontalHeader().setStretchLastSection(False)
+        self.clean_preview_table.horizontalHeader().setMinimumSectionSize(28)
+        self.clean_preview_table.horizontalHeader().setMaximumSectionSize(
+            max(240, self.fontMetrics().horizontalAdvance("M") * 42)
+        )
         self.clean_preview_model = CleanPreviewTableModel(
             pd.DataFrame(columns=["#", "Original", "Cleaned", "Type", "Source"])
         )
         self.clean_preview_table.setModel(self.clean_preview_model)
-        self.clean_preview_table.horizontalHeader().setStretchLastSection(True)
-        layout.addWidget(self.clean_preview_table, 1)
 
+        self.clean_preview_empty = QtWidgets.QFrame()
+        self.clean_preview_empty.setObjectName("cleanEmptyState")
+        empty_lay = QtWidgets.QVBoxLayout(self.clean_preview_empty)
+        empty_lay.setContentsMargins(16, 16, 16, 16)
+        empty_lay.setSpacing(8)
+        empty_lay.addStretch(1)
+        self.lbl_clean_empty_title = QtWidgets.QLabel()
+        self.lbl_clean_empty_title.setObjectName("cleanEmptyTitle")
+        self.lbl_clean_empty_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.lbl_clean_empty_hint = QtWidgets.QLabel()
+        self.lbl_clean_empty_hint.setWordWrap(True)
+        self.lbl_clean_empty_hint.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.btn_clean_empty_bom = QtWidgets.QPushButton()
+        self.btn_clean_empty_bom.clicked.connect(self._clean_empty_go_bom)
+        empty_lay.addWidget(self.lbl_clean_empty_title)
+        empty_lay.addWidget(self.lbl_clean_empty_hint)
+        empty_row = QtWidgets.QHBoxLayout()
+        empty_row.addStretch(1)
+        empty_row.addWidget(self.btn_clean_empty_bom)
+        empty_row.addStretch(1)
+        empty_lay.addLayout(empty_row)
+        empty_lay.addStretch(2)
+
+        self.clean_preview_stack = QtWidgets.QStackedWidget()
+        self.clean_preview_stack.addWidget(self.clean_preview_table)
+        self.clean_preview_stack.addWidget(self.clean_preview_empty)
+        self.clean_preview_stack.setCurrentWidget(self.clean_preview_empty)
+
+        self.clean_rules_host = QtWidgets.QWidget()
+        rules_lay = QtWidgets.QVBoxLayout(self.clean_rules_host)
+        rules_lay.setContentsMargins(0, 0, 0, 0)
+        rules_lay.setSpacing(4)
+        toggle_row = QtWidgets.QHBoxLayout()
         self.btn_clean_options_toggle = QtWidgets.QToolButton()
         self.btn_clean_options_toggle.setCheckable(True)
         self.btn_clean_options_toggle.setToolButtonStyle(
             QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon
         )
         self.btn_clean_options_toggle.setArrowType(QtCore.Qt.ArrowType.RightArrow)
+        _rules_font = self.btn_clean_options_toggle.font()
+        _rules_font.setBold(True)
+        self.btn_clean_options_toggle.setFont(_rules_font)
         self.btn_clean_options_toggle.toggled.connect(self._on_clean_options_toggled)
-        layout.addWidget(self.btn_clean_options_toggle)
-        layout.addWidget(self.clean_options_panel)
+        toggle_row.addWidget(self.btn_clean_options_toggle)
+        toggle_row.addStretch(1)
+        rules_lay.addLayout(toggle_row)
+        self.lbl_clean_rules_summary = QtWidgets.QLabel()
+        self.lbl_clean_rules_summary.setWordWrap(False)
+        self.lbl_clean_rules_summary.setObjectName("cleanRulesSummary")
+        self.lbl_clean_rules_summary.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Fixed,
+        )
+        self.lbl_clean_rules_summary.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        rules_lay.addWidget(self.lbl_clean_rules_summary)
+        rules_lay.addWidget(self.clean_options_panel, 1)
+
+        self.clean_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        self.clean_splitter.setObjectName("cleanSplitter")
+        self.clean_splitter.setChildrenCollapsible(False)
+        self.clean_splitter.addWidget(self.clean_preview_stack)
+        self.clean_splitter.addWidget(self.clean_rules_host)
+        self.clean_splitter.setStretchFactor(0, 1)
+        self.clean_splitter.setStretchFactor(1, 0)
+        self.clean_splitter.splitterMoved.connect(self._on_clean_splitter_moved)
+        layout.addWidget(self.clean_splitter, 1)
         expanded = False
         if hasattr(self, "_settings"):
             expanded = bool(
@@ -424,12 +594,8 @@ class CleanTabMixin:
         self.btn_clean_options_toggle.blockSignals(True)
         self.btn_clean_options_toggle.setChecked(expanded)
         self.btn_clean_options_toggle.blockSignals(False)
-        self.clean_options_panel.setVisible(expanded)
-        self.btn_clean_options_toggle.setArrowType(
-            QtCore.Qt.ArrowType.DownArrow
-            if expanded
-            else QtCore.Qt.ArrowType.RightArrow
-        )
+        self._apply_clean_options_visibility(expanded)
+        self._restore_clean_splitter_sizes()
 
         for w in (
             *self.clean_res_template_combos,
@@ -439,16 +605,19 @@ class CleanTabMixin:
             w.currentIndexChanged.connect(self._sync_clean_preset_from_combos)
         self._refresh_clean_tab_static_texts()
         self._sync_clean_preset_from_combos()
+        self._sync_clean_preview_view()
         self._sync_clean_primary_buttons()
-        self._refresh_clean_context_chip()
         self._sync_clean_parser_grid_sizes()
+        self._update_clean_preview_min_height()
+        self._layout_clean_rules_groups()
+        QtCore.QTimer.singleShot(0, self._apply_default_clean_splitter_sizes)
 
     def _make_clean_slot_combo(
         self, options: list[tuple[str, str]], default: str
     ) -> QtWidgets.QComboBox:
         combo = WidePopupComboBox()
         for label, data in options:
-            combo.addItem(label, data)
+            combo.addItem("—" if data == "none" else label, data)
         combo.setCurrentIndex(combo.findData(default))
         self._style_clean_template_combo(combo)
         return combo
@@ -538,6 +707,10 @@ class CleanTabMixin:
                     inner.addWidget(spacer, 0, 1 + i)
             setattr(self, combos_attr, combos)
             setattr(self, labels_attr, [])
+            prefix_lbl.setAlignment(
+                QtCore.Qt.AlignmentFlag.AlignRight
+                | QtCore.Qt.AlignmentFlag.AlignVCenter
+            )
             inner.addWidget(prefix_lbl, 0, 6)
             inner.addWidget(prefix_edit, 0, 7)
             extra_wrap = QtWidgets.QWidget()
@@ -548,7 +721,12 @@ class CleanTabMixin:
                 extra_l.addWidget(w)
             extra_l.addStretch(1)
             inner.addWidget(extra_wrap, 0, 8)
-            example.setStyleSheet("color: #9e9e9e; font-style: italic;")
+            example.setStyleSheet(
+                "color: #9e9e9e; font-style: italic; background: transparent;"
+            )
+            example.setAlignment(
+                QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
+            )
             inner.addWidget(example, 0, 9)
             inner.setColumnStretch(9, 1)
             stack.addWidget(frame)
@@ -659,10 +837,11 @@ class CleanTabMixin:
             + int(self.clean_cap_uf_micro.sizeHint().width())
             + 8,
         )
+        show_slots = bool(getattr(self, "_clean_custom_slots_visible", False))
         for g in self._clean_rcl_inner_grids:
             g.setColumnMinimumWidth(0, type_w)
             for i in range(5):
-                g.setColumnMinimumWidth(1 + i, slot_w)
+                g.setColumnMinimumWidth(1 + i, slot_w if show_slots else 0)
             g.setColumnMinimumWidth(6, prefix_lbl_w)
             g.setColumnMinimumWidth(7, 72)
             g.setColumnMinimumWidth(8, extras_w)
@@ -672,6 +851,8 @@ class CleanTabMixin:
             chk.setMinimumWidth(type_w)
         for sp in getattr(self, "_clean_rcl_slot_spacers", []):
             sp.setMinimumWidth(slot_w)
+        if hasattr(self, "clean_options_scroll"):
+            self._layout_clean_rules_groups()
 
     def _show_clean_help(self) -> None:
         QtWidgets.QMessageBox.information(
@@ -681,63 +862,548 @@ class CleanTabMixin:
         )
 
     def _on_clean_options_toggled(self, expanded: bool) -> None:
+        self._apply_clean_options_visibility(expanded)
+        if hasattr(self, "_settings") and not getattr(
+            self, "_restoring_settings", False
+        ):
+            self._settings.setValue("clean/options_expanded", expanded)
+
+    def _apply_clean_options_visibility(self, expanded: bool) -> None:
         self.clean_options_panel.setVisible(expanded)
         self.btn_clean_options_toggle.setArrowType(
             QtCore.Qt.ArrowType.DownArrow
             if expanded
             else QtCore.Qt.ArrowType.RightArrow
         )
-        if hasattr(self, "_settings") and not getattr(
-            self, "_restoring_settings", False
+        if expanded:
+            self._restore_clean_splitter_sizes()
+            QtCore.QTimer.singleShot(0, self._apply_default_clean_splitter_sizes)
+        else:
+            self._collapse_clean_splitter()
+
+    def _on_clean_splitter_moved(self, *_args) -> None:
+        self._save_clean_splitter_sizes()
+
+    def eventFilter(self, obj, event):
+        if (
+            hasattr(self, "clean_options_scroll")
+            and obj is self.clean_options_scroll.viewport()
+            and event.type() == QtCore.QEvent.Type.Resize
         ):
-            self._settings.setValue("clean/options_expanded", expanded)
+            self._layout_clean_rules_groups()
+        return super().eventFilter(obj, event)
+
+    def _layout_clean_rules_groups(self) -> None:
+        """Side-by-side Parser/Advanced on wide windows, stacked when narrow."""
+        if not hasattr(self, "clean_rules_grid"):
+            return
+        available = self.clean_options_scroll.viewport().width()
+        need = (
+            self.gb_clean_everyday.minimumSizeHint().width()
+            + self.gb_clean_advanced.minimumSizeHint().width()
+            + self.clean_rules_grid.horizontalSpacing()
+            + 16
+        )
+        mode = "side" if available >= need else "stack"
+        if getattr(self, "_clean_rules_layout_mode", "") == mode:
+            return
+        self._clean_rules_layout_mode = mode
+        grid = self.clean_rules_grid
+        grid.removeWidget(self.gb_clean_everyday)
+        grid.removeWidget(self.gb_clean_advanced)
+        if mode == "side":
+            grid.addWidget(self.gb_clean_everyday, 0, 0)
+            grid.addWidget(self.gb_clean_advanced, 0, 1)
+            grid.setColumnStretch(0, 1)
+            grid.setColumnStretch(1, 1)
+        else:
+            grid.addWidget(self.gb_clean_everyday, 0, 0, 1, 2)
+            grid.addWidget(self.gb_clean_advanced, 1, 0, 1, 2)
+            grid.setColumnStretch(0, 1)
+            grid.setColumnStretch(1, 0)
+        grid.setRowStretch(0, 0)
+        grid.setRowStretch(1, 0)
+
+    def _save_clean_splitter_sizes(self) -> None:
+        if not hasattr(self, "clean_splitter") or not hasattr(self, "_settings"):
+            return
+        if not self.btn_clean_options_toggle.isChecked():
+            return
+        sizes = [int(x) for x in self.clean_splitter.sizes()]
+        if len(sizes) != 2 or not sizes[0]:
+            return
+        self._settings.setValue("clean/splitter_sizes", sizes)
+
+    def _stored_clean_splitter_sizes(self) -> list[int]:
+        raw = (
+            self._settings.value("clean/splitter_sizes")
+            if hasattr(self, "_settings")
+            else None
+        )
+        return _clean_int_list(raw)
+
+    def _collapse_clean_splitter(self) -> None:
+        if not hasattr(self, "clean_splitter"):
+            return
+        total = sum(self.clean_splitter.sizes()) or 600
+        handle = self.clean_splitter.handleWidth()
+        lay = self.clean_rules_host.layout()
+        margins = lay.contentsMargins()
+        collapsed = (
+            self.btn_clean_options_toggle.sizeHint().height()
+            + self.lbl_clean_rules_summary.sizeHint().height()
+            + lay.spacing()
+            + margins.top()
+            + margins.bottom()
+            + handle
+            + 4
+        )
+        collapsed = max(56, collapsed)
+        self.clean_rules_host.setMaximumHeight(collapsed)
+        self.clean_splitter.setSizes([max(120, total - collapsed), collapsed])
+
+    def _apply_default_clean_splitter_sizes(self) -> None:
+        """Give an expanded Rules pane a usable 55/45 split after layout.
+
+        ``QSplitter.setSizes`` before the window is shown is rebalanced from
+        size hints, so the first real geometry is applied on the next event-loop
+        turn. A stored user split always wins.
+        """
+        if not hasattr(self, "clean_splitter"):
+            return
+        if not self.btn_clean_options_toggle.isChecked():
+            return
+        if self._stored_clean_splitter_sizes():
+            return
+        total = self.clean_splitter.height()
+        if total <= 0:
+            total = sum(self.clean_splitter.sizes())
+        if total <= 0:
+            return
+        rules = max(120, int(total * 0.45))
+        table = max(self.clean_preview_stack.minimumHeight(), total - rules)
+        if table + rules > total:
+            rules = max(120, total - table)
+        self.clean_splitter.setSizes([table, rules])
+
+    def _restore_clean_splitter_sizes(self) -> None:
+        if not hasattr(self, "clean_splitter"):
+            return
+        if not self.btn_clean_options_toggle.isChecked():
+            self._collapse_clean_splitter()
+            return
+        self.clean_rules_host.setMaximumHeight(16777215)
+        sizes = self._stored_clean_splitter_sizes()
+        if len(sizes) == 2 and sizes[0] > 0 and sizes[1] >= 120:
+            self.clean_splitter.setSizes(sizes)
+            return
+        total = sum(self.clean_splitter.sizes()) or 600
+        self.clean_splitter.setSizes([int(total * 0.55), int(total * 0.45)])
+
+    def _update_clean_preview_min_height(self) -> None:
+        if not hasattr(self, "clean_preview_stack"):
+            return
+        row_h = int(self.clean_preview_table.verticalHeader().defaultSectionSize())
+        if row_h <= 0:
+            row_h = self.fontMetrics().height() + 12
+        header_h = int(self.clean_preview_table.horizontalHeader().sizeHint().height())
+        self.clean_preview_stack.setMinimumHeight(row_h * 6 + header_h + 10)
 
     def _mark_clean_preview_stale(self) -> None:
+        if getattr(self, "_clean_applying", False):
+            # Apply rewrites BOM mapping combos; that is not a preview change.
+            return
         if getattr(self, "_clean_last_preview", None):
             self._clean_preview_stale = True
+        self._hide_clean_apply_banner()
+        self._refresh_clean_stale_badge()
+        self._sync_clean_primary_buttons()
         if hasattr(self, "_refresh_shell_status"):
             self._refresh_shell_status()
-        else:
-            self._refresh_clean_context_chip()
 
-    def _refresh_clean_context_chip(self) -> None:
-        if not hasattr(self, "lbl_clean_context"):
+    def _on_clean_preview_setting_changed(self, *_args) -> None:
+        self._hide_clean_apply_banner()
+        if getattr(self, "_clean_last_preview", None):
+            self._clean_preview_stale = True
+        self._refresh_clean_stale_badge()
+        self._sync_clean_primary_buttons()
+        self._update_clean_rules_summary()
+        if hasattr(self, "_refresh_shell_status"):
+            self._refresh_shell_status()
+
+    def _hide_clean_apply_banner(self) -> None:
+        if hasattr(self, "clean_apply_ok_banner"):
+            self.clean_apply_ok_banner.setVisible(False)
+
+    def _refresh_clean_stale_badge(self) -> None:
+        if not hasattr(self, "lbl_clean_stale"):
             return
-        bom = (
-            Path(self._bom_source_path).name
-            if getattr(self, "_bom_source_path", "")
-            else self.ui_tr("status.no_bom")
+        stale = bool(getattr(self, "_clean_preview_stale", False)) and bool(
+            getattr(self, "_clean_last_preview", None)
         )
-        comment = self.ui_tr("status.comment_unmapped")
-        try:
-            cols = self._get_bom_comment_column_names()
-        except Exception:
-            cols = []
-        if cols:
-            comment = ", ".join(str(c) for c in cols)
-        rows = self.ui_tr("status.rows_all")
-        self.lbl_clean_context.setText(
-            self.ui_tr("clean.context_chip", file=bom, cols=comment, rows=rows)
+        self.lbl_clean_stale.setText(self.ui_tr("clean.stale_badge"))
+        self.lbl_clean_stale.setVisible(stale)
+
+    def _clean_preview_dataframe(self) -> pd.DataFrame | None:
+        if not hasattr(self, "clean_preview_model"):
+            return None
+        return self.clean_preview_model.get_dataframe()
+
+    @staticmethod
+    def _clean_counts(df: pd.DataFrame | None) -> dict[str, int]:
+        rows = 0 if df is None else len(df)
+        clean = partial = other = errors = 0
+        if rows:
+            for _i, row in df.iterrows():
+                cleaned = str(row.get("Cleaned", "")).strip()
+                if cleaned and cleaned != "—":
+                    clean += 1
+                if "PARTIAL" in str(row.get("Source", "")).upper():
+                    partial += 1
+                if str(row.get("Type", "")).strip().upper() == "OTHER":
+                    other += 1
+                if str(row.get("Alert", "")).strip():
+                    errors += 1
+        return {
+            "rows": rows,
+            "clean": clean,
+            "partial": partial,
+            "other": other,
+            "errors": errors,
+        }
+
+    def _refresh_clean_summary(self) -> None:
+        if not hasattr(self, "lbl_clean_source"):
+            return
+        df = self._clean_preview_dataframe()
+        counts = self._clean_counts(df)
+        if counts["rows"]:
+            self.lbl_clean_source.setText(
+                self.ui_tr(
+                    "clean.summary_counts",
+                    rows=counts["rows"],
+                    clean=counts["clean"],
+                    partial=counts["partial"],
+                    other=counts["other"],
+                    errors=counts["errors"],
+                )
+            )
+        elif self._clean_imported_comments:
+            self.lbl_clean_source.setText(
+                self.ui_tr(
+                    "clean.summary_imported", rows=len(self._clean_imported_comments)
+                )
+            )
+        else:
+            self.lbl_clean_source.setText(self.ui_tr("clean.summary_empty"))
+        self.lbl_clean_source.setToolTip(self.ui_tr("clean.summary_tip"))
+
+    def _sync_clean_learn_button(self) -> None:
+        if not hasattr(self, "btn_clean_learn_other"):
+            return
+        counts = self._clean_counts(self._clean_preview_dataframe())
+        has_preview = bool(getattr(self, "_clean_last_preview", None))
+        self.btn_clean_learn_other.setText(
+            self.ui_tr("clean.btn_learn_count", count=counts["other"])
+            if has_preview
+            else self.ui_tr("clean.btn_learn")
         )
+        self.btn_clean_learn_other.setEnabled(has_preview and counts["other"] > 0)
+        self.btn_clean_learn_other.setToolTip(
+            self.ui_tr("clean.btn_learn_zero_tip")
+            if counts["other"] == 0
+            else self.ui_tr("clean.btn_learn_tip")
+        )
+
+    def _sync_clean_preview_view(self) -> None:
+        if not hasattr(self, "clean_preview_stack"):
+            return
+        df = self._clean_preview_dataframe()
+        has_rows = df is not None and not df.empty
+        self.clean_preview_stack.setCurrentWidget(
+            self.clean_preview_table if has_rows else self.clean_preview_empty
+        )
+        header = self.clean_preview_table.horizontalHeader()
+        mode = QtWidgets.QHeaderView.ResizeMode
+        alert_index = -1
+        if df is not None:
+            for col, raw_name in enumerate(df.columns):
+                name = str(raw_name)
+                if name == "#":
+                    header.setSectionResizeMode(col, mode.ResizeToContents)
+                elif name.startswith("Original") or name == "Cleaned":
+                    header.setSectionResizeMode(col, mode.Stretch)
+                elif name == "Alert":
+                    header.setSectionResizeMode(col, mode.Interactive)
+                else:
+                    header.setSectionResizeMode(col, mode.ResizeToContents)
+                if name == "Alert":
+                    alert_index = col
+        if alert_index >= 0 and df is not None:
+            has_alert = any(str(v).strip() for v in df["Alert"].tolist())
+            self.clean_preview_table.setColumnHidden(alert_index, not has_alert)
+            if has_alert:
+                fm = self.clean_preview_table.fontMetrics()
+                widths = [
+                    fm.horizontalAdvance(str(v))
+                    for v in df["Alert"].tolist()
+                    if str(v).strip()
+                ]
+                # Normal UI text gets the warning marker plus the whole alert;
+                # at large fonts the column stays bounded and the tooltip holds
+                # the full text so the name columns keep their width.
+                large_text = fm.height() > 22
+                budget = 0 if large_text else 40
+                cap = 260 if large_text else 320
+                self.clean_preview_table.setColumnWidth(
+                    alert_index, max(150, min(cap, max(widths) + budget))
+                )
+        self._refresh_clean_header_metadata()
+        self._refresh_clean_summary()
+        self._refresh_clean_stale_badge()
+        self._sync_clean_learn_button()
+
+    def _refresh_clean_header_metadata(self) -> None:
+        if not hasattr(self, "clean_preview_model"):
+            return
+        tips = {
+            "#": self.ui_tr("clean.header_tip_hash"),
+            "Original": self.ui_tr("clean.header_tip_original"),
+            "Cleaned": self.ui_tr("clean.header_tip_cleaned"),
+            "Type": self.ui_tr("clean.header_tip_type"),
+            "Source": self.ui_tr("clean.header_tip_source"),
+            "Input": self.ui_tr("clean.header_tip_input"),
+            "Arbiter": self.ui_tr("clean.header_tip_arbiter"),
+            "Win%": self.ui_tr("clean.header_tip_win"),
+            "Alert": self.ui_tr("clean.header_tip_alert"),
+        }
+        df = self._clean_preview_dataframe()
+        tooltips: dict[str, str] = {}
+        if df is not None:
+            for raw_name in df.columns:
+                name = str(raw_name)
+                if name.startswith("Original"):
+                    tooltips[name] = self.ui_tr("clean.header_tip_original")
+                elif name in tips:
+                    tooltips[name] = tips[name]
+        self.clean_preview_model.set_column_header_metadata({}, tooltips)
+
+    def _clean_empty_go_bom(self) -> None:
+        idx = self._tab_index("bom")
+        if idx >= 0:
+            self.tabs.setCurrentIndex(idx)
+
+    def _show_clean_alert(
+        self, key: str, *, severity: str = "warning", **kwargs: object
+    ) -> None:
+        if not hasattr(self, "clean_alert_frame"):
+            return
+        self._clean_alert_key = key
+        self._clean_alert_args = dict(kwargs)
+        self.clean_alert_frame.setProperty("severity", severity)
+        self._render_clean_alert()
+        self.clean_alert_frame.setVisible(True)
+        style = self.clean_alert_frame.style()
+        style.unpolish(self.clean_alert_frame)
+        style.polish(self.clean_alert_frame)
+
+    def _render_clean_alert(self) -> None:
+        if not getattr(self, "_clean_alert_key", ""):
+            return
+        self.lbl_clean_alert.setText(
+            self.ui_tr(self._clean_alert_key, **self._clean_alert_args)
+        )
+        self.btn_clean_alert_details.setText(self.ui_tr("clean.err_details"))
+        self.btn_clean_alert_dismiss.setAccessibleName(self.ui_tr("clean.err_dismiss"))
+
+    def _clear_clean_alert(self) -> None:
+        self._clean_alert_key = ""
+        self._clean_alert_args = {}
+        if hasattr(self, "clean_alert_frame"):
+            self.clean_alert_frame.setVisible(False)
+
+    def _update_clean_rules_summary(self) -> None:
+        if not hasattr(self, "lbl_clean_rules_summary"):
+            return
+
+        def slots(combos: list[QtWidgets.QComboBox]) -> str:
+            values = [
+                "—"
+                if str(c.currentData()) in ("none", "None")
+                else str(c.currentData())
+                for c in combos
+            ]
+            return "·".join(values)
+
+        families = []
+        for chk, combos, short_key in (
+            (
+                self.chk_clean_res,
+                self.clean_res_template_combos,
+                "clean.rules_short_res",
+            ),
+            (
+                self.chk_clean_cap,
+                self.clean_cap_template_combos,
+                "clean.rules_short_cap",
+            ),
+            (
+                self.chk_clean_ind,
+                self.clean_ind_template_combos,
+                "clean.rules_short_ind",
+            ),
+        ):
+            if chk.isChecked():
+                families.append(
+                    self.ui_tr(
+                        "clean.rules_family",
+                        name=self.ui_tr(short_key),
+                        slots=slots(combos),
+                    )
+                )
+        sources = []
+        if self.clean_from_db.isChecked():
+            sources.append(self.ui_tr("clean.from_db"))
+        if self.clean_from_hanwha_mdb.isChecked():
+            sources.append(self.ui_tr("clean.from_machine"))
+        if self.gb_clean_pn.isChecked():
+            sources.append(self.ui_tr("clean.pn"))
+        join_data = self.clean_spacer_combo.currentData()
+        if join_data == " ":
+            join = self.ui_tr("clean.spacer_space")
+        elif join_data == "\t":
+            join = self.ui_tr("clean.spacer_tab")
+        elif self.clean_spacer_combo.currentData() == "cust":
+            join = (
+                self.clean_spacer_cust.text() or self.clean_spacer_combo.currentText()
+            )
+        else:
+            join = str(join_data)
+        self._clean_rules_summary_full = self.ui_tr(
+            "clean.rules_summary",
+            families=" · ".join(families) or self.ui_tr("clean.rules_none"),
+            join=join,
+            sources=", ".join(sources) or self.ui_tr("clean.rules_sources_none"),
+            combine=self.ui_tr(
+                "clean.rules_combine_on"
+                if self.clean_combine_inputs.isChecked()
+                else "clean.rules_combine_off"
+            ),
+        )
+        self._apply_clean_rules_summary_elide()
+        self.lbl_clean_rules_summary.setAccessibleDescription(
+            self.ui_tr("clean.rules_summary_tip")
+        )
+        QtCore.QTimer.singleShot(0, self._apply_clean_rules_summary_elide)
+
+    def _apply_clean_rules_summary_elide(self) -> None:
+        if not hasattr(self, "lbl_clean_rules_summary"):
+            return
+        full = getattr(self, "_clean_rules_summary_full", "")
+        if not full:
+            return
+        label = self.lbl_clean_rules_summary
+        width = label.width() - 2
+        label.setText(
+            label.fontMetrics().elidedText(
+                full, QtCore.Qt.TextElideMode.ElideRight, width
+            )
+            if width > 20
+            else full
+        )
+        label.setToolTip(full)
 
     def _sync_clean_primary_buttons(self) -> None:
         if not hasattr(self, "btn_clean_convert"):
             return
-        conv = self.btn_clean_convert.isEnabled()
-        apply_on = self.btn_clean_apply.isEnabled()
-        import_active = not conv and not apply_on
-        convert_active = conv and not apply_on
-        apply_active = apply_on
-        for btn, active in (
-            (self.btn_clean_import, import_active),
-            (self.btn_clean_convert, convert_active),
-            (self.btn_clean_apply, apply_active),
+        imported = bool(getattr(self, "_clean_imported_comments", None))
+        has_preview = bool(getattr(self, "_clean_last_preview", None))
+        stale = bool(getattr(self, "_clean_preview_stale", False)) and has_preview
+        applied = bool(getattr(self, "_clean_applied", False)) and has_preview
+        # ``cleanStep`` keeps the original enabled-state contract (QSS/tests use it);
+        # ``cleanStepState`` adds the done/next/stale distinction on top.
+        conv_enabled = self.btn_clean_convert.isEnabled()
+        apply_enabled = self.btn_clean_apply.isEnabled()
+        import_active = not conv_enabled and not apply_enabled
+        convert_active = conv_enabled and not apply_enabled
+        apply_active = apply_enabled
+        if not conv_enabled:
+            next_key = "apply" if apply_enabled else "import"
+        elif not apply_enabled:
+            next_key = "convert"
+        else:
+            next_key = "apply"
+        states = {
+            "import": "done" if imported else ("next" if import_active else "idle"),
+            "convert": (
+                "stale"
+                if stale
+                else (
+                    "done"
+                    if has_preview and not stale
+                    else ("next" if next_key == "convert" else "idle")
+                )
+            ),
+            "apply": (
+                "done"
+                if applied
+                else ("next" if next_key == "apply" and apply_enabled else "idle")
+            ),
+        }
+        active_flags = {
+            "import": import_active,
+            "convert": convert_active,
+            "apply": apply_active,
+        }
+        markers = {"done": "✓ ", "next": "▶ ", "stale": "⟳ ", "idle": ""}
+        button_keys = {
+            "import": "clean.btn_import",
+            "convert": "clean.btn_convert",
+            "apply": "clean.btn_apply",
+        }
+        for btn, key in (
+            (self.btn_clean_import, "import"),
+            (self.btn_clean_convert, "convert"),
+            (self.btn_clean_apply, "apply"),
         ):
-            btn.setProperty("cleanStep", "active" if active else "idle")
+            state = states[key]
+            btn.setProperty("cleanStep", "active" if active_flags[key] else "idle")
+            btn.setProperty("cleanStepState", state)
+            btn.setText(markers[state] + self.ui_tr(button_keys[key]))
+            btn.setIcon(QtGui.QIcon())
             sty = btn.style()
             sty.unpolish(btn)
             sty.polish(btn)
             btn.update()
+        if self.btn_clean_convert.isEnabled():
+            self.btn_clean_convert.setToolTip(self.ui_tr("clean.btn_convert_tip"))
+        else:
+            self.btn_clean_convert.setToolTip(
+                self.ui_tr(
+                    "clean.btn_convert_disabled_import"
+                    if not imported
+                    else "clean.btn_convert_disabled_map"
+                )
+            )
+        if not self.btn_clean_apply.isEnabled():
+            if not has_preview:
+                self.btn_clean_apply.setToolTip(
+                    self.ui_tr("clean.btn_apply_disabled_convert")
+                )
+            elif stale:
+                self.btn_clean_apply.setToolTip(
+                    self.ui_tr("clean.btn_apply_disabled_stale")
+                )
+            else:
+                self.btn_clean_apply.setToolTip(
+                    self.ui_tr("clean.btn_apply_disabled_none")
+                )
+        elif stale:
+            self.btn_clean_apply.setToolTip(
+                self.ui_tr("clean.btn_apply_disabled_stale")
+            )
+        else:
+            self.btn_clean_apply.setToolTip(self.ui_tr("clean.btn_apply_tip"))
         apply_equal_widths(
             (
                 self.btn_clean_import,
@@ -749,6 +1415,7 @@ class CleanTabMixin:
         )
 
     def _set_clean_custom_slots_visible(self, visible: bool) -> None:
+        self._clean_custom_slots_visible = visible
         for combos in (
             self.clean_res_template_combos,
             self.clean_cap_template_combos,
@@ -763,6 +1430,7 @@ class CleanTabMixin:
             h.setVisible(visible)
         for sp in getattr(self, "_clean_rcl_slot_spacers", []):
             sp.setVisible(visible)
+        self._sync_clean_parser_grid_sizes()
 
     def _clean_template_tuple(self, combos: list) -> tuple[str, ...]:
         return tuple(self._template_from_combos(combos))
@@ -919,18 +1587,49 @@ class CleanTabMixin:
         self.btn_clean_convert.setToolTip(self.ui_tr("clean.btn_convert_tip"))
         self.btn_clean_apply.setText(self.ui_tr("clean.btn_apply"))
         self.btn_clean_apply.setToolTip(self.ui_tr("clean.btn_apply_tip"))
-        self.clean_apply_replace.setText(self.ui_tr("clean.replace_source"))
-        self.clean_apply_replace.setToolTip(self.ui_tr("clean.replace_source_tip"))
-        self.btn_clean_learn_other.setText(self.ui_tr("clean.btn_learn"))
-        self.btn_clean_learn_other.setToolTip(self.ui_tr("clean.btn_learn_tip"))
         self.btn_clean_save.setText(self.ui_tr("clean.btn_save"))
         self.btn_clean_go_bom.setText(self.ui_tr("clean.go_to_bom"))
-        self.btn_clean_options_toggle.setText(self.ui_tr("clean.options_toggle"))
-        if not self._clean_imported_comments and not self._clean_last_preview:
-            self.lbl_clean_source.setText(self.ui_tr("clean.source_hint"))
-        self._refresh_clean_context_chip()
+        self.btn_clean_options_toggle.setText(self.ui_tr("clean.rules_toggle"))
+        self.btn_clean_options_toggle.setToolTip(self.ui_tr("clean.rules_toggle_tip"))
+        self.lbl_clean_empty_title.setText(self.ui_tr("clean.empty_title"))
+        self.lbl_clean_empty_hint.setText(self.ui_tr("clean.empty_hint"))
+        self.btn_clean_empty_bom.setText(self.ui_tr("clean.empty_bom"))
+        self.lbl_clean_stale.setText(self.ui_tr("clean.stale_badge"))
+        self._render_clean_alert()
+        for btn, name in (
+            (self.btn_clean_import, "clean.btn_import"),
+            (self.btn_clean_convert, "clean.btn_convert"),
+            (self.btn_clean_apply, "clean.btn_apply"),
+            (self.btn_clean_learn_other, "clean.btn_learn"),
+            (self.btn_clean_save, "clean.btn_save"),
+            (self.btn_clean_empty_bom, "clean.empty_bom"),
+            (self.btn_clean_options_toggle, "clean.rules_toggle"),
+        ):
+            btn.setAccessibleName(self.ui_tr(name))
+        self.clean_preview_table.setAccessibleName(self.ui_tr("clean.preview_aria"))
+        self.clean_preview_empty.setAccessibleName(self.ui_tr("clean.empty_title"))
+        self.lbl_clean_source.setAccessibleName(self.ui_tr("clean.summary_aria"))
+        self.lbl_clean_rules_summary.setAccessibleName(self.ui_tr("clean.rules_toggle"))
+        self.clean_splitter.setAccessibleName(self.ui_tr("clean.preview_aria"))
+        for lbl in (
+            self.lbl_clean_res_prefix,
+            self.lbl_clean_cap_prefix,
+            self.lbl_clean_ind_prefix,
+        ):
+            lbl.setToolTip(self.ui_tr("clean.tip_prefix"))
+        for combo in (
+            *self.clean_res_template_combos,
+            *self.clean_cap_template_combos,
+            *self.clean_ind_template_combos,
+        ):
+            combo.setToolTip(self.ui_tr("clean.tip_slot_order"))
+        for h in getattr(self, "_clean_rcl_slot_headers", []):
+            h.setToolTip(self.ui_tr("clean.tip_slot_order"))
         self._sync_clean_parser_grid_sizes()
         self._sync_clean_primary_buttons()
+        self._sync_clean_preview_view()
+        self._update_clean_rules_summary()
+        self._update_clean_preview_min_height()
 
     def _get_bom_comment_column_names(
         self, df: pd.DataFrame | None = None
@@ -1232,14 +1931,16 @@ class CleanTabMixin:
                 "clean/regex_master_preview_scores",
                 self.clean_regex_master_scores.isChecked(),
             )
-        if hasattr(self, "clean_apply_replace"):
-            s.setValue("clean/apply_replace", self.clean_apply_replace.isChecked())
         s.setValue("clean/combine_input_columns", self.clean_combine_inputs.isChecked())
+        # Legacy Replace-source toggle removed; drop its old persisted key.
+        s.remove("clean/apply_replace")
         if hasattr(self, "btn_clean_options_toggle"):
             s.setValue(
                 "clean/options_expanded",
                 self.btn_clean_options_toggle.isChecked(),
             )
+        self._save_clean_splitter_sizes()
+        self._update_clean_rules_summary()
 
     def _clean_import(self) -> None:
         self._sync_bom_df_from_model()
@@ -1253,6 +1954,7 @@ class CleanTabMixin:
         if df is None or df.empty:
             self._log("Clean BOM: load BOM on BOM tab first", "warning")
             logger.warning("Clean BOM: no BOM loaded")
+            self._show_clean_alert("clean.err_no_bom")
             return
         comment_cols = self._get_bom_comment_column_names(df)
         if not comment_cols:
@@ -1261,21 +1963,31 @@ class CleanTabMixin:
                 "warning",
             )
             logger.error("Clean BOM: BOM PN column not configured")
+            self._show_clean_alert("clean.err_no_mapping")
             return
         for col in comment_cols:
             if col not in df.columns:
                 self._log(f"Clean BOM: column «{col}» missing from BOM", "warning")
+                self._show_clean_alert("clean.err_column_missing")
                 return
         primary_col = comment_cols[0]
         self._clean_source_column = primary_col
         self._clean_source_indices = list(range(len(df)))
         if not self._clean_source_indices:
             self._log("Clean BOM: BOM table is empty", "warning")
+            self._show_clean_alert("clean.err_empty_bom")
             return
 
-        self._clean_imported_comments = import_bom_comment_inputs(
-            df, comment_cols, self._clean_source_indices
-        )
+        try:
+            imported_comments = import_bom_comment_inputs(
+                df, comment_cols, self._clean_source_indices
+            )
+        except Exception as e:
+            logger.exception("Clean BOM: importing BOM comments failed")
+            self._log(f"Clean BOM: Import failed: {e}", "error")
+            self._show_clean_alert("clean.err_import_failed", severity="error")
+            return
+        self._clean_imported_comments = imported_comments
         n = len(self._clean_imported_comments)
         joined = "», «".join(str(c) for c in comment_cols)
         col_desc = (
@@ -1301,6 +2013,9 @@ class CleanTabMixin:
         self.btn_clean_learn_other.setEnabled(False)
         self._clean_last_preview = []
         self._clean_preview_stale = False
+        self._clean_applied = False
+        self._clear_clean_alert()
+        self._hide_clean_apply_banner()
         self._sync_clean_primary_buttons()
         if hasattr(self, "_refresh_shell_status"):
             self._refresh_shell_status()
@@ -1310,15 +2025,8 @@ class CleanTabMixin:
             combined_label=self.ui_tr("clean.input_combined"),
         )
         self.clean_preview_model.update_dataframe(raw_df)
-        range_note = self._clean_source_range_label(n)
-        self.lbl_clean_source.setText(
-            self.ui_tr(
-                "clean.import_done",
-                columns=col_desc,
-                count=n,
-                range=range_note,
-            )
-        )
+        self._sync_clean_preview_view()
+        self._sync_clean_primary_buttons()
 
     def _warn_if_machine_library_is_importing(self) -> None:
         """Explain a Hanwha match miss that is only a race with the MDB import.
@@ -1347,6 +2055,7 @@ class CleanTabMixin:
         if not self._clean_imported_comments:
             self._log("Clean BOM: run Import from BOM first, then Convert!", "warning")
             logger.error("Clean BOM: no comments imported")
+            self._show_clean_alert("clean.err_import_first")
             return
         self._warn_if_machine_library_is_importing()
         n = len(self._clean_imported_comments)
@@ -1358,9 +2067,11 @@ class CleanTabMixin:
         except Exception as e:
             self._log(f"Clean BOM: Convert! error: {e}", "error")
             logger.exception("Clean BOM clean_preview failed")
+            self._show_clean_alert("clean.err_convert_failed", severity="error")
             return
         self._clean_last_preview = rows
         self._clean_preview_stale = False
+        self._clean_applied = False
         df = _clean_preview_frame(
             self._clean_imported_comments,
             rows,
@@ -1375,18 +2086,10 @@ class CleanTabMixin:
             f"Clean BOM: Convert! done — {len(rows)} row(s) (check Cleaned / Type / Source)",
             "info",
         )
-        if self._clean_source_column:
-            range_note = self._clean_source_range_label(len(rows))
-            self.lbl_clean_source.setText(
-                self.ui_tr(
-                    "clean.convert_done",
-                    column=str(self._clean_source_column),
-                    count=len(rows),
-                    range=range_note,
-                )
-            )
+        self._clear_clean_alert()
+        self._hide_clean_apply_banner()
         self.btn_clean_apply.setEnabled(bool(rows))
-        self.btn_clean_learn_other.setEnabled(bool(rows))
+        self._sync_clean_preview_view()
         self._sync_clean_primary_buttons()
         if hasattr(self, "_refresh_shell_status"):
             self._refresh_shell_status()
@@ -1437,6 +2140,7 @@ class CleanTabMixin:
         try:
             one_based = int(row.get("#", idx.row() + 1))
         except (TypeError, ValueError):
+            # The printed row number is decorative; the Qt row is the real position.
             one_based = idx.row() + 1
         footprint = self._footprint_for_clean_row(one_based)
 
@@ -1487,21 +2191,22 @@ class CleanTabMixin:
         self._sync_bom_df_from_model()
         if self._bom_df is None or self._bom_df.empty:
             logger.warning("Clean BOM apply: no BOM data")
+            self._show_clean_alert("clean.err_no_bom")
             return
         col = self._clean_source_column or self._get_bom_comment_column_name()
         if not col or col not in self._bom_df.columns:
             self._log("Clean BOM: no Comment column", "warning")
             logger.error("Clean BOM apply: comment column missing")
+            self._show_clean_alert("clean.err_no_mapping")
             return
         if not self._clean_last_preview:
             self._log("Clean BOM: run Convert! before Apply", "warning")
+            self._show_clean_alert("clean.err_convert_first")
             return
 
-        replace = self.clean_apply_replace.isChecked()
         logger.info(
-            "Applying clean preview to BOM (%d preview rows, replace=%s)…",
+            "Applying clean preview to BOM (%d preview rows)…",
             len(self._clean_last_preview),
-            replace,
         )
 
         preserved_roles = (
@@ -1509,41 +2214,48 @@ class CleanTabMixin:
             if getattr(self, "bom_col_combos", None)
             else []
         )
-        self._bom_df = apply_clean_preview_to_bom(
-            self._bom_df,
-            self._clean_last_preview,
-            self._clean_source_indices,
-            col,
-            replace_source=replace,
-        )
-        after_cols = list(self._bom_df.columns)
-        self.bom_model.update_dataframe(self._bom_df)
-        from services.column_mapping import roles_after_clean_apply
+        self._clean_applying = True
+        try:
+            self._bom_df = apply_clean_preview_to_bom(
+                self._bom_df,
+                self._clean_last_preview,
+                self._clean_source_indices,
+                col,
+                replace_source=False,
+            )
+            after_cols = list(self._bom_df.columns)
+            self.bom_model.update_dataframe(self._bom_df)
+            from services.column_mapping import roles_after_clean_apply
 
-        comment_target = col if replace else "comment"
-        if comment_target not in after_cols and "comment" in after_cols:
             comment_target = "comment"
-        if comment_target in after_cols:
-            roles = roles_after_clean_apply(
-                preserved_roles, after_cols, comment_column=comment_target
-            )
-            self._fill_bom_combos(preserved_roles=roles)
-        if replace:
-            msg = self.ui_tr(
-                "clean.apply_replaced",
-                count=len(self._clean_last_preview),
-                column=str(col),
-            )
-        else:
+            if comment_target in after_cols:
+                roles = roles_after_clean_apply(
+                    preserved_roles, after_cols, comment_column=comment_target
+                )
+                self._fill_bom_combos(preserved_roles=roles)
             msg = self.ui_tr(
                 "clean.apply_added",
                 count=len(self._clean_last_preview),
             )
-        self._log(f"Clean Apply → BOM: {msg}", "info")
-        logger.info("Applied clean to BOM: %s", msg)
-        self._mark_working_dirty("bom")
+            self._log(f"Clean Apply → BOM: {msg}", "info")
+            logger.info("Applied clean to BOM: %s", msg)
+            # Rewriting the BOM also rewrites the mapping combos; keep the
+            # preview from marking itself stale while this intentional update runs.
+            self._mark_working_dirty("bom")
+        except Exception as e:
+            logger.exception("Clean BOM: apply to BOM failed")
+            self._log(f"Clean BOM: Apply failed: {e}", "error")
+            self._show_clean_alert("clean.err_apply_failed", severity="error")
+            return
+        finally:
+            self._clean_applying = False
+        self._clean_applied = True
+        self._clear_clean_alert()
         self._show_clean_apply_banner(self.ui_tr("clean.apply_ok_banner"))
+        self._sync_clean_preview_view()
         self._sync_clean_primary_buttons()
+        if hasattr(self, "_refresh_shell_status"):
+            self._refresh_shell_status()
 
     def _clean_save_excel(self) -> None:
         self._sync_bom_df_from_model()
@@ -1606,7 +2318,6 @@ class CleanTabMixin:
             "res_prefix": self.clean_res_prefix.text(),
             "cap_prefix": self.clean_cap_prefix.text(),
             "ind_prefix": self.clean_ind_prefix.text(),
-            "apply_replace": self.clean_apply_replace.isChecked(),
             "group_res": self.chk_clean_res.isChecked(),
             "group_cap": self.chk_clean_cap.isChecked(),
             "group_ind": self.chk_clean_ind.isChecked(),
@@ -1649,7 +2360,6 @@ class CleanTabMixin:
             self.clean_res_watt_from_pack,
             self.clean_cap_prefix,
             self.clean_ind_prefix,
-            self.clean_apply_replace,
             self.clean_combine_inputs,
         ):
             w.blockSignals(True)
@@ -1705,9 +2415,6 @@ class CleanTabMixin:
         self.clean_res_prefix.setText(str(c.get("res_prefix", "")))
         self.clean_cap_prefix.setText(str(c.get("cap_prefix", "")))
         self.clean_ind_prefix.setText(str(c.get("ind_prefix", "")))
-        self.clean_apply_replace.setChecked(
-            _prefs_profile_bool(c.get("apply_replace"), False)
-        )
         if hasattr(self, "chk_clean_res"):
             self.chk_clean_res.setChecked(_prefs_profile_bool(c.get("group_res"), True))
             self.chk_clean_cap.setChecked(_prefs_profile_bool(c.get("group_cap"), True))
@@ -1737,7 +2444,6 @@ class CleanTabMixin:
             self.clean_res_watt_from_pack,
             self.clean_cap_prefix,
             self.clean_ind_prefix,
-            self.clean_apply_replace,
             self.clean_combine_inputs,
         ):
             w.blockSignals(False)
@@ -1769,13 +2475,11 @@ class CleanTabMixin:
             self.btn_clean_options_toggle.blockSignals(True)
             self.btn_clean_options_toggle.setChecked(expanded)
             self.btn_clean_options_toggle.blockSignals(False)
-            self.clean_options_panel.setVisible(expanded)
-            self.btn_clean_options_toggle.setArrowType(
-                QtCore.Qt.ArrowType.DownArrow
-                if expanded
-                else QtCore.Qt.ArrowType.RightArrow
-            )
+            self._apply_clean_options_visibility(expanded)
         self._sync_clean_preset_from_combos()
+        self._sync_clean_preview_view()
+        self._sync_clean_primary_buttons()
+        self._update_clean_rules_summary()
 
     def _update_clean_rcl_examples(self) -> None:
         if not hasattr(self, "lbl_clean_res_example"):
@@ -1790,7 +2494,10 @@ class CleanTabMixin:
             )
             cap_out = format_cap_fields({"pack": "0402", "nom": "12pF", "%": "5%"}, cfg)
             ind_out = format_inductor_fields({"pack": "0805", "nom": "4.7uH"}, cfg)
-        except Exception:
+        except Exception as e:
+            # Example previews are decorative; a formatter failure must not
+            # break the tab, so show "—" and keep the reason in the log.
+            logger.warning("Clean BOM: rules example formatting failed: %s", e)
             res_out = cap_out = ind_out = ""
         self.lbl_clean_res_example.setText(
             self.ui_tr("clean.example_res", raw=raw_res, out=res_out or "—")
@@ -1801,9 +2508,6 @@ class CleanTabMixin:
         self.lbl_clean_ind_example.setText(
             self.ui_tr("clean.example_ind", raw=raw_ind, out=ind_out or "—")
         )
-
-    def _clean_source_range_label(self, n_rows: int) -> str:
-        return self.ui_tr("clean.source_range", count=n_rows)
 
     def _show_clean_apply_banner(self, message: str) -> None:
         if not hasattr(self, "clean_apply_ok_banner"):

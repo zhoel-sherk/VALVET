@@ -466,8 +466,8 @@ def test_4_15_no_dead_if_pass_in_qt_models() -> None:
             assert not isinstance(inner.body[0], ast.Pass)
 
 
-def test_4_15_nan_win_percent_is_not_treated_as_full_score() -> None:
-    """5.3.7: min(100.0, nan) is 100.0, so NaN painted a full-intensity fill."""
+def test_4_15_nan_win_percent_does_not_colour_the_cell() -> None:
+    """A NaN score must not turn into a full-intensity fill (or any fill)."""
     _qapp()
     from qt_models import CleanPreviewTableModel
 
@@ -479,19 +479,18 @@ def test_4_15_nan_win_percent_is_not_treated_as_full_score() -> None:
         fg = model.data(idx, QtCore.Qt.ItemDataRole.ForegroundRole)
         assert bg is None
         assert fg is None
-    # And the score itself must not survive as 100.0 anywhere.
-    assert model._clean_tint_color(0, 0) is None
 
 
 def test_4_15_nan_win_percent_out_of_column_position() -> None:
-    """A float NaN that reaches the clamp must not colour the cell either."""
+    """A float NaN that reaches the score column must not colour the cell either."""
     pytest.importorskip("PySide6")
     from qt_models import CleanPreviewTableModel
 
     _qapp()
     df = pd.DataFrame({"Cleaned": ["a"], "Win%": [float("nan")]})
     model = CleanPreviewTableModel(df, arbiter_score_highlight=True)
-    assert model._clean_tint_color(0, 0) is None
+    idx = model.index(0, list(df.columns).index("Cleaned"))
+    assert model.data(idx, QtCore.Qt.ItemDataRole.BackgroundRole) is None
 
 
 # ======================================================================

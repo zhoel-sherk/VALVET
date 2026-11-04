@@ -1,4 +1,4 @@
-"""Clean preview model: Qt roles (no QtCore.QtCore)."""
+"""Clean preview model: Qt roles, neutral rows and header metadata."""
 
 from __future__ import annotations
 
@@ -19,28 +19,33 @@ def _qapp() -> QtWidgets.QApplication:
     return app
 
 
-def test_set_arbiter_score_highlight_emits() -> None:
+def test_normal_cleaned_cell_stays_neutral() -> None:
     _qapp()
     model = CleanPreviewTableModel(
         pd.DataFrame({"Cleaned": ["10k"], "Win%": [80.0]}),
         arbiter_score_highlight=True,
     )
-    model.set_arbiter_score_highlight(True)
-    idx = model.index(0, 0)
-    bg = model.data(idx, QtCore.Qt.ItemDataRole.BackgroundRole)
-    assert isinstance(bg, QtGui.QBrush)
-
-
-def test_clean_preview_background_role_win_percent() -> None:
-    _qapp()
-    model = CleanPreviewTableModel(
-        pd.DataFrame({"Cleaned": ["x"], "Win%": [80.0]}),
-        arbiter_score_highlight=True,
-    )
     cleaned_col = list(model.get_dataframe().columns).index("Cleaned")
     idx = model.index(0, cleaned_col)
-    bg = model.data(idx, QtCore.Qt.ItemDataRole.BackgroundRole)
-    assert isinstance(bg, QtGui.QBrush)
+    assert model.data(idx, QtCore.Qt.ItemDataRole.BackgroundRole) is None
+    assert model.data(idx, QtCore.Qt.ItemDataRole.ForegroundRole) is None
+
+
+def test_header_tooltips_are_stored_per_column() -> None:
+    _qapp()
+    model = CleanPreviewTableModel(
+        pd.DataFrame({"#": [1], "Cleaned": ["x"], "Type": ["RES"]})
+    )
+    model.set_column_header_metadata(
+        {}, {"#": "row", "Cleaned": "clean", "Type": "type"}
+    )
+    for col, expected in enumerate(("row", "clean", "type")):
+        tip = model.headerData(
+            col,
+            QtCore.Qt.Orientation.Horizontal,
+            QtCore.Qt.ItemDataRole.ToolTipRole,
+        )
+        assert tip == expected
 
 
 def test_clean_preview_partial_source_foreground() -> None:

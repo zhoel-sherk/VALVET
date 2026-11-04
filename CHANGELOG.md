@@ -7,6 +7,15 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Clean BOM preview and Rules workspace.** The preview has one row number,
+  neutral normal rows, contextual Alert/arbiter state, readable step markers, a
+  stale badge and an accessible empty state. Import/Convert/Apply failures now
+  reach a notification strip and the Project log. Rules gains a live summary,
+  a persisted table/Rules splitter, a six-row table floor and side-by-side
+  Parser/Advanced groups on wide windows. The legacy `Replace source column`
+  UI was removed; Apply keeps its add-columns semantics.
+
+
 - **Clean BOM evaluates Original columns without join/split.** PN name and PN
   join cells remain separate DataFrame inputs. Without the arbiter the first
   valid input wins; with the arbiter the highest score wins and ties retain the

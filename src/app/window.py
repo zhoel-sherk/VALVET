@@ -286,8 +286,6 @@ class MainWindow(
                 stale=stale,
             )
         )
-        if hasattr(self, "_refresh_clean_context_chip"):
-            self._refresh_clean_context_chip()
 
     def _refresh_static_ui_texts(self) -> None:
         """Re-apply translated strings (after language change)."""

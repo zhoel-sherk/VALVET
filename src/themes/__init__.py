@@ -83,5 +83,65 @@ def extra_application_stylesheet() -> str:
     QPushButton#cleanSecondaryAction {{
         font-weight: 600;
     }}
+    QPushButton#cleanPrimaryImport:focus,
+    QPushButton#cleanPrimaryConvert:focus,
+    QPushButton#cleanPrimaryApply:focus,
+    QPushButton#cleanSecondaryAction:focus {{
+        border: 2px solid #ffffff;
+    }}
+    QPushButton#cleanPrimaryConvert[cleanStepState="stale"] {{
+        border: 2px dashed #ef6c00;
+        color: #ffcc80;
+    }}
+    QPushButton#cleanPrimaryImport[cleanStepState="done"],
+    QPushButton#cleanPrimaryConvert[cleanStepState="done"],
+    QPushButton#cleanPrimaryApply[cleanStepState="done"] {{
+        border: 2px solid #43a047;
+    }}
+    QLabel#cleanStaleBadge {{
+        background-color: rgba(239, 108, 0, 0.22);
+        border: 1px solid #ef6c00;
+        border-radius: 4px;
+        color: #ffcc80;
+        font-weight: 600;
+        padding: 2px 8px;
+    }}
+    QFrame#cleanErrorStrip {{
+        border-radius: 4px;
+        padding: 4px 8px;
+    }}
+    QFrame#cleanErrorStrip[severity="warning"] {{
+        background-color: rgba(239, 108, 0, 0.18);
+        border: 1px solid #ef6c00;
+    }}
+    QFrame#cleanErrorStrip[severity="error"] {{
+        background-color: rgba(198, 40, 40, 0.22);
+        border: 1px solid #e57373;
+    }}
+    QLabel#cleanAlertIcon {{
+        color: #ffcc80;
+        font-weight: 700;
+        border: none;
+        background: transparent;
+    }}
+    QFrame#cleanErrorStrip QLabel {{
+        border: none;
+        background: transparent;
+    }}
+    QFrame#cleanEmptyState {{
+        border: 1px dashed #4a5a6a;
+        border-radius: 6px;
+        background-color: rgba(38, 50, 62, 0.35);
+    }}
+    QLabel#cleanEmptyTitle {{
+        font-weight: 700;
+    }}
+    QLabel#cleanRulesSummary {{
+        color: #b0bec5;
+    }}
+    QFrame#cleanRclRow QLabel {{
+        background: transparent;
+        border: none;
+    }}
     """
     return base + switch_qss() + segmented_qss()

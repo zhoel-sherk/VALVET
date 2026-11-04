@@ -4,7 +4,6 @@ PandasTableModel — bridge between a pandas DataFrame and PySide6 QTableView.
 Subclass of QtCore.QAbstractTableModel; handles pandas NaN/NaT safely.
 """
 
-import math
 from typing import Any, Callable, Optional
 
 import numpy as np
@@ -708,7 +707,13 @@ def create_table_model(
 
 
 class CleanPreviewTableModel(SortableTableModel):
-    """Clean BOM preview: optional green tint on Cleaned from Win%% column."""
+    """Clean BOM preview: neutral rows, PARTIAL/Alert markers, arbiter tooltips.
+
+    Ordinary cells keep the view's own zebra striping: an opaque Win%-based
+    fill made every normal regex row look emphasised. Only ``Source`` keeps a
+    foreground colour (PARTIAL), and a token alert adds a ``⚠`` text marker so
+    the state never depends on colour alone.
+    """
 
     def __init__(
         self,
@@ -721,74 +726,57 @@ class CleanPreviewTableModel(SortableTableModel):
         self._arbiter_score_highlight = bool(arbiter_score_highlight)
 
     def set_arbiter_score_highlight(self, on: bool) -> None:
+        """Switch arbiter details in the Cleaned tooltip (no colour change)."""
         self._arbiter_score_highlight = bool(on)
-        if self.rowCount() > 0 and self.columnCount() > 0:
-            tl = self.index(0, 0)
-            br = self.index(self.rowCount() - 1, self.columnCount() - 1)
-            self.dataChanged.emit(
-                tl,
-                br,
-                [
-                    QtCore.Qt.ItemDataRole.BackgroundRole,
-                    QtCore.Qt.ItemDataRole.ForegroundRole,
-                ],
-            )
 
-    def _clean_tint_color(self, row: int, col: int) -> Optional[QtGui.QColor]:
-        """Green fill for the ``Cleaned`` cell, or None when no tint applies."""
+    def _column_name(self, col: int) -> str:
+        if col < 0 or col >= len(self._df.columns):
+            return ""
+        return str(self._df.columns[col])
+
+    def _row_value(self, row: int, name: str) -> str:
+        if name not in self._df.columns or row < 0 or row >= len(self._df):
+            return ""
+        value = self._df.iloc[row][name]
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return ""
+        return str(value).strip()
+
+    def _cleaned_tooltip(self, row: int, base: str) -> str:
         if not self._arbiter_score_highlight:
-            return None
-        if row < 0 or row >= len(self._df) or col >= len(self._df.columns):
-            return None
-        if str(self._df.columns[col]) != "Cleaned" or "Win%" not in self._df.columns:
-            return None
-        wcell = self._df.iloc[row]["Win%"]
-        try:
-            if wcell is None or pd.isna(wcell):
-                return None
-            s = str(wcell).strip()
-            if not s:
-                return None
-            pct = float(s)
-        except (TypeError, ValueError):
-            return None
-        # A non-empty cell can still parse to NaN (the literal string "nan"), and
-        # min(100.0, nan) returns 100.0 - which would paint a full-intensity fill
-        # for a row that has no score at all.
-        if not math.isfinite(pct):
-            return None
-        pct = max(0.0, min(100.0, pct))
-        # Clamp before building the colour: QColor rejects channels > 255 and
-        # silently yields a fully transparent brush, which made the tint vanish
-        # for scores above ~90%.
-        intensity = min(255, int(210 + (pct / 100.0) * 40))
-        alt = row % 2 == 1
-        if alt:
-            mix = max(0, min(255, int(230 - (pct / 100.0) * 35)))
-            return QtGui.QColor(mix, intensity, mix)
-        return QtGui.QColor(235, min(255, intensity + 8), 235)
-
-    def _get_background(self, row: int, col: int, value: Any) -> Any:
-        base = super()._get_background(row, col, value)
-        tint = self._clean_tint_color(row, col)
-        if tint is None:
             return base
-        return QtGui.QBrush(tint)
+        parts = [base]
+        arbiter = self._row_value(row, "Arbiter")
+        score = self._row_value(row, "Win%")
+        if arbiter:
+            parts.append(f"Arbiter: {arbiter}")
+        if score:
+            parts.append(f"Win%: {score}")
+        return "\n".join(parts)
+
+    def data(
+        self, index: QtCore.QModelIndex, role: int = QtCore.Qt.ItemDataRole.DisplayRole
+    ) -> Any:
+        if not index.isValid():
+            return None
+        col_name = self._column_name(index.column())
+        if role == QtCore.Qt.ItemDataRole.TextAlignmentRole and col_name == "#":
+            return QtCore.Qt.AlignmentFlag.AlignRight | (
+                QtCore.Qt.AlignmentFlag.AlignVCenter
+            )
+        if role == QtCore.Qt.ItemDataRole.ToolTipRole:
+            base = super().data(index, role)
+            if col_name == "Cleaned":
+                return self._cleaned_tooltip(index.row(), str(base or ""))
+            return base
+        if role == QtCore.Qt.ItemDataRole.DisplayRole and col_name == "Alert":
+            text = super().data(index, role)
+            return f"⚠ {text}" if str(text or "").strip() else text
+        return super().data(index, role)
 
     def _get_foreground(self, row: int, col: int, value: Any) -> Optional[QtGui.QBrush]:
-        if row < len(self._df) and col < len(self._df.columns):
-            col_name = str(self._df.columns[col])
-            if col_name == "Source":
-                if value is None or (isinstance(value, float) and pd.isna(value)):
-                    pass
-                else:
-                    sv = str(value)
-                    if "PARTIAL" in sv.upper():
-                        return QtGui.QBrush(QtGui.QColor(220, 85, 0))
-        # A tinted cell paints its own fill, so the theme's text colour (light in
-        # the dark theme) would be unreadable on it. Pair the fill with a
-        # foreground derived from the fill itself.
-        tint = self._clean_tint_color(row, col)
-        if tint is not None:
-            return QtGui.QBrush(_readable_foreground(tint))
+        if col < len(self._df.columns) and self._column_name(col) == "Source":
+            if value is not None and not (isinstance(value, float) and pd.isna(value)):
+                if "PARTIAL" in str(value).upper():
+                    return QtGui.QBrush(QtGui.QColor(220, 85, 0))
         return super()._get_foreground(row, col, value)

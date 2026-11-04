@@ -397,7 +397,6 @@ class ProfilesMixin:
                 self.clean_res_prefix,
                 self.clean_cap_prefix,
                 self.clean_ind_prefix,
-                self.clean_apply_replace,
                 self.clean_combine_inputs,
             ):
                 w.blockSignals(True)
@@ -459,9 +458,6 @@ class ProfilesMixin:
             self.clean_res_prefix.setText(s.value("clean/res_prefix", "", str))
             self.clean_cap_prefix.setText(s.value("clean/cap_prefix", "", str))
             self.clean_ind_prefix.setText(s.value("clean/ind_prefix", "", str))
-            self.clean_apply_replace.setChecked(
-                s.value("clean/apply_replace", False, type=bool)
-            )
             self.clean_combine_inputs.setChecked(
                 s.value("clean/combine_input_columns", False, type=bool)
             )
@@ -504,7 +500,6 @@ class ProfilesMixin:
                 self.clean_res_prefix,
                 self.clean_cap_prefix,
                 self.clean_ind_prefix,
-                self.clean_apply_replace,
                 self.clean_combine_inputs,
             ):
                 w.blockSignals(False)
@@ -538,12 +533,10 @@ class ProfilesMixin:
                 self.btn_clean_options_toggle.blockSignals(True)
                 self.btn_clean_options_toggle.setChecked(expanded)
                 self.btn_clean_options_toggle.blockSignals(False)
-                self.clean_options_panel.setVisible(expanded)
-                self.btn_clean_options_toggle.setArrowType(
-                    QtCore.Qt.ArrowType.DownArrow
-                    if expanded
-                    else QtCore.Qt.ArrowType.RightArrow
-                )
+                if hasattr(self, "_apply_clean_options_visibility"):
+                    self._apply_clean_options_visibility(expanded)
+                else:
+                    self.clean_options_panel.setVisible(expanded)
             if hasattr(self, "_sync_clean_preset_from_combos"):
                 self._sync_clean_preset_from_combos()
         if hasattr(self, "chk_critical"):
