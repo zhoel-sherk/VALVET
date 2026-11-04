@@ -3,6 +3,26 @@
 Notable changes to VALVET. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5.2] - BETA - 2026-11-04
+
+### Changed
+
+- **Clean BOM evaluates Original columns without join/split.** PN name and PN
+  join cells remain separate DataFrame inputs. Without the arbiter the first
+  valid input wins; with the arbiter the highest score wins and ties retain the
+  leftmost Original. Preview shows `Original 2…` and the winning `Input`, while
+  Apply, Learn OTHER and CLI preserve the original row/source mapping.
+- **Input Join is now an explicit fragment-combine mode.** The checkbox combines
+  columns such as `R0402` + `0.1uF` + `X5R 10V` as one component, once and without
+  a reverse split. The custom input separator is gone; output `Join with` is
+  unchanged. Legacy separators remain only for previously joined saved content.
+
+### Fixed
+
+- **A stored Join separator no longer corrupts a single PN-name column.** Clean
+  BOM used it even when no columns had been joined, so `0` turned `RES 0402 10
+  OHM` into `RES / OTHER`. Raw single-cell input now bypasses legacy splitting.
+
 ## [0.5.5.1] - BETA - 2026-11-04
 
 ### Added
