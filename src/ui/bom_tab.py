@@ -176,6 +176,7 @@ class BomTabMixin:
 
     def _clear_bom_workspace(self) -> None:
         self._prune_session_links_for_bom(self._bom_session_key())
+        self._merge_stale = True
         self._bom_df = None
         self._bom_source_path = ""
         self._bom_dirty = False

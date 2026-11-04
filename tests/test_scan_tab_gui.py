@@ -15,6 +15,7 @@ from parsers.tolp_export import SIDE_REAR, TolpExport, TolpFeeder  # noqa: E402
 def _reset(main_window) -> None:
     main_window.merge_model.update_dataframe(pd.DataFrame())
     main_window._last_merge_df = None
+    main_window._merge_stale = False
     main_window._bom_df = None
     tab = main_window._scan_tab
     tab._export = None
@@ -152,3 +153,97 @@ def test_bom_fallback_uses_custom_roles(main_window) -> None:
     tab.scan_edit.setText("IN-00004594")
     tab._on_scan()
     assert "Rear · 18" in tab.places_label.text()
+
+
+def test_bom_fallback_survives_an_incompatible_merge(main_window) -> None:
+    _reset(main_window)
+    stale_merge = pd.DataFrame({"Ref": ["R9"], "Value": ["OLD_PART"]})
+    main_window._last_merge_df = stale_merge
+    main_window.merge_model.update_dataframe(stale_merge)
+    bom = pd.DataFrame([["IN-1", "NEW_PART", "R1"]], columns=["0", "1", "2"])
+    main_window._bom_df = bom
+    main_window.bom_model.update_dataframe(bom)
+    main_window._fill_bom_combos(preserved_roles=["Custom", "Comment", "REF"])
+
+    main_window._scan_tab._refresh_sources()
+
+    assert [e.part for e in main_window._scan_tab._index["IN-1"]] == ["NEW_PART"]
+
+
+def test_stale_merge_is_ignored_after_bom_edit(main_window) -> None:
+    _reset(main_window)
+    main_window.merge_model.update_dataframe(_merge_df())
+    bom = pd.DataFrame([["IN-NEW", "NEW_PART", "R1"]], columns=["0", "1", "2"])
+    main_window._bom_df = bom
+    main_window.bom_model.update_dataframe(bom)
+    main_window._fill_bom_combos(preserved_roles=["Custom", "Comment", "REF"])
+    main_window._mark_working_dirty("bom")
+
+    main_window._scan_tab._refresh_sources()
+
+    assert "IN-00004594" not in main_window._scan_tab._index
+    assert [e.part for e in main_window._scan_tab._index["IN-NEW"]] == ["NEW_PART"]
+
+
+def test_bom_fallback_uses_comment_instead_of_joining_pnjoin(main_window) -> None:
+    _reset(main_window)
+    bom = pd.DataFrame([["IN-2", "ABC", "XYZ", "U1"]], columns=["0", "1", "2", "3"])
+    main_window._bom_df = bom
+    main_window.bom_model.update_dataframe(bom)
+    main_window._fill_bom_combos(preserved_roles=["Custom", "Comment", "PnJoin", "REF"])
+
+    main_window._scan_tab._refresh_sources()
+
+    assert [e.part for e in main_window._scan_tab._index["IN-2"]] == ["ABC"]
+
+
+def test_custom_ordinal_survives_bom_to_merge_transition(main_window) -> None:
+    _reset(main_window)
+    tab = main_window._scan_tab
+    bom = pd.DataFrame(
+        [["IN-BOM-1", "IN-BOM-2", "PART_1", "R1"]],
+        columns=["0", "1", "2", "3"],
+    )
+    main_window._bom_df = bom
+    main_window.bom_model.update_dataframe(bom)
+    main_window._fill_bom_combos(preserved_roles=["Custom", "Custom", "Comment", "REF"])
+    tab._refresh_sources()
+    tab.custom_combo.setCurrentIndex(1)
+    assert tab.custom_combo.currentData() == "1"
+
+    merged = pd.DataFrame(
+        {
+            "Ref": ["R1"],
+            "Value": ["PART_1"],
+            "Custom 1": ["IN-MERGE-1"],
+            "Custom 2": ["IN-MERGE-2"],
+        }
+    )
+    main_window._last_merge_df = merged
+    main_window.merge_model.update_dataframe(merged)
+    tab._refresh_sources()
+
+    assert tab.custom_combo.currentData() == "Custom 2"
+    assert list(tab._index) == ["IN-MERGE-2"]
+
+
+def test_empty_export_is_a_load_error_not_part_missing(main_window) -> None:
+    _reset(main_window)
+    tab = main_window._scan_tab
+    tab._export = _export()
+    empty = TolpExport(folder=Path("."), warnings=("unknown PCB layout",))
+
+    tab._export_loaded(empty, "", keep_index=False)
+
+    assert tab._export is None
+    assert tab.source_status.text() == "unknown PCB layout"
+
+
+def test_scan_strings_refresh_on_language_change(main_window) -> None:
+    try:
+        main_window._apply_ui_language("ru", save=False)
+        assert main_window._scan_tab.btn_reload.text() == "Перезагрузить"
+        assert main_window._scan_tab.history_box.title() == "История"
+        assert "Экран оператора" in main_window.btn_scan.toolTip()
+    finally:
+        main_window._apply_ui_language("en", save=False)

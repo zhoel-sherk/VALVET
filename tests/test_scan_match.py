@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(
     0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src")
 )
@@ -66,6 +68,18 @@ def test_index_falls_back_to_the_second_part_key() -> None:
     assert [e.part for e in index["IN-00004778"]] == ["DSS36"]
 
 
+def test_index_uses_custom_cell_semantics_for_pandas_values() -> None:
+    rows = [
+        {"Custom 1": "IN-1", "Value": float("nan"), "Ref": "C1"},
+        {"Custom 1": 100001.0, "Value": "PART_1", "Ref": float("nan")},
+        {"Custom 1": pd.NA, "Value": "PART_2", "Ref": "C2"},
+        {"Custom 1": 0, "Value": "ZERO_1", "Ref": "R0"},
+    ]
+    index = build_code_index(rows, "Custom 1", ["Value"])
+    assert list(index) == ["0", "100001"]
+    assert index["100001"][0].refs == ()
+
+
 def test_resolve_returns_every_slot_sorted() -> None:
     index = build_code_index(ROWS, "Custom 1", ("Value", "Comment"))
     result = resolve_scan("IN-00004594", index, _export())
@@ -73,6 +87,24 @@ def test_resolve_returns_every_slot_sorted() -> None:
     assert [(f.machine, f.side, f.slot) for f in result.feeders] == [
         ("M1", "Rear", 18),
         ("M3", "Front", 44),
+    ]
+
+
+def test_same_code_returns_every_duplicate_feeder() -> None:
+    export = TolpExport(
+        folder=Path("."),
+        feeders=(
+            TolpFeeder("M1", "", "Front", 1, "0201_10K_1%"),
+            TolpFeeder("M1", "", "Front", 7, "0201_10K_1%"),
+            TolpFeeder("M2", "", "Rear", 3, "0201_10K_1%"),
+        ),
+    )
+    index = build_code_index(ROWS, "Custom 1", ("Value", "Comment"))
+    result = resolve_scan("IN-00004594", index, export)
+    assert [(f.machine, f.side, f.slot) for f in result.feeders] == [
+        ("M1", "Front", 1),
+        ("M1", "Front", 7),
+        ("M2", "Rear", 3),
     ]
 
 

@@ -420,8 +420,11 @@ class SessionMixin:
             and hasattr(self, "merge_model")
         ):
             self._last_merge_df = merge_df
+            self._merge_stale = False
             self.merge_model.update_dataframe(merge_df)
             self._update_merge_layer_export_controls()
+        elif bom_df is not None or pnp_df is not None:
+            self._merge_stale = True
         extra = data.get("extra_members") or {}
         if extra:
             self._pack_restore_extra_members(extra)

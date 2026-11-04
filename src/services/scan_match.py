@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from parsers.tolp_export import TolpExport, TolpFeeder, places_for_parts
+from smt_processor import custom_cell_text
 
 STATE_OK = "ok"
 STATE_UNKNOWN_CODE = "unknown_code"
@@ -36,8 +37,8 @@ class ScanResult:
 
 
 def normalize_code(code: object) -> str:
-    """Barcode text to lookup key: collapse whitespace, keep case."""
-    return " ".join(str(code or "").split())
+    """Barcode text to lookup key: Custom-cell semantics, collapsed whitespace."""
+    return " ".join(custom_cell_text(code).split())
 
 
 def build_code_index(
@@ -53,7 +54,7 @@ def build_code_index(
     comment); every distinct non-empty value is kept so a code whose BOM row was
     cleaned and one that was not both resolve.
     """
-    grouped: dict[tuple[str, str], list[str]] = {}
+    grouped: dict[tuple[str, str], dict[str, None]] = {}
     for row in rows:
         code = normalize_code(row.get(code_key))
         if not code:
@@ -68,10 +69,10 @@ def build_code_index(
         refs_raw = row.get(ref_key)
         refs = [normalize_code(refs_raw)] if refs_raw is not None else []
         for part in parts:
-            bucket = grouped.setdefault((code, part), [])
+            bucket = grouped.setdefault((code, part), {})
             for ref in refs:
-                if ref and ref not in bucket:
-                    bucket.append(ref)
+                if ref:
+                    bucket.setdefault(ref, None)
 
     out: dict[str, list[ScanEntry]] = {}
     for (code, part), refs in sorted(grouped.items()):

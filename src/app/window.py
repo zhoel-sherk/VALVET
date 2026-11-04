@@ -111,6 +111,7 @@ class MainWindow(
         self._recent_pnp: list[str] = []
         self._last_report_html: str = ""
         self._last_merge_df: Optional[pd.DataFrame] = None
+        self._merge_stale: bool = False
         self._cc_full_df: Optional[pd.DataFrame] = None
         self._cc_user_accepted: bool = False
         self._restoring_settings: bool = False
@@ -301,6 +302,11 @@ class MainWindow(
             self._pcb_tab.refresh_static_texts()
         if hasattr(self, "_step_3d_tab"):
             self._step_3d_tab.refresh_static_texts()
+        if hasattr(self, "_scan_tab"):
+            self._scan_tab.refresh_static_texts()
+        if hasattr(self, "btn_scan"):
+            self.btn_scan.setText(self.ui_tr("merge.scan"))
+            self.btn_scan.setToolTip(self.ui_tr("merge.scan_tip"))
         self._refresh_shell_status()
 
     def apply_ui_font_from_settings(self) -> None:

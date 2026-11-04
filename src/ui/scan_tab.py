@@ -7,7 +7,9 @@ from typing import Any, Iterable, Optional
 
 from PySide6 import QtCore, QtWidgets
 
-from parsers.tolp_export import TolpExport, TolpExportError, load_tolp_export
+from app.workers import TolpExportLoadThread
+from parsers.tolp_export import TolpExport
+from services.column_mapping import pick_merge_pn_column
 from services.scan_match import (
     STATE_OK,
     STATE_PART_MISSING,
@@ -45,7 +47,9 @@ class ScanTab(QtWidgets.QWidget):
         self._settings = settings
         self._export: Optional[TolpExport] = None
         self._index: dict[str, tuple] = {}
+        self._source_df = None
         self._export_dir = ""
+        self._load_thread: Optional[TolpExportLoadThread] = None
         self._places_error = False
 
         root = QtWidgets.QVBoxLayout(self)
@@ -135,7 +139,11 @@ class ScanTab(QtWidgets.QWidget):
         self.places_label.setTextInteractionFlags(
             QtCore.Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        display_l.addWidget(self.places_label)
+        self.places_scroll = QtWidgets.QScrollArea()
+        self.places_scroll.setWidgetResizable(True)
+        self.places_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.places_scroll.setWidget(self.places_label)
+        display_l.addWidget(self.places_scroll, 1)
         self.hint_label = QtWidgets.QLabel("")
         self.hint_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.hint_label.setWordWrap(True)
@@ -143,15 +151,15 @@ class ScanTab(QtWidgets.QWidget):
         display_l.addStretch(1)
         body.addWidget(display, 3)
 
-        history_box = QtWidgets.QGroupBox(self._tr("scan.history"))
-        history_l = QtWidgets.QVBoxLayout(history_box)
+        self.history_box = QtWidgets.QGroupBox(self._tr("scan.history"))
+        history_l = QtWidgets.QVBoxLayout(self.history_box)
         self.history_list = QtWidgets.QListWidget()
         self.history_list.setAlternatingRowColors(True)
         history_l.addWidget(self.history_list, 1)
         self.btn_clear_history = action_button(self._tr("scan.clear"))
         self.btn_clear_history.clicked.connect(self.history_list.clear)
         history_l.addWidget(self.btn_clear_history)
-        body.addWidget(history_box, 1)
+        body.addWidget(self.history_box, 1)
         root.addLayout(body, 1)
 
         self._restore_settings()
@@ -169,6 +177,18 @@ class ScanTab(QtWidgets.QWidget):
             except Exception:
                 pass
         return key
+
+    def refresh_static_texts(self) -> None:
+        self.folder_label.setText(self._tr("scan.folder"))
+        self.btn_browse.setText(self._tr("scan.browse"))
+        self.btn_reload.setText(self._tr("scan.reload"))
+        self.custom_label.setText(self._tr("scan.custom"))
+        self.font_label.setText(self._tr("scan.font"))
+        self.swap_check.setText(self._tr("scan.swap"))
+        self.scan_edit.setPlaceholderText(self._tr("scan.input"))
+        self.btn_show.setText(self._tr("scan.show"))
+        self.history_box.setTitle(self._tr("scan.history"))
+        self.btn_clear_history.setText(self._tr("scan.clear"))
 
     # -------------------------------------------------------------- settings
     def _restore_settings(self) -> None:
@@ -239,23 +259,59 @@ class ScanTab(QtWidgets.QWidget):
         self._load_export(self._export_dir)
 
     def _load_export(self, path: str, *, keep_index: bool = False) -> None:
-        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
-        try:
-            export = load_tolp_export(
-                path, front_is_one=not self.swap_check.isChecked()
-            )
-        except TolpExportError as exc:
-            self._export = None
-            self.export_status_error(str(exc))
+        if self._load_thread is not None:
             return
-        finally:
+        self._set_export_loading(True)
+        thread = TolpExportLoadThread(path, not self.swap_check.isChecked(), self)
+        self._load_thread = thread
+        thread.result_ready.connect(
+            lambda export, error: self._export_loaded(
+                export, error, keep_index=keep_index
+            )
+        )
+        thread.finished.connect(self._export_load_finished)
+        thread.finished.connect(thread.deleteLater)
+        thread.start()
+
+    def _set_export_loading(self, loading: bool) -> None:
+        for widget in (
+            self.btn_browse,
+            self.btn_reload,
+            self.swap_check,
+            self.scan_edit,
+            self.btn_show,
+        ):
+            widget.setEnabled(not loading)
+        if loading:
+            self.source_status.setStyleSheet("")
+            self.source_status.setToolTip("")
+            self.source_status.setText(self._tr("scan.loading"))
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+        else:
             QtWidgets.QApplication.restoreOverrideCursor()
+
+    def _export_loaded(
+        self, export: Optional[TolpExport], error: str, *, keep_index: bool
+    ) -> None:
+        if export is None:
+            self._export = None
+            self.export_status_error(error)
+            return
+        if not export.feeders:
+            self._export = None
+            details = "; ".join(export.warnings) or self._tr("scan.no_feeders")
+            self.export_status_error(details)
+            return
         self._export = export
         self._set_export_dir(str(export.folder))
         self._render_export_status(export)
         if not keep_index:
             self._refresh_sources()
         self.scan_edit.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+
+    def _export_load_finished(self) -> None:
+        self._load_thread = None
+        self._set_export_loading(False)
 
     def _render_export_status(self, export: TolpExport) -> None:
         machines = len(export.machines)
@@ -264,8 +320,9 @@ class ScanTab(QtWidgets.QWidget):
         )
         if export.source:
             text += f" · {export.source.upper()}"
+        self.source_status.setToolTip("")
         if export.warnings:
-            text += f" · {len(export.warnings)} warning(s)"
+            text += " · " + self._tr("scan.warnings", count=len(export.warnings))
             self.source_status.setToolTip("\n".join(export.warnings[:10]))
         self.source_status.setStyleSheet("")
         self.source_status.setText(text)
@@ -277,6 +334,8 @@ class ScanTab(QtWidgets.QWidget):
 
     # ------------------------------------------------------------------ index
     def _merge_df(self):
+        if bool(self._host_attr("_merge_stale")):
+            return None
         sync = self._host_attr("_sync_merge_df_from_model")
         if callable(sync):
             try:
@@ -302,6 +361,7 @@ class ScanTab(QtWidgets.QWidget):
 
     def _refresh_sources(self) -> None:
         """Build the scanned-code index from Merge, falling back to the BOM."""
+        self._source_df = None
         merge_df = self._merge_df()
         if merge_df is not None and not getattr(merge_df, "empty", True):
             columns = [str(c) for c in merge_df.columns]
@@ -328,15 +388,16 @@ class ScanTab(QtWidgets.QWidget):
         for n, (col, role) in enumerate(roles):
             if role == "Custom":
                 names.append(f"{_CUSTOM_PREFIX}{len(names) + 1}")
-        part_cols = [col for col, role in roles if role == "Comment"]
-        part_cols += [col for col, role in roles if role == "PnJoin"]
+        part_col = pick_merge_pn_column(
+            [col for col, _role in roles], [role for _col, role in roles]
+        )
         ref_col = next((col for col, role in roles if role == "REF"), None)
-        if not part_cols:
+        if part_col is None:
             self._index = {}
             self.source_status.setText(self._tr("scan.no_source"))
             return
         key_columns = [str(c) for c in custom]
-        self._set_index(df, key_columns, part_cols, ref_col)
+        self._set_index(df, key_columns, [part_col], ref_col)
         self._fill_custom_combo(key_columns, labels=names)
 
     def _set_index(
@@ -346,13 +407,10 @@ class ScanTab(QtWidgets.QWidget):
         part_columns: Iterable[str],
         ref_column: Any,
     ) -> None:
+        self._source_df = df
         self._code_columns = list(code_columns)
         self._part_columns = list(part_columns)
         self._ref_column = ref_column
-        selected = self._selected_code_column()
-        if not selected and self._code_columns:
-            selected = self._code_columns[0]
-        self._rebuild_index_for(selected)
 
     def _selected_code_column(self) -> str:
         data = self.custom_combo.currentData()
@@ -362,12 +420,15 @@ class ScanTab(QtWidgets.QWidget):
         self, columns: list[str], *, labels: Optional[list[str]] = None
     ) -> None:
         current = self._selected_code_column()
+        current_ordinal = self.custom_combo.currentIndex()
         self.custom_combo.blockSignals(True)
         self.custom_combo.clear()
         for i, col in enumerate(columns):
             label = labels[i] if labels and i < len(labels) else col
             self.custom_combo.addItem(label, col)
         idx = self.custom_combo.findData(current) if current else -1
+        if idx < 0 and 0 <= current_ordinal < len(columns):
+            idx = current_ordinal
         if idx < 0:
             saved = (
                 str(self._settings.value("scan/custom_column", "") or "")
@@ -375,14 +436,19 @@ class ScanTab(QtWidgets.QWidget):
                 else ""
             )
             idx = self.custom_combo.findData(saved)
+        if idx < 0 and self._settings is not None:
+            try:
+                saved_ordinal = int(self._settings.value("scan/custom_ordinal", 0))
+            except (TypeError, ValueError):
+                saved_ordinal = 0
+            if 0 <= saved_ordinal < len(columns):
+                idx = saved_ordinal
         self.custom_combo.setCurrentIndex(max(0, idx))
         self.custom_combo.blockSignals(False)
         self._rebuild_index_for(self._selected_code_column())
 
     def _rebuild_index_for(self, code_column: str) -> None:
-        df = self._merge_df()
-        if df is None or getattr(df, "empty", True):
-            df, _roles = self._bom_roles()
+        df = self._source_df
         column = code_column
         if df is None or column not in [str(c) for c in df.columns]:
             self._index = {}
@@ -402,6 +468,7 @@ class ScanTab(QtWidgets.QWidget):
         if not column:
             return
         self._save("scan/custom_column", column)
+        self._save("scan/custom_ordinal", self.custom_combo.currentIndex())
         self._rebuild_index_for(column)
 
     # ------------------------------------------------------------------- scan
