@@ -155,7 +155,7 @@ jobs:
           fi
 
       - name: Attest zip provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: VALVET-${{ steps.version.outputs.version }}-windows-x64.zip
 
