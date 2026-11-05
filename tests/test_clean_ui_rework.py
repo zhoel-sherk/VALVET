@@ -370,7 +370,7 @@ def test_ru_clean_labels_are_translated_and_clean() -> None:
 
 
 def test_import_failure_reaches_strip_and_log(main_window, monkeypatch) -> None:
-    import ui.clean_tab as clean_tab
+    import ui.clean_tab.actions as clean_tab
 
     win = main_window
     win.tabs.setCurrentIndex(win._tab_index("clean_bom"))
@@ -397,7 +397,7 @@ def test_import_failure_reaches_strip_and_log(main_window, monkeypatch) -> None:
 
 
 def test_apply_failure_reaches_strip_and_log(main_window, monkeypatch) -> None:
-    import ui.clean_tab as clean_tab
+    import ui.clean_tab.actions as clean_tab
 
     win = main_window
     win.tabs.setCurrentIndex(win._tab_index("clean_bom"))
