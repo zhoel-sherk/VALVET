@@ -6,6 +6,7 @@ import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ui.chrome import apply_equal_widths
+from ui.clean_stepper import StepperInput, stepper_states
 from ui.clean_tab.helpers import _clean_int_list
 
 
@@ -441,94 +442,34 @@ class CleanViewStateMixin:
     def _sync_clean_primary_buttons(self) -> None:
         if not hasattr(self, "btn_clean_convert"):
             return
-        imported = bool(getattr(self, "_clean_imported_comments", None))
-        has_preview = bool(getattr(self, "_clean_last_preview", None))
-        stale = bool(getattr(self, "_clean_preview_stale", False)) and has_preview
-        applied = bool(getattr(self, "_clean_applied", False)) and has_preview
-        # ``cleanStep`` keeps the original enabled-state contract (QSS/tests use it);
-        # ``cleanStepState`` adds the done/next/stale distinction on top.
-        conv_enabled = self.btn_clean_convert.isEnabled()
-        apply_enabled = self.btn_clean_apply.isEnabled()
-        import_active = not conv_enabled and not apply_enabled
-        convert_active = conv_enabled and not apply_enabled
-        apply_active = apply_enabled
-        if not conv_enabled:
-            next_key = "apply" if apply_enabled else "import"
-        elif not apply_enabled:
-            next_key = "convert"
-        else:
-            next_key = "apply"
-        states = {
-            "import": "done" if imported else ("next" if import_active else "idle"),
-            "convert": (
-                "stale"
-                if stale
-                else (
-                    "done"
-                    if has_preview and not stale
-                    else ("next" if next_key == "convert" else "idle")
-                )
-            ),
-            "apply": (
-                "done"
-                if applied
-                else ("next" if next_key == "apply" and apply_enabled else "idle")
-            ),
-        }
-        active_flags = {
-            "import": import_active,
-            "convert": convert_active,
-            "apply": apply_active,
-        }
+        view = stepper_states(
+            StepperInput(
+                imported=bool(getattr(self, "_clean_imported_comments", None)),
+                has_preview=bool(getattr(self, "_clean_last_preview", None)),
+                stale=bool(getattr(self, "_clean_preview_stale", False)),
+                applied=bool(getattr(self, "_clean_applied", False)),
+                convert_enabled=self.btn_clean_convert.isEnabled(),
+                apply_enabled=self.btn_clean_apply.isEnabled(),
+            )
+        )
         markers = {"done": "✓ ", "next": "▶ ", "stale": "⟳ ", "idle": ""}
-        button_keys = {
-            "import": "clean.btn_import",
-            "convert": "clean.btn_convert",
-            "apply": "clean.btn_apply",
+        buttons = {
+            "import": (self.btn_clean_import, "clean.btn_import"),
+            "convert": (self.btn_clean_convert, "clean.btn_convert"),
+            "apply": (self.btn_clean_apply, "clean.btn_apply"),
         }
-        for btn, key in (
-            (self.btn_clean_import, "import"),
-            (self.btn_clean_convert, "convert"),
-            (self.btn_clean_apply, "apply"),
-        ):
-            state = states[key]
-            btn.setProperty("cleanStep", "active" if active_flags[key] else "idle")
-            btn.setProperty("cleanStepState", state)
-            btn.setText(markers[state] + self.ui_tr(button_keys[key]))
+        for key, (btn, text_key) in buttons.items():
+            step = view[key]
+            btn.setProperty("cleanStep", "active" if step.active else "idle")
+            btn.setProperty("cleanStepState", step.state)
+            btn.setText(markers[step.state] + self.ui_tr(text_key))
             btn.setIcon(QtGui.QIcon())
             sty = btn.style()
             sty.unpolish(btn)
             sty.polish(btn)
             btn.update()
-        if self.btn_clean_convert.isEnabled():
-            self.btn_clean_convert.setToolTip(self.ui_tr("clean.btn_convert_tip"))
-        else:
-            self.btn_clean_convert.setToolTip(
-                self.ui_tr(
-                    "clean.btn_convert_disabled_import"
-                    if not imported
-                    else "clean.btn_convert_disabled_map"
-                )
-            )
-        if not self.btn_clean_apply.isEnabled():
-            if not has_preview:
-                self.btn_clean_apply.setToolTip(
-                    self.ui_tr("clean.btn_apply_disabled_convert")
-                )
-            elif stale:
-                self.btn_clean_apply.setToolTip(
-                    self.ui_tr("clean.btn_apply_disabled_stale")
-                )
-            else:
-                self.btn_clean_apply.setToolTip(
-                    self.ui_tr("clean.btn_apply_disabled_none")
-                )
-        elif stale:
-            self.btn_clean_apply.setToolTip(
-                self.ui_tr("clean.btn_apply_disabled_stale")
-            )
-        else:
-            self.btn_clean_apply.setToolTip(self.ui_tr("clean.btn_apply_tip"))
+            if step.tooltip_key:
+                btn.setToolTip(self.ui_tr(step.tooltip_key))
         apply_equal_widths(
             (
                 self.btn_clean_import,
