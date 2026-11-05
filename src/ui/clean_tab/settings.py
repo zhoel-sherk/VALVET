@@ -7,10 +7,10 @@ from typing import Any
 from PySide6 import QtWidgets
 
 from app.constants import _RCL_ROW_DISABLED_STYLE
-from app.prefs import _prefs_profile_bool
 from clean_component import CleanConfig
 from clean_debug_dialog import load_pipeline_from_settings
 from services.clean_config import build_clean_config
+from ui.clean_prefs import CleanPrefs
 from ui.clean_tab.helpers import _CLEAN_PRESET_COMPACT, _CLEAN_PRESET_SMT
 
 
@@ -321,48 +321,49 @@ class CleanSettingsMixin:
         if hasattr(self, "clean_mpn_search_provider"):
             prov = self.clean_mpn_search_provider.currentData() or "digikey"
         key = str(prov) if prov is not None else "digikey"
-        return {
-            "res_template": ",".join(
+        return CleanPrefs(
+            res_template=",".join(
                 self._template_from_combos(self.clean_res_template_combos)
             ),
-            "cap_template": ",".join(
+            cap_template=",".join(
                 self._template_from_combos(self.clean_cap_template_combos)
             ),
-            "ind_template": ",".join(
+            ind_template=",".join(
                 self._template_from_combos(self.clean_ind_template_combos)
             ),
-            "cap_nf": self.clean_cap_nf.isChecked(),
-            "cap_uf_micro": self.clean_cap_uf_micro.isChecked(),
-            "res_ohm_r_suffix": self.clean_res_ohm_r.isChecked(),
-            "infer_resistor_watt_from_package": self.clean_res_watt_from_pack.isChecked(),
-            "use_vendor": self.clean_use_vendor.isChecked(),
-            "from_db": self.clean_from_db.isChecked(),
-            "from_hanwha_mdb": self.clean_from_hanwha_mdb.isChecked(),
-            "hanwha_partial_match": self.clean_hanwha_partial_match.isChecked(),
-            "regex_master_enabled": self.clean_regex_master.isChecked(),
-            "regex_master_preview_scores": self.clean_regex_master_scores.isChecked(),
-            "prefix_use_separator": self.clean_prefix_use_separator.isChecked(),
-            "res_prefix": self.clean_res_prefix.text(),
-            "cap_prefix": self.clean_cap_prefix.text(),
-            "ind_prefix": self.clean_ind_prefix.text(),
-            "group_res": self.chk_clean_res.isChecked(),
-            "group_cap": self.chk_clean_cap.isChecked(),
-            "group_ind": self.chk_clean_ind.isChecked(),
-            "group_pn": self.gb_clean_pn.isChecked(),
-            "combine_input_columns": self.clean_combine_inputs.isChecked(),
-            "output_separator": self._clean_output_separator(),
-            "mpn_search_provider": key,
-            "octopart_api_key": self.clean_octopart_api_key.text()
+            cap_nf=self.clean_cap_nf.isChecked(),
+            cap_uf_micro=self.clean_cap_uf_micro.isChecked(),
+            res_ohm_r_suffix=self.clean_res_ohm_r.isChecked(),
+            infer_resistor_watt_from_package=self.clean_res_watt_from_pack.isChecked(),
+            use_vendor=self.clean_use_vendor.isChecked(),
+            from_db=self.clean_from_db.isChecked(),
+            from_hanwha_mdb=self.clean_from_hanwha_mdb.isChecked(),
+            hanwha_partial_match=self.clean_hanwha_partial_match.isChecked(),
+            regex_master_enabled=self.clean_regex_master.isChecked(),
+            regex_master_preview_scores=self.clean_regex_master_scores.isChecked(),
+            prefix_use_separator=self.clean_prefix_use_separator.isChecked(),
+            res_prefix=self.clean_res_prefix.text(),
+            cap_prefix=self.clean_cap_prefix.text(),
+            ind_prefix=self.clean_ind_prefix.text(),
+            group_res=self.chk_clean_res.isChecked(),
+            group_cap=self.chk_clean_cap.isChecked(),
+            group_ind=self.chk_clean_ind.isChecked(),
+            group_pn=self.gb_clean_pn.isChecked(),
+            combine_input_columns=self.clean_combine_inputs.isChecked(),
+            output_separator=self._clean_output_separator(),
+            mpn_search_provider=key,
+            octopart_api_key=self.clean_octopart_api_key.text()
             if hasattr(self, "clean_octopart_api_key")
             else "",
-            "options_expanded": self.btn_clean_options_toggle.isChecked()
+            options_expanded=self.btn_clean_options_toggle.isChecked()
             if hasattr(self, "btn_clean_options_toggle")
             else False,
-        }
+        ).to_dict()
 
     def _apply_clean_prefs_dict(self, c: dict[str, Any]) -> None:
         if not hasattr(self, "clean_res_template_combos"):
             return
+        prefs = CleanPrefs.from_dict(c)
         if hasattr(self, "chk_clean_res"):
             for gb in (
                 self.chk_clean_res,
@@ -392,67 +393,51 @@ class CleanSettingsMixin:
             w.blockSignals(True)
         self._set_template_combos(
             self.clean_res_template_combos,
-            str(c.get("res_template", "nom,pack,watt,%")),
+            prefs.res_template,
             ("nom", "pack", "watt", "%"),
         )
         self._set_template_combos(
             self.clean_cap_template_combos,
-            str(c.get("cap_template", "nom,pack,film,%,V")),
+            prefs.cap_template,
             ("nom", "pack", "film", "%", "V"),
         )
         self._set_template_combos(
             self.clean_ind_template_combos,
-            str(c.get("ind_template", "pack,nom,%,Imax,DCR")),
+            prefs.ind_template,
             ("pack", "nom", "%", "Imax", "DCR"),
         )
-        self.clean_cap_nf.setChecked(_prefs_profile_bool(c.get("cap_nf"), False))
-        self.clean_cap_uf_micro.setChecked(
-            _prefs_profile_bool(c.get("cap_uf_micro"), False)
-        )
-        self.clean_res_ohm_r.setChecked(
-            _prefs_profile_bool(c.get("res_ohm_r_suffix"), True)
-        )
-        self.clean_res_watt_from_pack.setChecked(
-            _prefs_profile_bool(c.get("infer_resistor_watt_from_package"), False)
-        )
-        self.clean_use_vendor.setChecked(
-            _prefs_profile_bool(c.get("use_vendor"), False)
-        )
-        self.clean_from_db.setChecked(_prefs_profile_bool(c.get("from_db"), True))
-        self.clean_from_hanwha_mdb.setChecked(
-            _prefs_profile_bool(c.get("from_hanwha_mdb"), False)
-        )
-        self.clean_hanwha_partial_match.setChecked(
-            _prefs_profile_bool(c.get("hanwha_partial_match"), False)
-        )
+        self.clean_cap_nf.setChecked(prefs.cap_nf)
+        self.clean_cap_uf_micro.setChecked(prefs.cap_uf_micro)
+        self.clean_res_ohm_r.setChecked(prefs.res_ohm_r_suffix)
+        self.clean_res_watt_from_pack.setChecked(prefs.infer_resistor_watt_from_package)
+        self.clean_use_vendor.setChecked(prefs.use_vendor)
+        self.clean_from_db.setChecked(prefs.from_db)
+        self.clean_from_hanwha_mdb.setChecked(prefs.from_hanwha_mdb)
+        self.clean_hanwha_partial_match.setChecked(prefs.hanwha_partial_match)
         if hasattr(self, "clean_regex_master"):
-            rm = _prefs_profile_bool(c.get("regex_master_enabled"), False)
+            rm = prefs.regex_master_enabled
             self.clean_regex_master.blockSignals(True)
             self.clean_regex_master.setChecked(rm)
             self.clean_regex_master.blockSignals(False)
             self.clean_regex_master_scores.setEnabled(rm)
             self.clean_regex_master_scores.blockSignals(True)
             self.clean_regex_master_scores.setChecked(
-                rm and _prefs_profile_bool(c.get("regex_master_preview_scores"), False)
+                rm and prefs.regex_master_preview_scores
             )
             self.clean_regex_master_scores.blockSignals(False)
-        self.clean_prefix_use_separator.setChecked(
-            _prefs_profile_bool(c.get("prefix_use_separator"), True)
-        )
-        self.clean_res_prefix.setText(str(c.get("res_prefix", "")))
-        self.clean_cap_prefix.setText(str(c.get("cap_prefix", "")))
-        self.clean_ind_prefix.setText(str(c.get("ind_prefix", "")))
+        self.clean_prefix_use_separator.setChecked(prefs.prefix_use_separator)
+        self.clean_res_prefix.setText(prefs.res_prefix)
+        self.clean_cap_prefix.setText(prefs.cap_prefix)
+        self.clean_ind_prefix.setText(prefs.ind_prefix)
         if hasattr(self, "chk_clean_res"):
-            self.chk_clean_res.setChecked(_prefs_profile_bool(c.get("group_res"), True))
-            self.chk_clean_cap.setChecked(_prefs_profile_bool(c.get("group_cap"), True))
-            self.chk_clean_ind.setChecked(_prefs_profile_bool(c.get("group_ind"), True))
-            self.gb_clean_pn.setChecked(_prefs_profile_bool(c.get("group_pn"), True))
-        self.clean_combine_inputs.setChecked(
-            _prefs_profile_bool(c.get("combine_input_columns"), False)
-        )
+            self.chk_clean_res.setChecked(prefs.group_res)
+            self.chk_clean_cap.setChecked(prefs.group_cap)
+            self.chk_clean_ind.setChecked(prefs.group_ind)
+            self.gb_clean_pn.setChecked(prefs.group_pn)
+        self.clean_combine_inputs.setChecked(prefs.combine_input_columns)
         self.clean_spacer_combo.blockSignals(True)
         self.clean_spacer_cust.blockSignals(True)
-        self._apply_clean_spacer_to_ui(str(c.get("output_separator", "_")))
+        self._apply_clean_spacer_to_ui(prefs.output_separator)
         self.clean_spacer_combo.blockSignals(False)
         self.clean_spacer_cust.blockSignals(False)
         for w in (
@@ -477,12 +462,12 @@ class CleanSettingsMixin:
         if hasattr(self, "clean_mpn_search_provider"):
             self.clean_mpn_search_provider.blockSignals(True)
             self.clean_octopart_api_key.blockSignals(True)
-            prov = str(c.get("mpn_search_provider", "digikey"))
+            prov = prefs.mpn_search_provider
             for i in range(self.clean_mpn_search_provider.count()):
                 if self.clean_mpn_search_provider.itemData(i) == prov:
                     self.clean_mpn_search_provider.setCurrentIndex(i)
                     break
-            self.clean_octopart_api_key.setText(str(c.get("octopart_api_key", "")))
+            self.clean_octopart_api_key.setText(prefs.octopart_api_key)
             self.clean_mpn_search_provider.blockSignals(False)
             self.clean_octopart_api_key.blockSignals(False)
         if hasattr(self, "chk_clean_res"):
@@ -498,7 +483,7 @@ class CleanSettingsMixin:
             self._on_gb_clean_ind_toggled(self.chk_clean_ind.isChecked())
             self._on_gb_clean_pn_toggled(self.gb_clean_pn.isChecked())
         if hasattr(self, "btn_clean_options_toggle"):
-            expanded = _prefs_profile_bool(c.get("options_expanded"), False)
+            expanded = prefs.options_expanded
             self.btn_clean_options_toggle.blockSignals(True)
             self.btn_clean_options_toggle.setChecked(expanded)
             self.btn_clean_options_toggle.blockSignals(False)
