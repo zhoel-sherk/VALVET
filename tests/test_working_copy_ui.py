@@ -76,7 +76,8 @@ def test_prompt_recover_returns_dataframe_on_recovered(
     monkeypatch.setattr(working_copy_ui.QtWidgets, "QMessageBox", _FakeMessageBox)
     out = prompt_recover_snapshot(None, str(src), "pnp", str(autosave))
     assert isinstance(out, pd.DataFrame)
-    pd.testing.assert_frame_equal(out, df)
+    # Autosave strips StringDtype before pickling; values must match.
+    pd.testing.assert_frame_equal(out, df, check_dtype=False)
     assert _FakeMessageBox.exec_calls == 1
 
 

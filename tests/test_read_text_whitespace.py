@@ -23,7 +23,7 @@ def test_read_file_tabs_asset() -> None:
     path = os.path.join(tests_path, "assets", "tabs.csv")
     df = smt_processor.read_file(path, separator="\t")
     assert not df.empty
-    flat = df.astype(str).values.ravel().tolist()
+    flat = [str(v) for v in df.to_numpy().ravel()]
     assert any("SOT23" in v for v in flat)
 
 
