@@ -26,7 +26,8 @@ def test_working_copy_snapshot_roundtrip(tmp_path):
     assert snap is not None
     assert snap.meta["kind"] == "bom"
     assert snap.meta["dirty"] is True
-    pd.testing.assert_frame_equal(snap.dataframe, df)
+    # Autosave intentionally strips StringDtype before pickling; values must match.
+    pd.testing.assert_frame_equal(snap.dataframe, df, check_dtype=False)
 
 
 def test_working_copy_exact_snapshot_can_be_marked_clean(tmp_path):
@@ -124,7 +125,8 @@ def test_find_snapshot_legacy_path_after_mtime_change(tmp_path):
     snap = working_copy.find_snapshot(src, "pnp", autosave)
     assert snap is not None
     assert snap.meta["dirty"] is True
-    pd.testing.assert_frame_equal(snap.dataframe, df)
+    # Autosave intentionally strips StringDtype before pickling; values must match.
+    pd.testing.assert_frame_equal(snap.dataframe, df, check_dtype=False)
 
 
 def test_list_snapshot_indices_skips_tmp_and_orphans(tmp_path):
